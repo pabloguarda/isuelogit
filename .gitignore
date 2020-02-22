@@ -1,3 +1,15 @@
 #Virtual environment
 
 venv/
+
+# Pycharm internal files
+
+.idea/
+
+#Python cache
+
+.pytest_cache/
+
+#Git internal files
+
+.git/
