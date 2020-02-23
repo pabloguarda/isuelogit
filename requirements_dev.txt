@@ -1,4 +1,4 @@
-pip==19.2.3
+pip==20.0.2
 bump2version==0.5.11
 wheel==0.33.6
 watchdog==0.9.0
@@ -10,3 +10,10 @@ twine==1.14.0
 Click==7.0
 pytest==4.6.5
 pytest-runner==5.1
+
+# Network modelling packages
+networkx == 2.4
+
+## Human behavior packages
+pylogit == 0.1.2
+choicemodels == 0.2.1
