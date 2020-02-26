@@ -15,3 +15,6 @@ __pycache__/
 #Git internal files
 
 .git/
+
+#Data 
+beijing-subway/

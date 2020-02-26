@@ -8,8 +8,7 @@ coverage==4.5.4
 Sphinx==1.8.5
 twine==1.14.0
 Click==7.0
-pytest==4.6.5
-pytest-runner==5.1
+
 
 # Network modelling packages
 networkx == 2.4
@@ -17,3 +16,10 @@ networkx == 2.4
 ## Human behavior packages
 pylogit == 0.1.2
 choicemodels == 0.2.1
+
+#Testing
+pytest==4.6.5
+pytest-runner==5.1
+
+#Date and time manipulation
+datetime == 4.3

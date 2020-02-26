@@ -1,8 +1,6 @@
 """Tests for main.py module"""
 
-import pytest
-
-from transportAI import main
+from examples import main
 
 
 def test_printHelloWorld(capsys):
