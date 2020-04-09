@@ -85,8 +85,8 @@ class Node:
         self.pos = pos
 
 
-class Edge:
-    def __init__(self, index, origin_node: Node, destination_node: Node):
+class Link:
+    def __init__(self, index, origin_node: Node, destination_node: Node, capacity: int):
         '''
         :argument label: index of the arc. There might be more than one arc between two nodes
         :argument flow: flow in the edge
@@ -95,8 +95,8 @@ class Edge:
         #self.label = label
 
 class Route:
-    def __init__(self, origin, destination, edges: list, traveltime = -1):
-        self._edges = edges
+    def __init__(self, origin, destination, links: list, traveltime = -1):
+        self._links = links
         self._destination = destination
         self._origin = origin
         self._traveltime = traveltime  #Initialization. Travel time must be greater than 0
@@ -109,5 +109,5 @@ class Route:
     def traveltime(self, value):
         self._traveltime = value
 
-    def compute_travel_time(self,edges):
-        self.traveltime = np.sum([edge.traveltime for edge in edges])
+    def compute_travel_time(self,links):
+        self.traveltime = np.sum([link.traveltime for link in links])

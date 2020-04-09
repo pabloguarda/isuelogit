@@ -4,7 +4,6 @@
 # node = Node(label = 1, pos = (0,0))
 # edge = Edge()
 
-
 import transportAI as tt
 import numpy as np
 

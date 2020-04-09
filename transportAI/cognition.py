@@ -11,15 +11,16 @@ import numpy as np
 #         pass
 
 class Alternative:
-    def __init__(self, attribute: dict):
-        pass
+    def __init__(self, attributes: list[str], values: list[float], types: list[type] = None):
+        self._attributes = attributes
+        self._values = values
 
 class DecisionMaking:
 
     # def __init__(self, alternatives):
     #     self.alternatives = alternatives
 
-    def multinomiallogit(self, preferences):
+    def multinomial_logit(self, preferences):
         # "TODO: implement basic model of route choice"
         pass
 
