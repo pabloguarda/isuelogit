@@ -2,7 +2,6 @@
 # Network modelling with transportAI
 # =============================================================================
 
-
 import pandas as pd
 import numpy as np
 import os
@@ -25,7 +24,7 @@ gc.collect()
 ## Select a random sample of trips
 # df = df_raw.sample(n = 10000)
 
-subdirectory = "/data"
+subdirectory = "/examples/data"
 subfolder = "/beijing-subway/"
 folder_path = os.getcwd() + subdirectory + subfolder
 raw_df = tt.reader.read_beijing_data(folder_path=folder_path)

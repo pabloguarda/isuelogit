@@ -29,11 +29,11 @@ __version__ = '0.1.0'
 # two points (..) refer to the directory where the current folder is located
 
 #Modeller function
-from . import infrastructure
-from .ui import create_infrastructure
-from .ui import create_network
-from .ui import create_agents
-from .ui import create_od
+from transportAI import infrastructure
+# from transportAI.ui import create_infrastructure
+# from transportAI.ui import create_network
+# from transportAI.ui import create_agents
+# from transportAI.ui import create_od
 
 #Reader
 from .reader import read_beijing_data

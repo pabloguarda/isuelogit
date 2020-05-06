@@ -5,7 +5,6 @@ import numpy as np
 import cvxpy as cp
 import pandas as pd
 
-
 # =============================================================================
 # Network functions **
 # =============================================================================
@@ -182,7 +181,7 @@ def Logit_From_SUE(x,f,D,M,links, Z, theta_t, theta_Z, constraints_Z = None):
     cp_theta_t = cp.Variable(1)
     cp_theta_Z = cp.Variable(theta_Z.shape[0])
 
-    #Input
+    # Input
     flow_routes = f.value
 
     # Attributes by route
@@ -199,8 +198,8 @@ def Logit_From_SUE(x,f,D,M,links, Z, theta_t, theta_Z, constraints_Z = None):
     Z_routes = (Z.T @ D).T
 
     traveltime_long = nozeromatrixtolist(widetolong(M) * traveltime_routes)
-    z1_long = nozeromatrixtolist(widetolong(M) * Z_routes[:,0])
-    z2_long = nozeromatrixtolist(widetolong(M) * Z_routes[:,1])
+    z1_long = nozeromatrixtolist(widetolong(M) * Z_routes[:, 0])
+    z2_long = nozeromatrixtolist(widetolong(M) * Z_routes[:, 1])
 
     # temp = widetolong(M)*traveltime_routes
     # temp[temp == 0] = float(np.nan)
@@ -400,6 +399,9 @@ results_Logit1 = Logit_From_SUE(x = x1, f = f1, M = M1, D = D1, links = L1
                                 # ,constraints_Z = None
                                 )
 results_Logit1
+
+# x = x1; f = f1; M = M1; D = D1; links = L1; Z = Z1; theta_t = theta_t1; theta_Z = theta_Z1; constraints_Z = constraints_Z1
+
 # x = x1; f = f1; M = M1; D = D1; links = L1; Z = Z1; theta_t = theta_t1; theta_Z = theta_Z1
 
 # Network 2
@@ -412,6 +414,8 @@ results_Logit2 = Logit_From_SUE(x = x2, f = f2, M = M2, D = D2, links = L2
                                 , constraints_Z = constraints_Z2
                                 )
 results_Logit2
+
+# x = x2; f = f2; M = M2; D = D2; links = L2; Z = Z2; theta_t = theta_t2; theta_Z = theta_Z2; constraints_Z = constraints_Z2
 
 # Network 3
 

@@ -3,6 +3,12 @@
 """The setup script."""
 
 from setuptools import setup, find_packages
+import os
+
+def read_requirements(filename):
+    with open(os.path.join('requirements', filename)) as fp:
+        return fp.read().strip().splitlines()
+
 
 with open('README.rst') as readme_file:
     readme = readme_file.read()
@@ -10,11 +16,7 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['Click>=7.0', 'numpy', 'cvxpy']
-
 setup_requirements = ['pytest-runner', ]
-
-test_requirements = ['pytest>=3', ]
 
 setup(
     author="Pablo Guarda",
@@ -37,16 +39,16 @@ setup(
             'transportAI=transportAI.cli:main',
         ],
     },
-    install_requires=requirements,
     license="MIT license",
     long_description=readme + '\n\n' + history,
     include_package_data=True,
-    keywords='transportAI',
+    keywords='AI',
     name='transportAI',
     packages=find_packages(include=['transportAI', 'transportAI.*']),
     setup_requires=setup_requirements,
     test_suite='tests',
-    tests_require=test_requirements,
+    install_requires=read_requirements("prod.txt"),
+    test_requires=read_requirements("dev.txt"),
     url='https://github.com/pabloguarda/transportAI',
     version='0.1.0',
     zip_safe=False,

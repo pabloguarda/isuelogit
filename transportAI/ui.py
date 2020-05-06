@@ -25,7 +25,8 @@ def create_infrastructure(ids: list, type = None, positions = None):
     # architect = Arquitect()
     infrastructure_list = [Infrastructure(id_ = id_, positions = positions) for id_ in ids]
     #print(__name__)
-    return infrastructure_list
+    # return infrastructure_list
+    raise NotImplementedError
 
 
 def create_network(infrastructure):
