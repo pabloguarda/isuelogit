@@ -6,4 +6,4 @@ env:
 install:
   - pip install -r requirements/dev.txt
   - pip install .
-script:
+script: echo foo
