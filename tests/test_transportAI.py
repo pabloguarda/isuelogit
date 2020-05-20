@@ -21,6 +21,6 @@ def test_content(response):
 
 
 def test_package_import():
-    import transportAI as tai
-    assert tai.__version__
+    import transportAI as tt
+    assert tt.__version__
 

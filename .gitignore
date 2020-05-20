@@ -1,5 +1,5 @@
 #Virtual environment
-
+\
 venv/
 env/
 
@@ -17,4 +17,4 @@ __pycache__/
 .git/
 
 #Data 
-beijing-subway/
+examples/data/

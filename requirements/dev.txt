@@ -1,11 +1,4 @@
-hypothesis == 5.10.3
-graphviz == 0.14
-attrs==19.3.0
-pandas==1.0.3
-seaborn
-
-#General
-pip==20.0.2
+#Developer tools
 bump2version==0.5.11
 wheel==0.33.6
 watchdog==0.9.0
@@ -15,18 +8,63 @@ coverage==4.5.4
 Sphinx==1.8.5
 twine==1.14.0
 Click==7.0
+setuptools
+# pip==20.0.2
 
-
-# Network modelling packages
-networkx == 2.4
-
-## Human behavior packages
-pylogit == 0.1.2
-choicemodels == 0.2.1
+#Developer tools to be tried
+hypothesis == 5.10.3
+attrs==19.3.0
 
 #Testing
 pytest==4.6.5
 pytest-runner==5.1
 
+# Translation
+googletrans
+
+#Data analysis
+dfply
+pandas==1.0.3
+
+#Big Data
+pyspark
+
+#Data visualization
+seaborn
+graphviz == 0.14
+matplotlib==3.1.1
+
+# Network modelling packages
+networkx == 2.4
+
+## Human behavior packages
+pylogit == 0.2.2
+choicemodels == 0.2.1
+
 #Date and time manipulation
 datetime == 4.3
+
+#Machine Learning
+glmnet_py
+scikit-learn
+
+#Deep Learning
+tensorflow
+torch
+keras
+
+#Model Fitting
+statsmodels
+
+#Optimization
+networkx==2.4
+numpy==1.18.2
+cvxpy==1.0.29
+
+#General utils
+toolz==0.10.0
+
+# Local packages
+# pyibl-4.0   #It must be installed and downloaded from http://pyibl.ddmlab.com/
+
+
