@@ -3,6 +3,8 @@
 ### External packages
 import pandas as pd
 
+import transportAI
+
 # from .arquitect import Arquitect
 # from .infrastructure import Infrastructure
 
@@ -13,8 +15,8 @@ import pandas as pd
 # from transportAI.arquitect import Arquitect
 
 # from . import modeller as md
+from transportAI.networks import TNetwork
 from transportAI.modeller import Modeller
-from transportAI.network import Network
 from transportAI.agents import Traveller
 
 #from . import architect
@@ -25,15 +27,15 @@ def create_infrastructure(ids: list, type = None, positions = None):
     # architect = Arquitect()
     infrastructure_list = [Infrastructure(id_ = id_, positions = positions) for id_ in ids]
     #print(__name__)
-    # return infrastructure_list
-    raise NotImplementedError
+    return infrastructure_list
+    # raise NotImplementedError
 
 
 def create_network(infrastructure):
 
     """:argument infrastructure is a list of building units (e.g. metro or bus station)"""
 
-    network = Network(infrastructure = infrastructure)
+    network = None #TNetwork(,
     return network
 
 def create_agents(beijing_df, type = 'travellers'):

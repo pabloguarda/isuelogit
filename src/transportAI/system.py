@@ -28,7 +28,6 @@ It can move them according to a predefined schedules, or optimize it by calling 
 #         system.create_system(network = network, vehicles = vehicles, agents = agents):
 
 
-
 class System:
 
     def __init__(self, network, vehicles, agents):
@@ -97,3 +96,6 @@ class Equilibrium:
     def dynamic(self, system):
         self.equilibrium_type = 'dynamic'
         return self.system_state
+
+
+

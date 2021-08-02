@@ -17,4 +17,12 @@ __pycache__/
 .git/
 
 #Data 
-examples/data/
+data/
+examples/notebooks/
+/data/
+
+#input
+output/
+
+#output
+input/
