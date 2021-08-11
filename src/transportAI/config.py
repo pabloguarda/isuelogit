@@ -658,9 +658,7 @@ class Config:
         #=============================================================================
 
         # Set working directory
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-        #Test
+        os.chdir(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
         # Paths to folders or files
         self.paths = {}

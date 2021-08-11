@@ -36,7 +36,7 @@ import os
 project_root = os.path.abspath(os.path.dirname(__file__))
 # output_path = os.path.join(project_root, 'transportAI')
 sys.path.append(project_root)
-print(project_root)
+# print(project_root)
 
 # import sys
 # # insert at 1, 0 is the script path (or '' in REPL)
