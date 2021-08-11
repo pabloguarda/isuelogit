@@ -660,6 +660,8 @@ class Config:
         # Set working directory
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+        #Test
+
         # Paths to folders or files
         self.paths = {}
 
