@@ -29,7 +29,14 @@ import os
 
 # os.chdir(os.getcwd()+"/TransportAI")
 
-sys.path.append('/Users/pablo/google-drive/data-science/github/transportAI/src/transportAI')
+# sys.path.append(os.getcwd()+'/src/transportAI')
+#
+# sys.path.append('/Users/pablo/google-drive/data-science/Github/transportAI/src/transportAI')
+
+project_root = os.path.abspath(os.path.dirname(__file__))
+# output_path = os.path.join(project_root, 'transportAI')
+sys.path.append(project_root)
+print(project_root)
 
 # import sys
 # # insert at 1, 0 is the script path (or '' in REPL)
@@ -140,13 +147,13 @@ sys.path.append('/Users/pablo/google-drive/data-science/github/transportAI/src/t
 
 
 
-######### Without transport AI 
+######### Without transport AI
 
 
 
 #Modeller function
-import infrastructure
-from infrastructure import *
+# import infrastructure
+from . import infrastructure
 # from ui import create_infrastructure
 # from ui import create_network
 # from ui import create_agents
@@ -157,8 +164,8 @@ from infrastructure import *
 # from import network
 
 #Numerical stability module
+# import numeric
 import numeric
-from numeric import *
 
 #Equilibrium module
 import equilibrium

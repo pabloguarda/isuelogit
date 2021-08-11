@@ -11,7 +11,8 @@ if TYPE_CHECKING:
 
 import cvxpy as cp
 
-import printer
+import transportAI.printer as printer
+# from transportAI import printer
 
 from utils import blockPrinting
 import estimation
