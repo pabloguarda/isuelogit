@@ -1,6 +1,9 @@
 # run: conda env create --file requirements/environment.yml
 # run:  conda env update -f requirements/environment.yml
 # To use conda-forge channel: conda config: --append channels conda-forge
+
+# Resource: https://docs.conda.io/projects/conda/en/4.6.0/_downloads/52a95608c49671267e40c689e0bc00ca/conda-cheatsheet.pdf
+
 name: transportAI
 channels:
   - defaults
@@ -20,11 +23,11 @@ dependencies:
 # pip==20.0.2
 
 #Developer tools to be tried
-- hypothesis == 5.10.3
-- attrs==19.3.0
+- hypothesis #== 5.10.3
+- attrs #==19.3.0
 
 #Testing
-- pytest == 5.3.0 #==4.6.5
+- pytest #== 5.3.0 #==4.6.5
 - pytest-runner #==5.1
 
 # Translation
@@ -33,7 +36,7 @@ dependencies:
 # Webscraping
 
 # Network modelling packages
-- networkx == 2.4
+- networkx #== 2.4
 - python-igraph
 
 
@@ -43,7 +46,7 @@ dependencies:
 
 #Data visualization
 - seaborn
-#- graphviz == 0.14
+#- graphviz == 0.14 # conflicting package is version is changed
 #- matplotlib #==3.1.1
 - plotly
 
@@ -51,28 +54,28 @@ dependencies:
 #- openmatrix #not available in conda
 
 ## Human behavior packages
-- pylogit == 0.2.2
-- choicemodels == 0.2.1
+- pylogit #== 0.2.2
+- choicemodels #== 0.2.1
 
 #- biogeme #not available in conda
 
 #Date and time manipulation
 #- datetime #== 4.3 # with conda try conda install -c trentonoliphant datetime
-
-#Machine Learning
-- scikit-learn
-
+#
+##Machine Learning
+#- scikit-learn #conflicting package with conda installation
+#
 #Big data
 #- pyspark install using conda install -c conda-forge pyspark
 - pyspark == 3.0
 - findspark
 - h5py
-
-#- omx
-#Deep Learning
-#tensorflow
-#torch
-#keras
+#
+##- omx
+##Deep Learning
+##tensorflow
+##torch
+##keras
 
 #Model Fitting
 - statsmodels
@@ -81,7 +84,7 @@ dependencies:
 - cvxopt
 - networkx #==2.4
 - numpy # ==1.18.2
-- cvxpy
+- cvxpy [-c conda-forge]
 - autograd
 - numdifftools
 
@@ -93,8 +96,8 @@ dependencies:
 - osmnx
 - folium
 
-#General utils
-- toolz==0.10.0
+##General utils
+- toolz #==0.10.0
 - typing
 - sortedcontainers
 
@@ -102,9 +105,9 @@ dependencies:
 - pip
 - pip:
     - dfply
-    - graphviz == 0.14
+#    - graphviz #== 0.14
     - openmatrix
-    - datetime == 4.3
+    - datetime #== 4.3
 #  - -r file:dev.txt
 
 
