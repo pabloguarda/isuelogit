@@ -1,3 +1,5 @@
+# This setting is compatible with python 3.7
+
 # run: conda env create --file requirements/environment.yml
 # run:  conda env update -f requirements/environment.yml
 # To use conda-forge channel: conda config: --append channels conda-forge

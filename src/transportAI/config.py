@@ -658,7 +658,7 @@ class Config:
         #=============================================================================
 
         # Set working directory
-        os.chdir('/Users/pablo/google-drive/data-science/github/transportAI')
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
         # Paths to folders or files
         self.paths = {}
