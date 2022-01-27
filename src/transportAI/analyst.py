@@ -97,7 +97,7 @@ class Analyst:
         # https://medium.com/@anoop.vasant.kumar/simple-steps-to-setup-pyspark-on-macos-with-python3-87b03ad51bb2
     
         # Path for spark source folder. Download spark from website directly
-        os.environ['SPARK_HOME']="/Users/pablo/google-drive/university/cmu/1-courses/2021-1/10605-ml-with-ld/software/spark-3.0.1-bin-hadoop2.7"
+        os.environ['SPARK_HOME']="/Users/pablo/OneDrive/university/cmu/1-courses/2021-1/10605-ml-with-ld/software/spark-3.0.1-bin-hadoop2.7"
     
         # Path for JAVA installation
         os.environ['JAVA_HOME'] = "/Library/Java/JavaVirtualMachines/jdk-13.0.1.jdk/Contents/Home"

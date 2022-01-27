@@ -3,17 +3,26 @@
 # =============================================================================
 
 import os
+
+# Set seed for reproducibility and consistency in estimation results
+import numpy as np
+import random
+
+np.random.seed(2021)
+random.seed(2021)
+
 #=============================================================================
 # 1.1) MODULES
 #==============================================================================
-
-# Internal modules
-import transportAI as tai
 
 # import transportAI.modeller
 
 # External modules
 import numpy as np
+
+# Seed
+np.random.seed(2021)
+
 import sys
 import pandas as pd
 import os
@@ -21,8 +30,17 @@ import copy
 import time
 import datetime
 
+# Internal modules
+import transportAI as tai
+
+
+
+
+
 from scipy import stats
 
+from sklearn.linear_model import LinearRegression
+import statsmodels.api as sm
 import matplotlib
 
 # from matplotlib import rc
@@ -44,11 +62,40 @@ config = tai.config.Config(network_key = 'Fresno')
 data_analyst = tai.analyst.Analyst()
 
 
-# Period selected for data analysis
 
+# Features
+
+# Features in utility function
+k_Y = ['tt']
+config.estimation_options['k_Z'] = []
+# config.estimation_options['k_Z'] = ['median_inc', 'incidents']
+# config.estimation_options['k_Z'] = []
+# config.estimation_options['k_Z'] = ['tt_sd_adj', 'median_inc', 'incidents', 'intersections', 'bus_stops']
+# config.estimation_options['k_Z'] = ['tt_reliability', 'no_incidents', 'no_intersections', 'no_bus_stops', 'low_inc']
+# config.estimation_options['k_Z'] = ['tt_sd','tt_cv']
+# config.estimation_options['k_Z'] = ['tt_sd_adj', 'intersections', 'incidents_year', 'high_inc', 'bus_stops']
+# config.estimation_options['k_Z'] = ['high_inc', 'bus_stops', 'speed_sd', 'intersections', 'road_closures']
+
+# If any of the two following is set to be equal to none, then  k_Z is used and thus, it includes all features
+k_Z_simulation = None #k_Z #
+k_Z_estimation = None #k_Y
+
+# Set initial theta
+config.theta_0 = dict.fromkeys(k_Y + config.estimation_options['k_Z'], 0)
+# config.theta_0 = dict.fromkeys(k_Y + config.estimation_options['k_Z'], -1)
+
+# config.theta_0['tt'] = -1
+
+
+# First Tuesday of October, 2019
+# config.estimation_options['selected_date'] = '2019-10-01'
+
+# First Tuesday of October, 2020
+config.estimation_options['selected_date'] = '2020-10-06'
+
+# Period selected for data analysis
 config.estimation_options['selected_hour'] = 16
-config.estimation_options['selected_date'] = '2019-10-01' # -> First Tuesday of October, 2019
-# config.estimation_options['selected_date'] = '2020-10-06' # -> First Tuesday of October, 2020
+
 config.estimation_options['selected_date_datetime'] =  datetime.date.fromisoformat(config.estimation_options['selected_date'])
 
 # Get year, day of month, month and day of week using datetime package functionalities
@@ -98,20 +145,23 @@ config.extra_options['write_inrix_daily_data'] = False
 config.extra_options['read_inrix_daily_data'] = True
 
 config.estimation_options['selected_period_incidents'] = {}
-config.estimation_options['selected_period_incidents'] = {'year': [config.estimation_options['selected_year']], 'month': [9,10]}
+# config.estimation_options['selected_period_incidents'] = {'year': [config.estimation_options['selected_year']], 'month': [9,10]}
 
-# Sean suggests to use a longer time window to avoid too many zero incidents
-# config.estimation_options['selected_period_incidents'] =  {'year': [config.estimation_options['selected_year']], 'month': [7,8,9,10]}
+# TODO: Sean suggests to use a longer time window to avoid too many zero incidents
+config.estimation_options['selected_period_incidents'] =  {'year': [config.estimation_options['selected_year']], 'month': [7,8,9,10]}
 
 # Reading options
-config.gis_options['data_processing'] \
-    = {'inrix_segments': False, 'inrix_data': False, 'census': False, 'incidents': False, 'bus_stops': False, 'streets_intersections': False}
 
-# config.gis_options['data_processing'] \
-#     = {'inrix_segments': True, 'inrix_data': True, 'census': True, 'incidents': True, 'bus_stops': True, 'streets_intersections': True}
+if config.estimation_options['k_Z'] == []:
+    config.gis_options['data_processing'] \
+        = {'inrix_segments': False, 'inrix_data': False, 'census': False, 'incidents': False, 'bus_stops': False, 'streets_intersections': False}
 
-# config.gis_options['data_processing'] \
-#     = {'inrix_segments': False, 'inrix_data': False, 'census': False, 'incidents': False, 'bus_stops': False, 'streets_intersections':False}
+else:
+    config.gis_options['data_processing'] \
+        = {'inrix_segments': True, 'inrix_data': True, 'census': True, 'incidents': True, 'bus_stops': True, 'streets_intersections': True}
+
+    # config.gis_options['data_processing'] \
+    #     = {'inrix_segments': False, 'inrix_data': False, 'census': False, 'incidents': False, 'bus_stops': False, 'streets_intersections':False}
 
 # GIS options
 
@@ -130,33 +180,6 @@ config.estimation_options['update_ff_tt_inrix'] = True
 
 #BPR Function parameters
 config.estimation_options['bpr_parameters'] = {'alpha': 0.15, 'beta': 4} #Standard parameters are 0.15 and 4
-
-# Features
-
-# Features in utility function
-k_Y = ['tt']
-config.estimation_options['k_Z'] = []
-# config.estimation_options['k_Z'] = ['tt_sd_adj', 'incidents', 'median_inc', 'intersections', 'bus_stops', 'high_inc']
-# config.estimation_options['k_Z'] = ['tt_reliability']
-# config.estimation_options['k_Z'] = ['tt_sd_adj', 'no_incidents', 'no_intersections', 'no_bus_stops', 'low_inc']
-# config.estimation_options['k_Z'] = ['tt_reliability', 'no_incidents', 'no_intersections', 'no_bus_stops', 'low_inc']
-# config.estimation_options['k_Z'] = ['tt_sd_adj','bus_stops']
-# config.estimation_options['k_Z'] = ['high_inc']
-# config.estimation_options['k_Z'] = ['tt_sd','tt_cv']
-# config.estimation_options['k_Z'] = ['tt_sd', 'incidents', 'high_inc']
-# config.estimation_options['k_Z'] = ['tt_sd_adj', 'intersections', 'incidents', 'high_inc', 'bus_stops']
-# config.estimation_options['k_Z'] = ['high_inc', 'bus_stops', 'speed_sd', 'intersections', 'road_closures']
-# config.estimation_options['k_Z'] = ['incidents_year', 'median_inc', 'speed_sd']
-# config.estimation_options['k_Z'] = ['speed_sd']
-# config.estimation_options['k_Z'] = ['median_inc'] #['n2,n1']
-# config.estimation_options['k_Z'] = config.estimation_options['k_Z']
-
-# If any of the two following is set to be equal to none, then  k_Z is used and thus, it includes all features
-k_Z_simulation = None #k_Z #
-k_Z_estimation = None #k_Y
-
-# Set initial theta
-config.theta_0 = dict.fromkeys(k_Y + config.estimation_options['k_Z'], 0)
 
 
 #To run the algorithm with real data, it suffices to comment out config.set_simulated_counts
@@ -194,8 +217,8 @@ config.estimation_options['ods_coverage_column_generation'] = 0.1 #0.1
 
 # No scaling is performed to compute equilibrium as if normalizing by std, then the solution change significantly.
 config.estimation_options['standardization_regularized'] = {'mean': True, 'sd': True}
-config.estimation_options['standardization_norefined'] = {'mean': True, 'sd': True}
-config.estimation_options['standardization_refined'] = {'mean': False, 'sd': False}
+config.estimation_options['standardization_norefined'] = {'mean': True, 'sd': False}
+config.estimation_options['standardization_refined'] = {'mean': True, 'sd': False}
 
 # Fixed effect by link, nodes or OD zone in the simulated experiment
 config.sim_options['fixed_effects'] = {'Q': False, 'nodes': False, 'links': True, 'coverage': 0.0}
@@ -225,11 +248,15 @@ config.estimation_options['outeropt_method_refined'] = 'ngd'
 
 # Size of batch for pathsand links used to compute gradient
 config.estimation_options['paths_batch_size'] = 0
-config.estimation_options['links_batch_size'] = 32
+config.estimation_options['links_batch_size'] = 0 #32
 # Note: the improvement in speed is impressive with paths but there is inconsistencies
 
+# Momentum
+config.estimation_options['gamma_norefined'] = 0 #0.5
+config.estimation_options['gamma_refined'] = 0 #0.5
+
 # Learning rate for first order optimization
-config.estimation_options['eta_norefined'] = 2e-2
+config.estimation_options['eta_norefined'] = 1e-1
 config.estimation_options['eta_refined'] = 1e-2 #5e-2 works well because the decrease is steady although slower
 
 # Bilevel iters
@@ -255,7 +282,7 @@ config.estimation_options['bilevel_iters_refined'] = 10  # 5
 # config.estimation_options['theta_search'] = 'random' # Do not use boolean, options are 'grid','None', 'random'
 # config.estimation_options['q_random_search'] = True # Include od demand matrix factor variation for random search
 # config.estimation_options['n_draws_random_search'] = 20 # To avoid a wrong scaling factor many random draws needs to be performed
-config.estimation_options['scaling_Q'] = True #True
+config.estimation_options['scaling_Q'] = False #True
 
 # # Initial theta for optimization
 # config.theta_0['tt'] = 0.5
@@ -486,6 +513,10 @@ if observed_links_fixed_effects is not None and config.sim_options['fixed_effect
 # 1.8) Precessing of GIS information and creation of additional link level attributes
 # =============================================================================
 
+manual_matching = True
+build_fresno_gis_files = False
+Fresno_network_gdf = False
+
 if config.sim_options['current_network'] == 'Fresno' and config.sim_options['simulated_counts'] is False:
 
     print('\nMatching geospatial datasets using links of type "LWRLK" ')
@@ -502,26 +533,28 @@ if config.sim_options['current_network'] == 'Fresno' and config.sim_options['sim
     # i) Network data
 
     # Rescaling coordinates to ease the matching of the x,y coordinates to real coordinates in Qqis
-    tai.geographer.adjust_fresno_nodes_coordinates(nodes = N['train'][current_network].nodes, rescale_factor = 1)
+    tai.geographer.adjust_fresno_nodes_coordinates(nodes=N['train'][current_network].nodes, rescale_factor=1)
 
     # Set link orientation according to the real coordinates
     tai.geographer.set_cardinal_direction_links(links=N['train'][current_network].get_regular_links())
 
-    # a) Write line and points shapefiles for further processing (need to be done only once)
+    if build_fresno_gis_files is True:
 
-    tai.geographer \
-        .write_node_points_shp(nodes = N['train'][current_network].nodes
-                               , folderpath = config.paths['output_folder'] + 'gis/Fresno/network/nodes'
-                               , networkname ='Fresno'
-                               , config = config
-                               )
+        # a) Write line and points shapefiles for further processing (need to be done only once)
 
-    tai.geographer \
-        .write_line_segments_shp(links = N['train'][current_network].links
-                                 , folderpath = config.paths['output_folder'] + 'gis/Fresno/network/links'
-                                 , networkname ='Fresno'
-                                 , config = config
-                                 )
+        tai.geographer \
+            .write_node_points_shp(nodes = N['train'][current_network].nodes
+                                   , folderpath = config.paths['output_folder'] + 'gis/Fresno/network/nodes'
+                                   , networkname ='Fresno'
+                                   , config = config
+                                   )
+
+        tai.geographer \
+            .write_line_segments_shp(links = N['train'][current_network].links
+                                     , folderpath = config.paths['output_folder'] + 'gis/Fresno/network/links'
+                                     , networkname ='Fresno'
+                                     , config = config
+                                     )
 
     # b) Read shapefile of layer edited in Qgis where final polish was made (additional spatial adjustments)
 
@@ -537,8 +570,6 @@ if config.sim_options['current_network'] == 'Fresno' and config.sim_options['sim
 
 
     # ii) PEMS stations
-
-    manual_matching = True
 
     if manual_matching is False:
 
@@ -921,7 +952,7 @@ if config.sim_options['simulated_counts'] is True:
         Nt=N['train'][current_network]  # tai.modeller.clone_network(N['train'][i], label = 'clone')
         , theta = theta_true[current_network]
         , k_Y = k_Y, k_Z = k_Z_simulation
-        , eq_params = {'iters': config.sim_options['max_sue_iters'], 'accuracy_eq': config.estimation_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': 20}
+        , eq_params = {'iters': config.sim_options['max_sue_iters'], 'accuracy_eq': config.estimation_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': config.estimation_options['iters_ls_fw']}
         , coverage = config.sim_options['link_coverage']
         , noise_params = config.sim_options['noise_params']
         , n_paths = config.sim_options['n_paths_synthetic_counts']
@@ -1441,7 +1472,7 @@ if config.estimation_options['theta_search'] is not None:
 
     if config.estimation_options['theta_search'] == 'random':
 
-        uncongested_network_objective_function = tai.estimation.loss_predicted_counts_uncongested_network \
+        uncongested_network_objective_function, _ = tai.estimation.loss_predicted_counts_uncongested_network \
             (x_bar=np.array(list(xc.values()))[:, np.newaxis], Nt=N['train'][current_network]
              , k_Y=k_Y, k_Z=config.estimation_options['k_Z'], theta_0=config.theta_0)
 
@@ -1560,7 +1591,7 @@ if config.estimation_options['scaling_Q']:
         Nt=N['train'][current_network], theta=config.theta_0, k_Y=k_Y
         , k_Z=config.estimation_options['k_Z']
         , params = {'iters': config.estimation_options['max_sue_iters_norefined'], 'accuracy_eq': config.estimation_options['accuracy_eq']
-            , 'method': 'line_search', 'iters_ls': 10, 'uncongested_mode': config.sim_options['uncongested_mode']
+            , 'method': 'line_search', 'iters_ls': config.estimation_options['iters_ls_fw'], 'uncongested_mode': config.sim_options['uncongested_mode']
                     }
     )
 
@@ -1589,7 +1620,7 @@ config.estimation_results['mean_counts_prediction_loss'], config.estimation_resu
 print('\nObjective function under mean count prediction: ' + '{:,}'.format(round(config.estimation_results['mean_counts_prediction_loss'],1)))
 
 # Naive prediction using uncongested network
-config.estimation_results['equilikely_prediction_loss'] \
+config.estimation_results['equilikely_prediction_loss'], x_eq_equilikely \
     = tai.estimation.loss_predicted_counts_uncongested_network(
     x_bar = np.array(list(xc.values()))[:, np.newaxis], Nt = N['train'][current_network]
     , k_Y = k_Y, k_Z = config.estimation_options['k_Z'], theta_0 = dict.fromkeys(config.theta_0, 0))
@@ -1608,8 +1639,10 @@ print('Objective function under equilikely route choices: ' + '{:,}'.format(roun
 if k_Z_estimation is None:
     k_Z_estimation = config.estimation_options['k_Z']
 
+bilevel_estimation = tai.estimation.Estimation(config.theta_0)
+
 q_norefined_bilevelopt, theta_norefined_bilevelopt, objective_norefined_bilevelopt,result_eq_norefined_bilevelopt, results_norefined_bilevelopt \
-    = tai.estimation.odtheta_estimation_bilevel(
+    = bilevel_estimation.odtheta_estimation_bilevel(
     # Nt= tai.modeller.clone_network(N['train'][i], label = N['train'][i].label),
     Nt= N['train'][current_network],
     k_Y=k_Y, k_Z=k_Z_estimation,
@@ -1630,12 +1663,12 @@ q_norefined_bilevelopt, theta_norefined_bilevelopt, objective_norefined_bilevelo
         'eta_scaling': 1e-2,
         'eta': config.estimation_options['eta_norefined'], # works well for simulated networks
         # 'eta': 1e-4, # works well for Fresno real network
-        'gamma': 0,
+        'gamma': config.estimation_options['gamma_norefined'],
         'v_lm': 1, 'lambda_lm': 0,
         'beta_1': 0.9, 'beta_2': 0.99
     },
     inneropt_params = {'iters': config.estimation_options['max_sue_iters_norefined'], 'accuracy_eq': config.estimation_options['accuracy_eq']
-        , 'method': 'line_search', 'iters_ls': 20
+        , 'method': 'line_search', 'iters_ls': config.estimation_options['iters_ls_fw']
         , 'k_path_set_selection': config.estimation_options['k_path_set_selection']
         ,'dissimilarity_weight' : config.estimation_options['dissimilarity_weight']
         , 'uncongested_mode': config.sim_options['uncongested_mode']
@@ -1678,7 +1711,9 @@ parameter_inference_norefined_table, model_inference_norefined_table \
                                       , Ix=N['train'][current_network].D, Iq=N['train'][current_network].M
                                       , C=N['train'][current_network].C
                                       , pct_lowest_sse=config.estimation_options['pct_lowest_sse_norefined']
-                                      , alpha=0.05)
+                                      , alpha=0.05                                              , normalization=config.estimation_options['normalization_softmax']
+                                              , numeric_hessian=config.estimation_options['numeric_hessian']
+                                              )
 
 
 with pd.option_context('display.float_format', '{:0.3f}'.format):
@@ -1687,48 +1722,11 @@ with pd.option_context('display.float_format', '{:0.3f}'.format):
     # tai.writer.write_csv_to_log_folder(df=parameter_inference_norefined_table, filename='parameter_inference_norefined_table'
     #                                    , log_file=config.log_file)
 
-
     print('\nSummary of model: \n', model_inference_norefined_table.to_string(index = False))
     # tai.writer.write_csv_to_log_folder(df=model_inference_norefined_table,
     #                                    filename='model_inference_norefined_table'
     #                                    , log_file=config.log_file)
 
-
-# confint_theta_norefined, width_confint_theta_norefined = tai.estimation.confint_theta(
-#     theta=theta_norefined_bilevelopt
-#     , YZ_x=tai.estimation.get_design_matrix(
-#         Y={'tt': result_eq_norefined_bilevelopt['tt_x']}
-#         , Z=N['train'][current_network].Z_dict, k_Y=k_Y, k_Z=config.estimation_options['k_Z'])
-#     , xc= np.array(list(xc.values()))[:, np.newaxis]
-#     , q=tai.networks.denseQ(Q=N['train'][current_network].Q, remove_zeros=N['train'][current_network].setup_options['remove_zeros_Q']), Ix=N['train'][current_network].D, Iq=N['train'][current_network].M,
-#     C=N['train'][current_network].C, alpha=0.05)
-
-# ttest_norefined, criticalval_norefined, pval_norefined \
-#     = tai.estimation.ttest_theta(theta_h0=0
-#                                       , theta=theta_norefined_bilevelopt
-#                                       , YZ_x=tai.estimation.get_design_matrix(Y={'tt': result_eq_norefined_bilevelopt['tt_x']}
-#                                                                         , Z=N['train'][current_network].Z_dict, k_Y=k_Y, k_Z=k_Z_estimation)
-#                                       , xc= np.array(list(xc.values()))[:, np.newaxis]
-#                                       , q=tai.networks.denseQ(Q=N['train'][current_network].Q
-#                                                          , remove_zeros=N['train'][current_network].setup_options['remove_zeros_Q'])
-#                                       , Ix=N['train'][current_network].D, Iq=N['train'][current_network].M
-#                                       , C=N['train'][current_network].C
-#                                       , pct_lowest_sse = config.estimation_options['pct_lowest_sse_norefined']
-#                                       , alpha = 0.05)
-#
-#
-# ftest, critical_fvalue, pvalue = tai.estimation.ftest(theta_m1
-#                                                       = dict(zip(theta_norefined_bilevelopt.keys(),np.zeros(len(theta_norefined_bilevelopt))))
-#                                                       , theta_m2 = theta_norefined_bilevelopt
-#                                                       , YZ_x=tai.estimation.get_design_matrix(Y={'tt': result_eq_norefined_bilevelopt['tt_x']}
-#                                                                                               , Z=N['train'][current_network].Z_dict, k_Y=k_Y, k_Z=k_Z_estimation)
-#                                                       , xc=np.array(list(xc.values()))[:, np.newaxis]
-#                                                       , q=tai.networks.denseQ(Q=N['train'][current_network].Q
-#                                                                               , remove_zeros=N['train'][current_network].setup_options['remove_zeros_Q'])
-#                                                       , Ix=N['train'][current_network].D, Iq=N['train'][current_network].M
-#                                                       , C=N['train'][current_network].C
-#                                                       , pct_lowest_sse=config.estimation_options['pct_lowest_sse_norefined']
-#                                                       , alpha=0.05)
 
 if config.estimation_options['ttest_selection_norefined'] :
 
@@ -1844,7 +1842,7 @@ else:
 
     # Fine scale solution (the initial objective can be different because we know let's more iterations to be performed to achieve equilibrium)
     q_refined_bilevel_opt, theta_refined_bilevelopt, objective_refined_bilevelopt,result_eq_refined_bilevelopt, results_refined_bilevelopt \
-        = tai.estimation.odtheta_estimation_bilevel(Nt= N['train'][current_network],
+        = bilevel_estimation.odtheta_estimation_bilevel(Nt= N['train'][current_network],
                                                     k_Y=k_Y, k_Z=k_Z_estimation,
                                                     Zt={1: N['train'][current_network].Z_dict},
                                                     q0 = N['train'][current_network].q,
@@ -1863,12 +1861,12 @@ else:
                                                         , 'paths_batch_size': config.estimation_options['paths_batch_size']
                                                         , 'eta_scaling': 1e-2
                                                         , 'eta': config.estimation_options['eta_refined'] #1e-6
-                                                        , 'gamma': 0
+                                                        , 'gamma': config.estimation_options['gamma_refined']
                                                         , 'v_lm': 1e3, 'lambda_lm': 1e1
                                                         , 'beta_1': 0.9, 'beta_2': 0.99
                                                         },
                                                     inneropt_params = {'iters': config.estimation_options['max_sue_iters_refined'], 'accuracy_eq': config.estimation_options['accuracy_eq']
-                                                        , 'method': 'line_search', 'iters_ls': 20
+                                                        , 'method': 'line_search', 'iters_ls': config.estimation_options['iters_ls_fw']
                                                         , 'uncongested_mode': config.sim_options['uncongested_mode']
                                                         },  #{'iters': 100, 'accuracy_eq': config.estimation_options['accuracy_eq']},
                                                     bilevelopt_params = {'iters': config.estimation_options['bilevel_iters_refined']}  #{'iters': 10}
@@ -1932,7 +1930,9 @@ else:
                                           , Ix=N['train'][current_network].D, Iq=N['train'][current_network].M
                                           , C=N['train'][current_network].C
                                           , pct_lowest_sse=config.estimation_options['pct_lowest_sse_refined']
-                                          , alpha=0.05)
+                                          , alpha=0.05                                              , normalization=config.estimation_options['normalization_softmax']
+                                              , numeric_hessian=config.estimation_options['numeric_hessian']
+                                              )
 
     with pd.option_context('display.float_format', '{:0.3f}'.format):
 
@@ -1966,7 +1966,7 @@ for axi in [axs[0],axs[1]]:
     axi.tick_params(axis = 'x', labelsize=16)
     axi.tick_params(axis = 'y', labelsize=16)
 
-plt.show()
+# plt.show()
 
 tai.writer.write_figure_to_log_folder(fig = fig
                                       , filename = 'distribution_predicted_count_error.pdf', log_file = config.log_file)
@@ -1989,12 +1989,35 @@ fig = plot1.bilevel_optimization_convergence(
     , methods = [config.estimation_options['outeropt_method_norefined'],config.estimation_options['outeropt_method_refined']]
 )
 
-plt.show()
+# plt.show()
 
 tai.writer.write_figure_to_log_folder(fig = fig
                                       , filename = 'bilevel_optimization_convergence.pdf', log_file = config.log_file)
 
 
+# Map of congestion
+
+# Include capacity and flow in the link, and their ratio
+
+# list(results_norefined_bilevelopt[config.estimation_options['bilevel_iters_norefined']]['equilibrium']['x'].keys())[34]
+# N['train'][current_network].links[34].key
+
+# Congestion shapefile using the links flows obtained in the best iteration
+tai.geographer \
+    .write_links_congestion_map_shp(links=N['train'][current_network].links, flows = best_x_eq_refined
+                             , folderpath=config.paths['output_folder'] + 'gis/Fresno/network/congestion'
+                             , networkname='Fresno'
+                             , config=config
+                             )
+
+# Congestion shapefile using the links flows obtained with a equilikely assignment
+
+tai.geographer \
+    .write_links_congestion_map_shp(links=N['train'][current_network].links, flows = x_eq_equilikely
+                             , folderpath=config.paths['output_folder'] + 'gis/Fresno/network/congestion'
+                             , networkname='Fresno_equilikely'
+                             , config=config
+                             )
 
 # =============================================================================
 # 6) LOG FILE
@@ -2148,6 +2171,40 @@ tai.writer.write_csv_to_log_folder(df=model_inference_table,
 
 
 
+# =============================================================================
+# 7) BENCHMARK REGRESSION
+# =============================================================================
+
+link_flow = predicted_link_counts_over_iterations_df[predicted_link_counts_over_iterations_df.observed == 1].true_count.values.reshape(-1, 1)
+
+link_traveltime = predicted_link_traveltime_over_iterations_df[predicted_link_traveltime_over_iterations_df.observed == 1].iloc[:,-1].values.astype('float').reshape(-1, 1)
+
+reg = LinearRegression().fit(link_traveltime, link_flow)
+
+X = sm.add_constant(link_traveltime)
+Y = link_flow
+
+model = sm.OLS(Y, X)
+
+results = model.fit()
+
+results.params
+
+print(results.summary())
+
+results.predict(X)
+
+mse = np.mean((results.predict(X)-Y)**2)
+
+print('MSE under OLS:', round(mse,1) )
+
+#results.mse_model
+#results.mse_total
+
+
+
+reg.coef_
+reg.intercept_
 
 
 

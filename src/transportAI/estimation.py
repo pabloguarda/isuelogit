@@ -7,15 +7,26 @@ if TYPE_CHECKING:
 # Links, Matrix, ColumnVector, Links, LogitFeatures, LogitParameters, Paths, Options, Vector
 from pastar import neighbors_path, paths_lengths  # These dependencies can be removed
 
+# import torch
+
 from paths import path_generation_nx
 
-import numpy as np
+
 import cvxpy as cp
 import networkx as nx
 from sklearn import preprocessing
 import scipy.linalg as la
 
 import numdifftools as nd
+import numdifftools.nd_algopy as nda
+
+from autograd import elementwise_grad as egrad
+from autograd import jacobian
+
+# import numpy as np
+import autograd.numpy as np
+
+from math import e
 
 from scipy import stats
 
@@ -116,14 +127,28 @@ def v_normalization(v, C):
     :return: column vector with normalization
     '''
 
+    # TODO: this function is not compatible with automatic differentiation
+
     # flattened = False
     if len(v.shape)>1:
         v = v.flatten()
         # flattened = True
 
     C = C.astype('float')
-    C[C == 0] = np.nan
+    C[C == 0] = float('nan') #np.nan
     v_max = np.nanmax(v * C, axis=1)
+    # vC = v * C
+    # vC[np.isnan(vC)] = float('-inf')
+
+
+    # Without using npnanmax
+    # C = C.astype('float')
+    # C[C == 0] = np.nan
+    # # v_max = np.nanmax(v * C, axis=1)
+    # vC = v * C
+    # vC[np.isnan(vC)] = -np.inf
+    #
+    # v_max = np.amax(vC, axis=1)
 
     return (v - v_max)[:,np.newaxis]
 
@@ -856,7 +881,7 @@ def masked_link_counts_after_path_coverage(Nt, xct: dict, print_nan: bool = Fals
 
 
 
-def generate_link_counts_equilibrium(Nt, theta: np.array, k_Y: [], k_Z: [], uncongested_mode: bool, coverage: Proportion, eq_params: {}, noise_params: {} = None, n_paths: int = None) -> (dict,dict):
+def generate_link_counts_equilibrium(Nt, theta: np.array, k_Y: [], k_Z: [], uncongested_mode: bool, coverage: Proportion, eq_params: {}, noise_params: {} = None, n_paths: int = None, sparsity_idxs = []) -> (dict,dict):
     """
 
     :param Nt:
@@ -935,9 +960,6 @@ def generate_link_counts_equilibrium(Nt, theta: np.array, k_Y: [], k_Z: [], unco
             Nt.Q = Q_noisy
             Nt.q = networks.denseQ(Q=Nt.Q, remove_zeros=Nt.setup_options['remove_zeros_Q'])
 
-            # Store noisy matrix
-            Nt.Q_true = copy.deepcopy(Nt.Q)
-            Nt.q_true = copy.deepcopy(Nt.q)
 
         # Scaling error in Q matrix
 
@@ -949,9 +971,18 @@ def generate_link_counts_equilibrium(Nt, theta: np.array, k_Y: [], k_Z: [], unco
             Nt.Q = noise_params['scale_Q']*Nt.Q
             Nt.q = networks.denseQ(Q=Nt.Q, remove_zeros=Nt.setup_options['remove_zeros_Q'])
 
-            # Store scaled matrix
-            Nt.Q_true = copy.deepcopy(Nt.Q)
-            Nt.q_true = copy.deepcopy(Nt.q)
+        if len(sparsity_idxs) != 0:
+
+            # idx = list(set(np.flatnonzero(Nt.Q)))
+            # N = int(round(sparsity * Nt.Q.size))
+            np.put(Nt.Q, sparsity_idxs, 0.1)
+            Nt.q = networks.denseQ(Q=Nt.Q, remove_zeros=Nt.setup_options['remove_zeros_Q'])
+
+
+        # Store new OD matrix
+        Nt.Q_true = copy.deepcopy(Nt.Q)
+        Nt.q_true = copy.deepcopy(Nt.q)
+
 
 
     if n_paths is not None:
@@ -989,6 +1020,9 @@ def generate_link_counts_equilibrium(Nt, theta: np.array, k_Y: [], k_Z: [], unco
     # eq_params
     # theta['tt'] = 0
     results_sue_msa = equilibrium.sue_logit_iterative(Nt=Nt, theta=theta, k_Y=k_Y, k_Z=k_Z, params=eq_params)
+
+    # Store path flows
+    Nt.path_flows = results_sue_msa['f']
 
 
     # Exogenous noise in the link count measurements
@@ -1036,6 +1070,9 @@ def generate_link_counts_equilibrium(Nt, theta: np.array, k_Y: [], k_Z: [], unco
 
     # Revert Q matrix and q dense vector to original form
     if noise_params is not None and (noise_params['sd_Q'] != 0 or noise_params['scale_Q'] != 1):
+
+        Nt.Q_noisy = Nt.Q
+        Nt.q_noisy = Nt.q
         Nt.Q = Q_original
         Nt.q = networks.denseQ(Q=Q_original, remove_zeros=Nt.setup_options['remove_zeros_Q'])
 
@@ -1096,7 +1133,7 @@ def generate_link_traveltimes_equilibrium(N, theta: np.array, k_Y: [], k_Z: [], 
     return results_sue_msa['tt_x']
 
 
-def jacobian_response_function(theta, YZ_x, q, Ix, Iq, C, p_f: ColumnVector = None, paths_batch_size: int = 0, x_bar: ColumnVector = None):
+def jacobian_response_function(theta, YZ_x, q, Ix, Iq, C, p_f: ColumnVector = None, paths_batch_size: int = 0, x_bar: ColumnVector = None, normalization = False):
     '''
 
         :param theta:
@@ -1156,14 +1193,14 @@ def jacobian_response_function(theta, YZ_x, q, Ix, Iq, C, p_f: ColumnVector = No
     # Path probabilities (TODO: I may speed up this operation by avoiding elementwise division)
 
     if p_f is None:
-        p_f = path_probabilities(theta, YZ_x, Ix_sample, C_sample)
+        p_f = path_probabilities(theta, YZ_x, Ix_sample, C_sample, None, normalization)
 
     if len(paths_idxs) > 0:
         p_f_sample = p_f[paths_idxs]
     else:
         p_f_sample = p_f
 
-    # TODO: perform the gradient operation for each attribute using a tensor
+    # TODO: perform the gradient operation for each attribute using autograd
     J = []
 
     # Jacobian/gradient of response function
@@ -1171,8 +1208,6 @@ def jacobian_response_function(theta, YZ_x, q, Ix, Iq, C, p_f: ColumnVector = No
     grad_m_terms = {}
 
     grad_m_terms[0] = Iq_sample.T.dot(q)
-
-    # TODO: This is the availability matrix and it is very expensive to compute when using matrix operation Iq.T.dot(Iq) but not when calling function choice_set_matrix_from_M
     grad_m_terms[1] = C_sample  # computing Iq.T.dot(Iq) is too slow
     grad_m_terms[2] = p_f_sample.dot(p_f_sample.T)
 
@@ -1208,28 +1243,29 @@ def jacobian_response_function(theta, YZ_x, q, Ix, Iq, C, p_f: ColumnVector = No
 
 def link_utilities(theta, YZ_x):
     # Linkutilities
-    v_x = YZ_x.dot(theta)
+    v_x = np.dot(YZ_x,theta)
 
     return v_x
 
 
-def path_utilities(theta, YZ_x, Ix, C):
+def path_utilities(theta, YZ_x, Ix, C, normalization):
 
     #link utilities
     v_x = link_utilities(theta, YZ_x)
 
     #path utilities
-    v_f = Ix.T.dot(v_x)
+    v_f = np.dot(Ix.T,v_x)
 
-    # softmax trick
-    v_f = v_normalization(v_f, C)
+    if normalization is True:
+    # softmax trick (TODO: this operation is computationally expensive)
+        v_f = v_normalization(v_f, C)
 
     assert v_f.shape[1] == 1, 'vector of link utilities is not a column vector'
 
     return v_f
 
 
-def path_utilities_by_attribute(theta, YZ_x, Ix, C, attr_types: {}):
+def path_utilities_by_attribute(theta, YZ_x, Ix, C,normalization):
 
     #If the attribute type is absolute, the computation of link utilities can be done efficiently,
 
@@ -1246,43 +1282,41 @@ def path_utilities_by_attribute(theta, YZ_x, Ix, C, attr_types: {}):
 
         counter_idx += 1
 
-
-
-
-
     # link utilities
     v_x = link_utilities(theta, YZ_x)
 
     # path utilities
     v_f = Ix.T.dot(v_x)
 
-    # softmax trick
-    v_f = v_normalization(v_f.reshape(v_f.shape[0]), C)[:, np.newaxis]
+    if normalization is True:
+        # softmax trick (TODO: this operation is computationally expensive)
+        v_f = v_normalization(v_f.reshape(v_f.shape[0]), C)[:, np.newaxis]
 
     return v_f
 
 
-def path_probabilities(theta, YZ_x, Ix, C, attr_types = None):
+def path_probabilities(theta, YZ_x, Ix, C, attr_types = None, normalization = True):
 
     # TODO: the effect of incidents seems to be additive so normalizing by mean will not necessarily help
 
+    epsilon = 1e-12
+
     if attr_types is None:
 
-        v_f = path_utilities(theta, YZ_x, Ix, C)
+        v_f = path_utilities(theta, YZ_x, Ix, C, normalization)
 
     else:
-        v_f = path_utilities_by_attribute(theta, YZ_x, Ix, C, attr_types)
-
+        v_f = path_utilities_by_attribute(theta, YZ_x, Ix, C, normalization)
 
     # Path probabilities (TODO: speed up this operation by avoiding elementwise division)
-    p_f = np.divide(np.exp(v_f), C.dot(np.exp(v_f)))
+    p_f = np.divide(np.exp(v_f), np.dot(C,np.exp(v_f))+epsilon)
 
     return p_f
 
 
 def response_function(Ix, Iq, q, p_f):
     # Response function
-    m = Ix.dot(np.multiply(Iq.T.dot(q), p_f))
+    m = np.dot(Ix,np.multiply(Iq.T.dot(q), p_f))
 
     return m
 
@@ -1631,7 +1665,7 @@ def loss_predicted_counts_uncongested_network(x_bar: ColumnVector, Nt: TNetwork,
         link.bpr.beta = bpr_beta[link_num]
 
     #Compute l2 norm
-    return loss_function(x_bar = x_bar, x_eq = x_eq)
+    return loss_function(x_bar = x_bar, x_eq = x_eq), x_eq
 
 def scale_Q(x_bar: ColumnVector, Nt: TNetwork, k_Y: [], k_Z: [], theta_0, scale_grid, n_paths, silent_mode = False, uncongested_mode = True, inneropt_params: Options = None):
 
@@ -1693,7 +1727,7 @@ def scale_Q(x_bar: ColumnVector, Nt: TNetwork, k_Y: [], k_Z: [], theta_0, scale_
         Nt.q = networks.denseQ(Q=Nt.Q, remove_zeros=Nt.setup_options)
 
         if uncongested_mode is True:
-            loss_after_scale = loss_predicted_counts_uncongested_network(x_bar=x_bar, Nt=Nt, k_Y=k_Y, k_Z=k_Z
+            loss_after_scale, _ = loss_predicted_counts_uncongested_network(x_bar=x_bar, Nt=Nt, k_Y=k_Y, k_Z=k_Z
                                                                          , theta_0 = theta_0)
 
         else:
@@ -1738,7 +1772,7 @@ def mean_count_l2norm(x_bar, mean_x = None):
     return loss_function(x_bar = x_bar, x_eq = x_benchmark), mean_x
 
 
-def objective_function(theta, YZ_x, x_bar, q, Ix, Iq, C, p_f: ColumnVector = None):
+def objective_function(theta, YZ_x, x_bar, q, Ix, Iq, C, p_f: ColumnVector = None,  normalization = True):
     '''
     SSE: Sum of squared errors
 
@@ -1756,7 +1790,7 @@ def objective_function(theta, YZ_x, x_bar, q, Ix, Iq, C, p_f: ColumnVector = Non
     # Path probabilities (TODO: speed up this operation by avoiding elementwise division)
 
     if p_f is None:
-        p_f = path_probabilities(theta, YZ_x, Ix, C)
+        p_f = path_probabilities(theta, YZ_x, Ix, C, None, normalization)
 
     # Response function
     m = response_function(Ix, Iq, q, p_f)
@@ -1771,6 +1805,25 @@ def objective_function(theta, YZ_x, x_bar, q, Ix, Iq, C, p_f: ColumnVector = Non
 
     return s
 
+def objective_function_numeric_jacobian(theta, *args):
+
+    """ Wrapper function to compute the Jacobian numerically.
+    """
+
+    # return np.sum(objective_function(np.array(theta)[:, np.newaxis], YZ_x = args[0], x_bar= args[1], q= args[2], Ix= args[3], Iq = args[4], C = args[5]))
+
+    return objective_function(np.array(theta)[:, np.newaxis], YZ_x = args[0], x_bar= args[1], q= args[2], Ix= args[3], Iq = args[4], C = args[5], normalization  = args[6])
+
+def objective_function_numeric_hessian(theta, *args):
+
+    """ Wrapper function to compute the Hessian numerically. This type of computation is unreliable and unstable. The hessian is not guaranteed to be PSD which generates issues with its inversion to obtain the covariance matrix
+    """
+
+    # return np.sum(objective_function(np.array(theta)[:, np.newaxis], YZ_x = args[0], x_bar= args[1], q= args[2], Ix= args[3], Iq = args[4], C = args[5]))
+
+    return np.sum(objective_function(np.array(theta)[:, np.newaxis], YZ_x = args[0], x_bar= args[1], q= args[2], Ix= args[3], Iq = args[4], C = args[5], normalization  = args[6]))
+
+
 
 def sse(theta, YZ_x, x_bar, q, Ix, Iq, C):
     # YZ_x.shape
@@ -1779,7 +1832,7 @@ def sse(theta, YZ_x, x_bar, q, Ix, Iq, C):
     return objective_function(theta, YZ_x, x_bar, q, Ix, Iq, C)
 
 
-def ttest_theta(theta_h0, theta: {}, YZ_x, xc, q, Ix, Iq, C, pct_lowest_sse = 100, alpha=0.05, silent_mode: bool = False):
+def ttest_theta(theta_h0, theta: {}, YZ_x, xc, q, Ix, Iq, C, pct_lowest_sse = 100, alpha=0.05, silent_mode: bool = False, numeric_hessian = True):
     # TODO: take advantage of kwargs argument to simplify function signature. A network object should be required only
 
     t0 = time.time()
@@ -1814,16 +1867,24 @@ def ttest_theta(theta_h0, theta: {}, YZ_x, xc, q, Ix, Iq, C, pct_lowest_sse = 10
 
     var_error = sum_sse / (n - p)
 
-    # # Unidimensional inverse function is just the reciprocal but this is multidimensional so inverse is required
-    F, pf = jacobian_response_function(theta_array, YZ_x, q, Ix, Iq, C, paths_batch_size = 0)
-    # cov_theta = var_error * (np.linalg.inv(F.T.dot(F)))
-    # cov_theta = var_error * (np.linalg.pinv(F.T.dot(F)))
+    if numeric_hessian is True:
+        # objective_function(theta_array, YZ_x, xc, q, Ix, Iq, C)
 
-    # #Robust approximation of covariance matrix (almost no difference with previous methods)
-    # cov_theta = np.linalg.lstsq(F.T.dot(F), var_error * np.eye(F.shape[1]), rcond=None)[0]
-    cov_theta = np.linalg.pinv(F.T.dot(F))
+        print('Hessian is computed numerically')
 
-    #TODO: analyze what to do when the variance of the error becomes 0, so the cov_theta is 0 apparently
+        H = nda.Hessian(objective_function_numeric_hessian)(list(theta_array.flatten()), YZ_x, xc, q, Ix, Iq, C)
+
+    else:
+        print('Hessian is approximated as the Jacobian by its transpose')
+
+        # # Unidimensional inverse function is just the reciprocal but this is multidimensional so inverse is required
+        F, pf = jacobian_response_function(theta_array, YZ_x, q, Ix, Iq, C, paths_batch_size=0)
+
+        # #Robust approximation of covariance matrix (almost no difference with previous methods)
+        # cov_theta = np.linalg.lstsq(var_error*F.T.dot(F), np.eye(F.shape[1]), rcond=None)[0]
+        H = F.T.dot(F)
+
+    cov_theta = np.linalg.pinv(H)
 
     # Read Nonlinear regression from gallant (1979)
     # T value
@@ -1849,11 +1910,11 @@ def ttest_theta(theta_h0, theta: {}, YZ_x, xc, q, Ix, Iq, C, pct_lowest_sse = 10
         print('Sample size:', n)
         print(str(round(pct_lowest_sse) ) + '% of the total observations with lowest SSE were used')
 
-        print('Time: ' + str(np.round(time.time() - t0, 1)) + '[s]')
+    print('Time: ' + str(np.round(time.time() - t0, 1)) + '[s]')
 
     return ttest, critical_tvalue, pvalue
 
-def confint_theta(theta: {}, YZ_x, xc, q, Ix, Iq, C, alpha=0.05,pct_lowest_sse = 100, silent_mode: bool = False):
+def confint_theta(theta: {}, YZ_x, xc, q, Ix, Iq, C, alpha=0.05,pct_lowest_sse = 100, silent_mode: bool = False, numeric_hessian = True):
 
     t0 = time.time()
 
@@ -1897,14 +1958,24 @@ def confint_theta(theta: {}, YZ_x, xc, q, Ix, Iq, C, alpha=0.05,pct_lowest_sse =
 
     var_error = sum_sse / (n - p)
 
-    # print(var_error)
+    if numeric_hessian is True:
+        # objective_function(theta_array, YZ_x, xc, q, Ix, Iq, C)
 
-    # # Unidimensional inverse function is just the reciprocal but this is multidimensional so inverse is required
-    F, pf = jacobian_response_function(theta_array, YZ_x, q, Ix, Iq, C, paths_batch_size = 0)
-    # cov_theta = var_error * (np.linalg.inv(F.T.dot(F)))
+        print('Hessian is computed numerically')
 
-    # #Robust approximation of covariance matrix
-    cov_theta = np.linalg.lstsq(F.T.dot(F), var_error * np.eye(F.shape[1]), rcond=None)[0]
+        H = nd.Hessian(objective_function_numeric_hessian)(list(theta_array.flatten()), YZ_x, xc, q, Ix, Iq, C)
+
+    else:
+        print('Hessian is approximated as the Jacobian by its transpose')
+
+        # # Unidimensional inverse function is just the reciprocal but this is multidimensional so inverse is required
+        F, pf = jacobian_response_function(theta_array, YZ_x, q, Ix, Iq, C, paths_batch_size=0)
+
+        # #Robust approximation of covariance matrix (almost no difference with previous methods)
+        # cov_theta = np.linalg.lstsq(var_error*F.T.dot(F), np.eye(F.shape[1]), rcond=None)[0]
+        H = F.T.dot(F)
+
+    cov_theta = np.linalg.pinv(H)
 
     # T value (two-tailed)
     critical_tvalue = stats.t.ppf(1 - alpha / 2, df=n - p)
@@ -1993,8 +2064,10 @@ def ftest(theta_m1: dict, theta_m2: dict, YZ_x, xc, q, Ix, Iq, C, alpha=0.05, pc
 
     return ftest_value, critical_fvalue, pvalue
 
-def hypothesis_tests(theta_h0, theta: {}, YZ_x, xc, q, Ix, Iq, C, pct_lowest_sse = 100, alpha=0.05, x_eq = None):
+def hypothesis_tests(theta_h0, theta: {}, YZ_x, xc, q, Ix, Iq, C, pct_lowest_sse = 100, alpha=0.05, x_eq = None, normalization = False, numeric_hessian = False):
     print('\nPerforming hypothesis testing (H0: theta = ' + str(theta_h0) + ')')
+
+    t0 = time.time()
 
     theta_array = np.array(list(theta.values()))[:, np.newaxis]
 
@@ -2036,32 +2109,76 @@ def hypothesis_tests(theta_h0, theta: {}, YZ_x, xc, q, Ix, Iq, C, pct_lowest_sse
 
     # We add some small constant to avoid problems in inference when the errors are close to 0 (1/\sigma^2 tends to infinity)
 
-    epsilon = 1e-7
+    epsilon = 1e-10
 
-    sum_sse = np.sum(top_sse) + epsilon
+    sum_sse = np.sum(top_sse) # + epsilon
 
     var_error = sum_sse / (n - p)
 
-    # # Unidimensional inverse function is just the reciprocal but this is multidimensional so inverse is required
-    F, pf = jacobian_response_function(theta_array, YZ_x, q, Ix, Iq, C, paths_batch_size=0)
+    if numeric_hessian is True:
+        # objective_function(theta_array, YZ_x, xc, q, Ix, Iq, C)
 
-    # #Robust approximation of covariance matrix (almost no difference with previous methods)
-    # cov_theta = np.linalg.lstsq(var_error*F.T.dot(F), np.eye(F.shape[1]), rcond=None)[0]
-    cov_theta =  np.linalg.pinv(F.T.dot(F))
 
+        # With normalization equals False, there is a 20X speed up in the numeric computation of the Hessian but inference is worsen
+        print('Hessian is being computed numerically')
+        H = nd.Hessian(objective_function_numeric_hessian)(list(theta_array.flatten()), YZ_x, xc,q, Ix, Iq, C, normalization)
+
+
+        # # Automatic differentiation must be used with normalization = False because no gradient for np.nanmax is registered in autograd
+        # It generates NA after inversion of Hessian in many instances. Also, it does not work with only a subset of the traffic counts is available
+
+        # print('Hessian is being computed with automatic differentiation')
+        # df = egrad(objective_function_numeric_hessian)
+        # H = jacobian(egrad(df))
+        # H = H(theta_array.flatten(), YZ_x, xc,q, Ix, Iq, C, normalization)
+
+        # Replaced nan values in Hessian
+        if np.any(np.isnan(H)):
+            print('Cells of the Hessian matrix have NA values')
+            H[np.isnan(H)] = epsilon
+
+
+
+    else:
+        print('Hessian is being approximated as its Jacobian J by the transpose of J')
+
+        # # Unidimensional inverse function is just the reciprocal but this is multidimensional so inverse is required
+        F, pf = jacobian_response_function(theta_array, YZ_x, q, Ix, Iq, C, paths_batch_size=0, x_bar = None, normalization = normalization)
+
+        # Jacobian with automatic differentiation (nan max is not compatible)
+        # F = jacobian(objective_function_numeric_jacobian)(theta_array.flatten(), YZ_x, xc,q, Ix, Iq, C, normalization)
+
+        # Jacobian wth numeric computation
+        # F = nd.Jacobian(objective_function_numeric_jacobian)(list(theta_array.flatten()), YZ_x, xc,q, Ix, Iq, C, normalization)
+
+        H = F.T.dot(F)
+
+        # Replaced nan values in Hessian
+        if np.any(np.isnan(H)):
+            print('Cells of the Hessian matrix have NA values')
+            H[np.isnan(H)] = epsilon
+
+    # #Robust approximation of covariance matrix (almost no difference with previous method)
+    # cov_theta = np.linalg.lstsq(H, np.eye(F.shape[1]), rcond=None)[0]
+
+    cov_theta = np.linalg.pinv(H)
 
     # i) T-tests
 
     critical_tvalue = stats.t.ppf(1 - alpha / 2, df=n - p)
     # ttest = (theta_array - theta_h0) / np.sqrt(np.diag(cov_theta)[:, np.newaxis])
-    ttest = (theta_array - theta_h0) / np.sqrt(var_error * np.diag(cov_theta)[:, np.newaxis])
+
+    # Summing a small epsilon avoid cases where the terms in the diagonal of the covariance matrix are close to 0
+
+    # Constrained terms in the covariance matrix to be positive or equal to epsilon
+    ttest = (theta_array - theta_h0) / (np.sqrt(var_error * np.maximum(np.diag(cov_theta)[:, np.newaxis],epsilon)))
 
     pvalues = 2 * stats.t.sf(np.abs(ttest), df=n - p)  # * 2
 
     # ii) Confidence intervals
-    width_confint = critical_tvalue * np.sqrt(var_error * np.diag(cov_theta)[:, np.newaxis])
+    width_confint = critical_tvalue * np.sqrt(var_error * np.maximum(np.diag(cov_theta)[:, np.newaxis],epsilon))
 
-    confint_list = ["[" + str(round(float(i - j), 4)) + ", " + str(round(float(i + j), 4)) + "]" for i, j in zip(theta_array, width_confint)]
+    confint_list = ["[" + str(round(float(i - j), 3)) + ", " + str(round(float(i + j), 3)) + "]" for i, j in zip(theta_array, width_confint)]
 
     # (iii) F-test
 
@@ -2080,6 +2197,8 @@ def hypothesis_tests(theta_h0, theta: {}, YZ_x, xc, q, Ix, Iq, C, pct_lowest_sse
 
 
     print(str(round(pct_lowest_sse)) + '% of the total observations with lowest SSE were used')
+
+    print('Time: ' + str(np.round(time.time() - t0, 1)) + '[s]')
 
 
     # return a pandas dataframe with summary of inference
@@ -2180,7 +2299,7 @@ def gradient_objective_function(theta: ColumnVector, YZ_x: Matrix, x_bar: Column
         grad_m = Ix_sample.dot(np.multiply(grad_m_terms[0],
                                     np.multiply(grad_m_terms[1], np.multiply(grad_m_terms[2], grad_m_terms[3])))).dot(np.ones(Zk_f.shape))
 
-        gradient_l2norm_k = float(2 * grad_m.T.dot(x_bar - m)) / adjusted_n
+        gradient_l2norm_k = float(2 * grad_m.T.dot(x_bar - m)) #/ adjusted_n
 
         gradient_l2norm.append(float(gradient_l2norm_k))
 
@@ -2229,12 +2348,16 @@ def hessian_objective_function(theta: ColumnVector, x_bar, YZ_x, q, Ix, Iq, C, p
     hessian_l2norm = []
 
     if approximation:
-        epsilon = 1e-3
-        # hessian_l2norm_k = float(jac_m_k.T.dot(jac_m_k))
-        f_plus, p_f_sample   = jacobian_response_function(theta+epsilon, YZ_x, q, Ix, Iq, C, paths_batch_size=0)
-        f_minus, p_f_sample = jacobian_response_function(theta-epsilon, YZ_x, q, Ix, Iq, C, paths_batch_size=0)
+        # epsilon = 1e-3
+        # # hessian_l2norm_k = float(jac_m_k.T.dot(jac_m_k))
+        # f_plus, p_f_sample   = jacobian_response_function(theta+epsilon, YZ_x, q, Ix, Iq, C, paths_batch_size=0)
+        # f_minus, p_f_sample = jacobian_response_function(theta-epsilon, YZ_x, q, Ix, Iq, C, paths_batch_size=0)
+        #
+        # hessian_l2norm = np.mean((f_plus - f_minus) / (2 * epsilon), axis=0)
 
-        hessian_l2norm = np.mean((f_plus - f_minus) / (2 * epsilon), axis=0)
+        print('Hessian is being computed numerically')
+        theta_array = theta
+        H = np.diag(nd.Hessian(objective_function_numeric_hessian)(list(theta_array.flatten()), YZ_x, x_bar,q, Ix, Iq, C,  False))
 
     else:
 
@@ -2294,7 +2417,11 @@ def hessian_objective_function(theta: ColumnVector, x_bar, YZ_x, q, Ix, Iq, C, p
             # Store hessian for particular attribute k
             hessian_l2norm.append(hessian_l2norm_k)
 
-    return np.array(hessian_l2norm)[:, np.newaxis] / x_bar.shape[0]
+            H = hessian_l2norm
+
+
+
+    return np.array(H)[:, np.newaxis] / x_bar.shape[0]
 
 
 def hessian_check(theta):
@@ -2368,662 +2495,547 @@ def hessian_check(theta):
     raise NotImplementedError
 
 
-# @blockPrinting
-def odtheta_estimation_outer_problem(Nt: TNetwork, k_Y: [], Yt: {}, k_Z: [], Zt: {}, q0: ColumnVector, xct: {}, theta0: LogitParameters, outeropt_params: {}, p_f_0: ColumnVector = None, q_bar: ColumnVector = None, standardization: dict = None):
-    """ Address uncongested case first only and with data from a given day only.
-    TODO: congested case, addressing multiday data, stochastic gradient descent
+class Estimation:
+    def __init__(self, theta_0):
 
-    Arguments
-    ----------
-    :argument f: vector with path flows
-    :argument  opt_params={'method': None, 'iters_scaling': 1, 'iters_gd': 0, 'gamma': 0, 'eta_scaling': 1,'eta': 0, 'batch_size': int(0)}
-    :argument
-
-    """
-
-    # batch_size = 0
-
-    # Adam hyperparameters beta_1, beta_2 (when set to 0, we get adagrad)
-    # beta_1 = 0.5#0.9
-    # beta_2 = 0.5#0.999
-
-    method, iters_scaling, iters, eta_scaling, eta, gamma, batch_size, paths_batch_size,v_lm, lambda_lm, beta_1, beta_2 = [outeropt_params[i] for i in ['method', 'iters_scaling', 'iters','eta_scaling', 'eta', 'gamma', 'batch_size', 'paths_batch_size', 'v_lm', 'lambda_lm', 'beta_1', 'beta_2']]
-
-    if method == 'gd' or method == 'ngd':
-        print('\nLearning logit params via ' + method + ' ('+ str(int(iters)) + ' iters, eta = ' + "{0:.1E}".format(eta) + ')\n')
-
-    if method == 'nsgd':
-        print('\nLearning logit params via ' + method + ' ('+ str(int(iters)) + ' iters, eta = ' + "{0:.1E}".format(eta) + ')\n')
-
-    if method == 'adagrad' or method == 'adam':
-        print('\nLearning logit params via ' + method + ' ('+ str(int(iters)) + ' iters, eta = ' + "{0:.1E}".format(eta) + ')\n')
-
-    if method in ['gauss-newton','lm','lm-revised']:
-        print('\nLearning logit params via ' + method + ' (' + str(int(iters)) + ' iters )\n')
-
-        print('Damping factor: ' + "{0:.1E}".format(lambda_lm))
+        self.theta_0 = theta_0
 
 
-    if batch_size > 0:
-        print('batch size for observed link counts = ' + str(batch_size))
-    if paths_batch_size > 0:
-        print('batch size for paths = ' + str(paths_batch_size))
+        # Past gradient for momentum
+        self.grad_old = None
+
+        # Accumulator of gradients for adagrad
+        self.acc_grads = np.zeros(len(self.theta_0))[:, np.newaxis]
+
+        # First (m) and second moments (v) accumulators for adam
+        self.acc_m = np.zeros(len(self.theta_0))[:, np.newaxis]
+        self.acc_v = np.zeros(len(self.theta_0))[:, np.newaxis]
+
+    def reset_gradients(self):
+        # Accumulator of gradients for adagrad
+        self.acc_grads = np.zeros(len(self.theta_0))[:, np.newaxis]
+
+        # First (m) and second moments (v) accumulators for adam
+        self.acc_m = np.zeros(len(self.theta_0))[:, np.newaxis]
+        self.acc_v = np.zeros(len(self.theta_0))[:, np.newaxis]
 
 
-    # TODO: the analysis with multiday data remains to be implemented
-    day = 1
+    # @blockPrinting
+    def odtheta_estimation_outer_problem(self, Nt: TNetwork, k_Y: [], Yt: {}, k_Z: [], Zt: {}, q0: ColumnVector, xct: {}, theta0: LogitParameters, outeropt_params: {}, p_f_0: ColumnVector = None, q_bar: ColumnVector = None, standardization: dict = None):
+        """ Address uncongested case first only and with data from a given day only.
+        TODO: congested case, addressing multiday data, stochastic gradient descent
 
-    n = np.array(list(Yt[day]['tt'].values())).shape[0]
+        Arguments
+        ----------
+        :argument f: vector with path flows
+        :argument  opt_params={'method': None, 'iters_scaling': 1, 'iters_gd': 0, 'gamma': 0, 'eta_scaling': 1,'eta': 0, 'batch_size': int(0)}
+        :argument
 
-    # days = Mt.keys()
-    # n_days = len(list(days))
+        """
 
-    # Starting values for optimization (q0, theta0)
-    # theta0 = dict.fromkeys([*k_Y, *k_Z], -1)
+        # batch_size = 0
 
-    # Matrix of  endogenous (|Y|x|K_Y|) and exogenous link attributes (|Z|x|K_Z|)
-    YZ_x = get_design_matrix(Y=Yt[day], Z=Zt[day], k_Y=k_Y, k_Z=k_Z)
+        # Adam hyperparameters beta_1, beta_2 (when set to 0, we get adagrad)
+        # beta_1 = 0.5#0.9
+        # beta_2 = 0.5#0.999
 
-    # Incidences matrices
-    Ix = Nt.D
-    Iq = Nt.M
+        method, iters_scaling, iters, eta_scaling, eta, gamma, batch_size, paths_batch_size,v_lm, lambda_lm, beta_1, beta_2 = [outeropt_params[i] for i in ['method', 'iters_scaling', 'iters','eta_scaling', 'eta', 'gamma', 'batch_size', 'paths_batch_size', 'v_lm', 'lambda_lm', 'beta_1', 'beta_2']]
 
-    # OD
-    # q = q0[:, np.newaxis]
-    q = q0 #Nt.q
+        if method == 'gd' or method == 'ngd':
+            print('\nLearning logit params via ' + method + ' ('+ str(int(iters)) + ' iters, eta = ' + "{0:.1E}".format(eta) + ')\n')
 
-    # Measurements of dependent variable
-    x_bar = xct[day][:, np.newaxis]
+        if method == 'nsgd':
+            print('\nLearning logit params via ' + method + ' ('+ str(int(iters)) + ' iters, eta = ' + "{0:.1E}".format(eta) + ')\n')
 
-    total_no_nans = np.count_nonzero(~np.isnan(x_bar))
+        if method == 'adagrad' or method == 'adam':
+            print('\nLearning logit params via ' + method + ' ('+ str(int(iters)) + ' iters, eta = ' + "{0:.1E}".format(eta) + ')\n')
 
-    assert batch_size < total_no_nans, 'Batch size larger than size of observed counts vector'
+        if method in ['gauss-newton','lm','lm-revised']:
+            print('\nLearning logit params via ' + method + ' (' + str(int(iters)) + ' iters )\n')
+
+            print('Damping factor: ' + "{0:.1E}".format(lambda_lm))
 
 
-    # This is the availability matrix or choice set matrix. Note that it is very expensive to compute when using matrix operation Iq.T.dot(Iq) so a more programatic method was preferred
-    C = Nt.C
-
-    # Gradient and hessian checks
-    # a = hessian_l2norm(theta, YZ_x, Ix, idx_links = np.arange(0, n))
-    # print('hessian_diff : ' + str(hessian_check(theta=np.array(list(theta0.values()))[:, np.newaxis])))
-    # assert gradient_check(theta = np.array(list(theta0.values()))[:,np.newaxis])<1e-6, 'unreliable gradients'
-    # print('gradient_diff : ' + str(gradient_objective_function_check(theta =np.array(list(theta0.values()))[:, np.newaxis], YZ_x = YZ_x, q = q, Ix = Ix, Iq = Iq, C = C, x_bar = x_bar)))
-    # gradient_check(theta = 10*np.ones(len(np.array(list(theta0.values()))))[:,np.newaxis])
-
-    theta = np.array(list(theta0.values()))[:, np.newaxis]
-
-    # Path probabilities
-    if p_f_0 is None:
-        p_f_0 = path_probabilities(theta, YZ_x, Ix, C)
-
-    # List to store infromation over iterations
-    thetas = [theta]
-    grads = []
-    times = [0]
-    acc_t = 0
-
-    t0 = time.time()
-
-    # epsilon = 1e-4
-
-    # batch_size = 0#int(n*1)
-    # idx = np.arange(0, n)
-
-    # i) Scaling method will set all parameters to be equal in order to achieve quickly a convex region of the problem
-
-    for iter in range(0, iters_scaling):
-
-        if iter == 0:
-            theta = np.array([1])[:, np.newaxis]
-        # thetas[0] * float(theta)
-
-        grad_old = gradient_objective_function(theta, YZ_x.dot(thetas[0].dot(float(theta))), x_bar, q, Ix, Iq, C, paths_batch_size = paths_batch_size)
-
-        # For scaling this makes more sense using a sign function as it operates as a grid search and reduce numerical errors
-
-        theta = theta - np.sign(grad_old) * eta_scaling
-
-        # Record theta with the new scaling
-        thetas.append(thetas[0] * theta)
-        # obj_fun = objective_function(theta=thetas[0] * theta, Ix=Ix, YZ_x=YZ_x)
-
-        # For multidimensional case
-        # theta = theta - (grad_old)/np.linalg.norm(grad_old+epsilon) * eta_ngd  #epsilon to avoid problem when gradient is 0
-
-        if iter == iters_scaling - 1:
-            initial_objective = np.mean(
-                objective_function(theta=thetas[0], YZ_x=YZ_x, x_bar=x_bar, q=q, Ix=Ix, Iq=Iq, C=C))
-            print('initial objective: ' + str(initial_objective))
-            final_objective = np.mean(
-                objective_function(theta=thetas[-1], YZ_x=YZ_x, x_bar=x_bar, q=q, Ix=Ix, Iq=Iq, C=C))
-            print('objective in iter ' + str(iter + 1) + ': ' + str(final_objective))
-            print('scaling factor: ' + str(theta))
-            print('theta after scaling: ' + str(thetas[-1].T))
-            print('objective improvement due scaling: ' + str(1 - final_objective / initial_objective))
-
-    ## ii) Gradient descent or newton-gauss for fine scale optimization
-
-    grad_old = 0  # past gradient
-    theta = thetas[-1]
-    theta_update_old = 0
-    theta_update_new = 0
-
-    p_f = p_f_0.copy()
-
-    # Accumulator of gradients for adagrad
-    acc_grads = np.zeros(len(theta))[:, np.newaxis]
-
-    # First (m) and second moments (v) accumulators for adam
-    acc_m = np.zeros(len(theta))[:, np.newaxis]
-    acc_v = np.zeros(len(theta))[:, np.newaxis]
-
-    for iter in range(0, iters):
-
-        printer.printProgressBar(iter, iters, prefix='Progress:', suffix='',
-                                 length=20)
-
-        # It is very expensive to compute p_f so adequating the code is important
-        if iter > 0:
-            p_f = path_probabilities(theta, YZ_x, Ix, C)
-
-        # Stochastic gradient/hessian
         if batch_size > 0:
-            # Generate a random subset of idxs depending on batch_size
-            missing_sample_size = total_no_nans - batch_size
+            print('batch size for observed link counts = ' + str(batch_size))
+        if paths_batch_size > 0:
+            print('batch size for paths = ' + str(paths_batch_size))
 
-            # Sample over the cells of the x_bar vector with no nan
 
-            idx_nonas = np.where(~np.isnan(x_bar))[0]
+        # TODO: the analysis with multiday data remains to be implemented
+        day = 1
 
-            # Set nan in the sample outside of batch that has no nan
-            idx_nobatch = list(np.random.choice(idx_nonas, missing_sample_size, replace=False))
+        n = np.array(list(Yt[day]['tt'].values())).shape[0]
 
-            x_bar_masked = masked_observed_counts(xct=x_bar, idx=idx_nobatch)
+        # days = Mt.keys()
+        # n_days = len(list(days))
 
-        # i) First order optimization methods
+        # Starting values for optimization (q0, theta0)
+        # theta0 = dict.fromkeys([*k_Y, *k_Z], -1)
 
-        if method in ['gd', 'ngd', 'sgd', 'nsgd', 'adagrad', 'adam']:
+        # Matrix of  endogenous (|Y|x|K_Y|) and exogenous link attributes (|Z|x|K_Z|)
+        YZ_x = get_design_matrix(Y=Yt[day], Z=Zt[day], k_Y=k_Y, k_Z=k_Z)
 
-            x_bar_masked = copy.deepcopy(x_bar)
+        # Incidences matrices
+        Ix = Nt.D
+        Iq = Nt.M
 
-            # Sample a batch in the gradient vector
+        # OD
+        # q = q0[:, np.newaxis]
+        q = q0 #Nt.q
 
-            grad_new = gradient_objective_function(theta, YZ_x, x_bar_masked, q, Ix, Iq, C, p_f, standardization=standardization, paths_batch_size = paths_batch_size)
+        # Measurements of dependent variable
+        x_bar = xct[day][:, np.newaxis]
 
-            # TODO: review momentumformula
-            # grad_old = (1 - gamma) * grad_old + gamma * grad_new
-            # grad_old = gamma * grad_old + gamma * grad_new
+        total_no_nans = np.count_nonzero(~np.isnan(x_bar))
 
-            # TODO implement nesterov acelerated gradient descent
-            # https: // ruder.io / optimizing - gradient - descent /
+        assert batch_size < total_no_nans, 'Batch size larger than size of observed counts vector'
 
-            if method == 'gd':
-                theta_update_new = gamma * (theta_update_old) + eta * grad_new
 
-                # Gradient update (with momentum)
-                theta = theta - theta_update_new
+        # This is the availability matrix or choice set matrix. Note that it is very expensive to compute when using matrix operation Iq.T.dot(Iq) so a more programatic method was preferred
+        C = Nt.C
 
-                theta_update_old = theta_update_new
+        # Gradient and hessian checks
+        # a = hessian_l2norm(theta, YZ_x, Ix, idx_links = np.arange(0, n))
+        # print('hessian_diff : ' + str(hessian_check(theta=np.array(list(theta0.values()))[:, np.newaxis])))
+        # assert gradient_check(theta = np.array(list(theta0.values()))[:,np.newaxis])<1e-6, 'unreliable gradients'
+        # print('gradient_diff : ' + str(gradient_objective_function_check(theta =np.array(list(theta0.values()))[:, np.newaxis], YZ_x = YZ_x, q = q, Ix = Ix, Iq = Iq, C = C, x_bar = x_bar)))
+        # gradient_check(theta = 10*np.ones(len(np.array(list(theta0.values()))))[:,np.newaxis])
 
-            if method == 'ngd':
-                epsilon = 1e-7
+        theta = np.array(list(theta0.values()))[:, np.newaxis]
 
-                if len(theta) == 1:
-                    theta = theta - np.sign(grad_new)* eta
-                else:
-                    theta = theta - (grad_new) / np.linalg.norm(grad_new + epsilon) * eta  # epsilon to avoid problem when gradient is 0
+        # Path probabilities
+        if p_f_0 is None:
+            p_f_0 = path_probabilities(theta, YZ_x, Ix, C)
 
-                # print('gradient_diff : ' + str(gradient_check(theta=theta)))
-
-
-            if method == 'adagrad':
-
-                # TODO: Fix adagrad using diagonal matrix for accumulated gradients and use acumulated gradients from past bilevel iterations. The same applies for Adam and momentum updates
-
-                epsilon = 1e-7
-
-                acc_grads += grad_new**2
-
-                theta = theta - eta/(np.sqrt(acc_grads) +epsilon)*grad_new
-
-            if method == 'adam':
-
-                epsilon = 1e-7
-
-                # Compute and update first moments (m) and second moments (v)
-                acc_m = beta_1*acc_m + (1-beta_1)*grad_new
-                acc_v = beta_2*acc_v + (1-beta_2)*grad_new**2
-
-                # Adjusted first and second moments
-                adj_m = acc_m/(1-beta_1)
-                adj_v = acc_v/(1-beta_2)
-
-                # Parameter update
-                theta = theta - eta* (adj_m / (np.sqrt(adj_v) + epsilon))
-
-            grads.append(grad_old)
-
-        # ii) Second order optimization methods
-
-        # Gauss-newthon exploit when it is not in a convex region
-
-        if method == 'newton':
-            # TODO: this can be speed up by avoid recomputing some terms two times for both the gradient and Hessian
-
-            G = gradient_objective_function(theta, YZ_x, x_bar, q, Ix, Iq, C, p_f, paths_batch_size = paths_batch_size)
-
-            H = hessian_objective_function(theta, x_bar, YZ_x, q, Ix, Iq, C, p_f, paths_batch_size = paths_batch_size)
-
-            theta = theta - np.linalg.pinv(H).dot(G)
-
-            # # Stable version
-            # theta = theta + np.linalg.lstsq(H, -G, rcond=None)[0]
-
-        if method == 'gauss-newton':
-
-            # The computation time is roughly the same with NGD as this method does not compute the Hessian but approximate it
-
-
-            J, p_f_sample, Ix_sample, Iq_sample = jacobian_response_function(theta, YZ_x, q, Ix, Iq, C, p_f, paths_batch_size, x_bar)
-
-            pred_x = response_function(Ix_sample, Iq_sample, q, p_f_sample)
-
-            delta_y = fake_observed_counts(pred_x,x_bar)-pred_x
-
-            # # Package solution from scipy
-            # theta = theta + la.lstsq(J, -delta_y )[0]
-
-            # # Update
-            # theta = theta +  np.linalg.inv(J.T.dot(J)).dot(J.T).dot(delta_y)
-            # theta = theta + np.linalg.pinv(J.T.dot(J)).dot(J.T).dot(delta_y)
-
-            # #Stable solution but works only if matrix is full rank
-            # theta = theta +  np.linalg.solve(J.T.dot(J), J.dot(delta_y))
-
-            # Lstsq is used to obtain an approximate solution for the system
-            # https://nmayorov.wordpress.com/2015/06/18/basic-asdlgorithms-for-nonlinear-least-squares/
-            # theta = theta +  np.linalg.lstsq(J.T.dot(J), J.T.dot(delta_y))[0]
-
-            # Understand why we ignore the J^T term when doing this, maybe this means just to multiply for a pseudo inverse. This is certainly more numerically stable
-            theta = theta + np.linalg.lstsq(J, -delta_y, rcond=None)[0]
-
-            # print('here')
-
-        if method == 'lm' or method == 'lm-revised':
-
-            #Source: https://en.wikipedia.org/wiki/Levenberg%E2%80%93Marquardt_algorithm
-
-
-            J, p_f_sample, Ix_sample, Iq_sample = jacobian_response_function(theta, YZ_x, q, Ix, Iq, C, p_f, paths_batch_size, x_bar)
-
-            pred_x = response_function(Ix_sample, Iq_sample, q, p_f_sample)
-
-            delta_y = fake_observed_counts(pred_x, x_bar) - pred_x
-
-            lambda_lm = 0.1#0.2
-
-            J_T_J = J.T.dot(J)
-
-            if method == 'lm-revised':
-
-                theta = theta + np.linalg.lstsq(J_T_J + lambda_lm*np.diag(J_T_J), -J.T.dot(delta_y), rcond=None)[0]
-
-            if method == 'lm':
-                theta = theta + np.linalg.lstsq(J_T_J + lambda_lm*np.eye(J_T_J.shape[0]), -J.T.dot(delta_y), rcond=None)[0]
-
-            #Choice of damping factor
-
-            # Marquardt recommended starting with a value \lambda _{0} and a factor \nu > 1. Initially setting \lambda =\lambda _{0} and computing the residual sum of squares  after one step from the starting point with the damping factor of \lambda =\lambda _{0} and secondly with \lambda _{0}/\nu . If both of these are worse than the initial point, then the damping is increased by successive multiplication by \nu  until a better point is found with a new damping factor of {\lambda _{0}\nu^{k} for some k.
-
-
-        delta_t = time.time() - t0
-        acc_t += delta_t
-
-        thetas.append(theta)
-        times.append(acc_t)
-
-    q = q0
-
-    if 'od_estimation' in outeropt_params and outeropt_params['od_estimation']:
-
-        # Optimization of OD matrix (using plain gradient descent meantime)
-        jacobian_q_x = Ix.dot(p_f.dot(np.ones([p_f.size,1]).T)).dot(Iq.T)
-
-        # Prediction of link flow
-        pred_x = response_function(Ix, Iq, q, p_f)
-
-        # Hyperparam
-        # lambda_q = 1e2 # This works very well for Yang network
-        lambda_q = 1e2 # This works very well for Sioux network
-
-        # This is a sort of RELU in neural networks terms
-        grad_new_q = 1/x_bar.size*(lambda_q*2*(q0-q_bar)+2*jacobian_q_x.T.dot(pred_x-x_bar))
-
-        #Projected Gradient descent update
-        # https://www.cs.ubc.ca/~schmidtm/Courses/5XX-S20/S5.pdf
-        # eta_q = 1e-2 # This works very well for Yang network and GD
-        #
-        eta_q = 1e-4 # This works very well for Sioux network and GD
-
-        q =  np.maximum(np.zeros([q0.size,1]), q0 - grad_new_q * eta_q)
-
-        # # Projected adagrad
-        #
-        # # eta_q = 1e-7  # This works very well for Yang with adagrad
-        # eta_q = 1e-11 # This works very well for Sioux with adagrad
-        # #
-        # acc_grads_q += grad_new_q ** 2
-        # #
-        # epsilon = 1e-8
-        # Gt = np.diag(acc_grads_q.flatten())
-        # q = np.maximum(np.zeros([q0.size,1]), q0 - (eta_q / np.sqrt(Gt+ epsilon)).dot(grad_new_q))
-
-
-
-        print(repr(np.round(q.T,1)))
-
-    # # Values of objective function
-    # obj_fun = objective_function(theta=theta, Ix=Ix, YZ_x=YZ_x)
-
-    # if iter == 0:
-    #     print('initial objective function:' + str(np.sum(obj_fun)))
-    #     print('initial objective function:' + str(np.sum(obj_fun)))
-    # print(theta)
-
-    # print('Method used is :' + method)
-    # print('initial theta: ' + str(thetas[0].T))
-    # print('theta in iter ' + str(iter + 1) + ': ' + str(theta.T))
-
-    # initial_objective = np.mean(
-    #     objective_function(theta=thetas[0], YZ_x=YZ_x, x_bar=x_bar, q=q, Ix=Ix, Iq=Iq, C=C, p_f=p_f_0))
-
-    # Do not provide p_f in this part, because it does not correspond to the p_f in the last iteration but the one before the last
-    # Thus, if there is only one iteration p_f and p_f_0 are equal, and the value of the objective function is wrongly assumed to be the same
-    final_objective = np.mean(
-        objective_function(theta=thetas[-1], YZ_x=YZ_x, x_bar=x_bar, q=q0, Ix=Ix, Iq=Iq, C=C))
-
-
-    # print('objective in iter ' + str(iter + 1) + ': ' + str(final_objective))
-    # print('objective improvement : ' + str(1 - final_objective / initial_objective))
-
-    # print('theta: ' + str(np.array(list(theta_current.values()))))
-
-    # grad_old = grads[-1]
-
-    theta = thetas[-1]
-
-    # Conver theta into a dictionary to return it then
-    theta_dict = dict(zip([*k_Y, *k_Z], theta.flatten()))
-
-    # print('theta: ' + str({key: round(val, 4) for key, val in theta_dict.items()}))
-
-    print('theta: ' + str({key: "{0:.1E}".format(val) for key, val in theta_dict.items()}))
-    # print('theta: ' + str({key: round(val,3) for key, val in theta_dict.items()}))
-
-    if 'c' in theta_dict.keys() and theta_dict['c'] != 0:
-        print('Current ratio theta: ' + str(round(theta_dict['tt'] / theta_dict['c'], 4)))
-
-    print('time: ' + str(np.round(time.time() - t0, 1)) + '[s]')
-
-    return q, theta_dict, grads, final_objective
-    # return theta_dict, None, final_objective
-
-
-
-def odtheta_estimation_bilevel(Nt: TNetwork, Zt: {}, k_Y: list, k_Z: list, xct: {}, theta0: {}, q0: np.ndarray, outeropt_params: {}, inneropt_params: {}, bilevelopt_params: {}, q_bar: ColumnVector = None, standardization: dict = None, n_paths_column_generation: int = 0, silent_mode = True):
-
-    """ Congested case where Yt do not necessarily inform on the optimal travel times
-
-    Arguments
-    ----------
-    :argument f: vector with path flows
-    :argument M: Path/O-D demand incidence
-    :argument D: Path/link incidence matrix
-    :argument xct: link counts
-    :argument Ni: Network object (TODO: name will be later updated to N)
-    """
-
-    print('\nBilevel optimization for ' + str(Nt.key) + ' network \n')
-
-    # TODO: Schedule the number of iterations so they are higher when the bilevel optimization is finishing
-
-    # Mt = {1: N['train'][i].M}
-    # Ct = {1: tai.estimation.choice_set_matrix_from_M(N['train'][i].M)}
-    # Dt = {1: N['train'][i].D}
-    # k_Y = k_Y; k_Z = k_Z
-    # Yt = {1: N['train'][i].Y_dict}
-    # Zt = {1: N['train'][i].Z_dict}
-    # q0 = tai.network.denseQ(Q=N['train'][i].Q,remove_zeros=remove_zeros_Q)
-    # theta0 = dict.fromkeys([*k_Y, *k_Z], 0)
-    #
-    # results_sue_msa = tai.equilibrium.sue_logit_msa_k_paths(N=N['train'][i], maxIter=maxIter, accuracy=0.01,
-    #                                                            theta=theta_true[i])
-    #
-    # N['train'][i].set_Y_attr_links(y=results_sue_msa['tt_x'], label='tt')
-    # # N['train'][i].Y_dict
-    # xct = np.array(list(results_sue_msa['x'].values()))
-
-    # xct = {1: N['train'][i].x}
-
-    # TODO: the analysis with multiday data remains to be implemented
-    day = 1
-
-    # Update od
-    q_current = copy.deepcopy(q0)
-
-
-    # print('there')
-
-    # N_copy = transportAI.networks.clone_network(N=Nt, label='Clone', randomness = {'Q': False, 'BPR': False, 'Z': False})#[N.label]
-    # N_copy = Nt
-
-    # Initialization
-
-    # TODO: this assume that k_Z has at least one attribute but it may be not the case
-    theta_current = {i: theta0[i] for i in [*k_Y, *k_Z]}
-
-
-
-    # print(theta_current)
-    # theta_current = theta_true[i].copy()
-    # theta_new = theta_current.copy()
-
-
-    x_bar = xct[day][:, np.newaxis]
-
-    print('Iteration : ' + str(1) + '/' + str(int(bilevelopt_params['iters'])))
-
-
-    results = {}
-    results_eq = {}
-
-    # Initial objective function
-
-    initial_inneropt_params = copy.deepcopy(inneropt_params)
-    initial_inneropt_params['k_path_set_selection'] = 0
-
-    results_eq[1] = equilibrium.sue_logit_iterative(Nt=Nt, theta= theta_current, q = q_current, k_Y=k_Y, k_Z=k_Z, params=initial_inneropt_params, n_paths_column_generation=0, standardization = standardization)
-
-    # x_eq = np.array(list(results_eq_initial['x'].values()))
-    x_eq = np.array(list(results_eq[1]['x'].values()))[:,np.newaxis]
-
-    # Update values in network
-    Nt.x_dict = results_eq[1]['x']  # #
-    Nt.x = np.array(list(Nt.x_dict.values()))[:,np.newaxis]
-    Nt.set_Y_attr_links(y=results_eq[1]['tt_x'], label='tt')
-
-    initial_objective = loss_function(x_bar=x_bar, x_eq=x_eq)
-
-    results[1] = {'theta': theta_current, 'q': q_current, 'objective': initial_objective,'equilibrium': results_eq[1]}
-
-    # Ix = Nt.D
-    # Iq = Nt.M
-    # YZ_x = get_design_matrix(Y={'tt': results_eq_initial['tt_x']}, Z=Zt[day], k_Y=k_Y, k_Z=k_Z)
-
-    # final_objective = np.mean(
-    #     objective_function(theta=np.array(list(theta_current.values())), YZ_x=YZ_x, x_bar=x_bar, q=q0[:, np.newaxis],
-    #                        Ix=Ix, Iq=Iq, C=Nt.C, p_f=results_eq_initial['p_f']))
-
-
-    # print('\nInitial theta: ' +str({key: round(val, 3) for key, val in theta_current.items()}))
-    print('Initial theta: ' + str({key: "{0:.1E}".format(val) for key, val in theta_current.items()}))
-    # print('Initial q: ', repr(np.round(q_current.T,1)))
-    print('Initial objective: ' + '{:,}'.format(round(initial_objective)))
-
-    if 'c' in theta_current.keys() and theta_current['c'] != 0:
-        print('Initial ratio theta: ' + str(round(theta_current['tt'] / theta_current['c'], 4)))
-
-    # if iter < 1:
-
-    idx_nonas = list(np.where(~np.isnan(x_bar))[0])
-
-    link_keys = [(link.key[0],link.key[1]) for link in Nt.links if not np.isnan(link.observed_count)]
-
-    # [link.observed_count for link in Nt.links]
-
-    link_capacities = np.array([link.bpr.k for link in Nt.links if not np.isnan(link.observed_count)])
-
-    link_capacities_print = []
-    for i in range(len(link_capacities)):
-        if link_capacities[i] > 10000:
-            link_capacities_print.append(float('inf'))
-        else:
-            link_capacities_print.append(link_capacities[i])
-
-    initial_error_by_link = error_by_link(x_bar, x_eq, show_nan=False)
-
-    # Travel time are originally in minutes
-    link_travel_times = \
-        np.array([str(np.round(link.get_traveltime_from_x(Nt.x_dict[link.key]), 2)) for link in Nt.links if not np.isnan(link.observed_count)])
-
-    # This may raise a warning for OD connectors where the length is equal to 0
-
-    if 'length' in Nt.links[0].Z_dict:
-        link_speed_av = \
-            np.array([np.round(60 * link.Z_dict['length'] / link.get_traveltime_from_x(Nt.x_dict[link.key]), 1) for link in
-                      Nt.links if not np.isnan(link.observed_count)])
-
-        # link_speed_av = \
-        #     np.array([np.round(60 * link.Z_dict['length'] / link.get_traveltime_from_x(Nt.x_dict[link.key]), 1) for link in
-        #               Nt.links])[
-        #     idx_nonas]
-
-    else:
-        link_speed_av = np.array([0]*len(link_travel_times.flatten()))
-
-    summary_table = pd.DataFrame(
-        {'link_key': link_keys
-            , 'capacity': link_capacities_print
-            , 'tt[min]': link_travel_times.flatten()
-            , 'speed[mi/hr]': link_speed_av.flatten()
-            , 'count': x_bar[idx_nonas].flatten()
-            , 'predicted': x_eq[idx_nonas].flatten()
-            , 'error': initial_error_by_link.flatten()})
-
-    if silent_mode is False:
-
-        with pd.option_context('display.float_format', '{:0.1f}'.format):
-            print('\n' + summary_table.to_string())
-
-    # initial_error_by_link = error_by_link(x_bar, x_eq, show_nan=False)
-    # initial_error_by_link = error_by_link(x_bar, x_eq, show_nan=False)
-    # print('Initial error by link', initial_error_by_link)
-
-    # print(results_eq_initial['tt_x'])
-
-
-
-    # p_f_0 = results_eq[0]['p_f']
-    # objective_vals = {}
-
-    best_iter = 1
-    best_objective = initial_objective #float("inf")
-    best_q = copy.deepcopy(q_current)
-    best_theta = copy.deepcopy(theta_current)
-
-    objective_values = [initial_objective]
-
-    errors_by_link = [initial_error_by_link]
-
-
-    outeropt_params['lambda_lm'] = outeropt_params['lambda_lm']/outeropt_params['v_lm']
-
-    t0_global = time.time()
-
-    for iter in np.arange(2,bilevelopt_params['iters']+1, 1):
-
-        print('\nIteration : ' + str(iter) + '/' + str(int(bilevelopt_params['iters'])) )
+        # List to store infromation over iterations
+        thetas = [theta]
+        grads = []
+        times = [0]
+        acc_t = 0
 
         t0 = time.time()
 
-        # if iter > 0:
-        p_f_0 = results_eq[iter-1]['p_f']
+        # epsilon = 1e-4
 
-        # Outer problem (* it takes more time than inner problem)
-        q_new, theta_new, grad_new, objective_value \
-            = odtheta_estimation_outer_problem(Nt=Nt, k_Y=k_Y, k_Z=k_Z,
-                                               Yt={1: Nt.Y_dict}, Zt=Zt, q0=q_current,
-                                               xct=xct,
-                                               theta0=theta_current, outeropt_params=outeropt_params,
-                                               p_f_0= p_f_0
-                                               , standardization = standardization
-                                               , q_bar = q_bar
-                                               )
+        # batch_size = 0#int(n*1)
+        # idx = np.arange(0, n)
 
-        q_current = q_new.copy()
-        theta_current = theta_new.copy()
+        # i) Scaling method will set all parameters to be equal in order to achieve quickly a convex region of the problem
 
-        # Inner problem
-        results_eq[iter] = equilibrium.sue_logit_iterative(Nt=Nt, theta=theta_current, q = q_current, k_Y=k_Y, k_Z=k_Z, params=inneropt_params, n_paths_column_generation= n_paths_column_generation, standardization=standardization)
+        for iter in range(0, iters_scaling):
 
-        # Compute new value of link flows and objective function at equilibrium
-        x_eq = np.array(list(results_eq[iter]['x'].values()))[:,np.newaxis]
-        objective_value = loss_function(x_bar=x_bar, x_eq=x_eq)
+            if iter == 0:
+                theta = np.array([1])[:, np.newaxis]
+            # thetas[0] * float(theta)
+
+            grad_old = gradient_objective_function(theta, YZ_x.dot(thetas[0].dot(float(theta))), x_bar, q, Ix, Iq, C, paths_batch_size = paths_batch_size)
+
+            # For scaling this makes more sense using a sign function as it operates as a grid search and reduce numerical errors
+
+            theta = theta - np.sign(grad_old) * eta_scaling
+
+            # Record theta with the new scaling
+            thetas.append(thetas[0] * theta)
+            # obj_fun = objective_function(theta=thetas[0] * theta, Ix=Ix, YZ_x=YZ_x)
+
+            # For multidimensional case
+            # theta = theta - (grad_old)/np.linalg.norm(grad_old+epsilon) * eta_ngd  #epsilon to avoid problem when gradient is 0
+
+            if iter == iters_scaling - 1:
+                initial_objective = np.mean(
+                    objective_function(theta=thetas[0], YZ_x=YZ_x, x_bar=x_bar, q=q, Ix=Ix, Iq=Iq, C=C))
+                print('initial objective: ' + str(initial_objective))
+                final_objective = np.mean(
+                    objective_function(theta=thetas[-1], YZ_x=YZ_x, x_bar=x_bar, q=q, Ix=Ix, Iq=Iq, C=C))
+                print('objective in iter ' + str(iter + 1) + ': ' + str(final_objective))
+                print('scaling factor: ' + str(theta))
+                print('theta after scaling: ' + str(thetas[-1].T))
+                print('objective improvement due scaling: ' + str(1 - final_objective / initial_objective))
+
+        ## ii) Gradient descent or newton-gauss for fine scale optimization
+
+        theta = thetas[-1]
+
+        theta_update_new = 0
+
+        p_f = p_f_0.copy()
+
+        for iter in range(0, iters):
+
+            printer.printProgressBar(iter, iters, prefix='Progress:', suffix='',
+                                     length=20)
+
+            # It is very expensive to compute p_f so adequating the code is important
+            if iter > 0:
+                p_f = path_probabilities(theta, YZ_x, Ix, C)
+
+            # Stochastic gradient/hessian
+            if batch_size > 0:
+                # Generate a random subset of idxs depending on batch_size
+                missing_sample_size = total_no_nans - batch_size
+
+                # Sample over the cells of the x_bar vector with no nan
+
+                idx_nonas = np.where(~np.isnan(x_bar))[0]
+
+                # Set nan in the sample outside of batch that has no nan
+                idx_nobatch = list(np.random.choice(idx_nonas, missing_sample_size, replace=False))
+
+                x_bar_masked = masked_observed_counts(xct=x_bar, idx=idx_nobatch)
+
+            # i) First order optimization methods
+
+            if method in ['gd', 'ngd', 'sgd', 'nsgd', 'adagrad', 'adam']:
+
+                x_bar_masked = copy.deepcopy(x_bar)
+
+                # Sample a batch in the gradient vector
+
+                grad_current = gradient_objective_function(theta, YZ_x, x_bar_masked, q, Ix, Iq, C, p_f, standardization=standardization, paths_batch_size = paths_batch_size)#/total_no_nans
+
+
+
+                # TODO: review momentumformula (https://towardsdatascience.com/stochastic-gradient-descent-with-momentum-a84097641a5d)
+                # grad_old = (1 - gamma) * grad_old + gamma * grad_new
+                if self.grad_old is None:
+                    # So we avoid that first graident is 0
+                    grad_adj =  grad_current
+
+                else:
+                    grad_adj = gamma * self.grad_old + (1-gamma) * grad_current
+
+                self.grad_old = grad_adj
+
+                # TODO implement nesterov acelerated gradient descent
+                # https: // ruder.io / optimizing - gradient - descent /
+
+                if method == 'gd':
+                    #theta_update_new = gamma * (theta_update_old) + eta * grad_new
+
+                    # Gradient update (with momentum)
+                    theta = theta - grad_adj*eta
+
+                    #theta_update_old = theta_update_new
+
+                if method == 'ngd':
+                    epsilon = 1e-7
+
+                    if len(theta) == 1:
+                        theta = theta - np.sign(grad_adj)* eta
+                    else:
+                        theta = theta - (grad_adj) / np.linalg.norm(grad_adj + epsilon) * eta  # epsilon to avoid problem when gradient is 0
+
+                    # print('gradient_diff : ' + str(gradient_check(theta=theta)))
+
+
+                if method == 'adagrad':
+
+                    # TODO: Fix adagrad using diagonal matrix for accumulated gradients and use acumulated gradients from past bilevel iterations. The same applies for Adam and momentum updates
+
+                    epsilon = 1e-7
+
+                    # self.acc_grads = 0
+
+                    self.acc_grads += grad_adj**2
+
+                    theta = theta - eta/(np.sqrt(self.acc_grads) +epsilon)*grad_adj
+
+                if method == 'adam':
+
+                    epsilon = 1e-7
+
+                    # Compute and update first moments (m) and second moments (v)
+                    self.acc_m = beta_1*self.acc_m + (1-beta_1)*grad_adj
+                    self.acc_v = beta_2*self.acc_v + (1-beta_2)*grad_adj**2
+
+                    # Adjusted first and second moments
+                    adj_m = self.acc_m/(1-beta_1)
+                    adj_v = self.acc_v/(1-beta_2)
+
+                    # Parameter update
+                    theta = theta - eta* (adj_m / (np.sqrt(adj_v) + epsilon))
+
+                grads.append(grad_adj)
+
+            # ii) Second order optimization methods
+
+            # Gauss-newthon exploit when it is not in a convex region
+
+            if method == 'newton':
+                # TODO: this can be speed up by avoid recomputing some terms two times for both the gradient and Hessian
+
+                G = gradient_objective_function(theta, YZ_x, x_bar, q, Ix, Iq, C, p_f, paths_batch_size = paths_batch_size)
+
+                H = hessian_objective_function(theta, x_bar, YZ_x, q, Ix, Iq, C, p_f, paths_batch_size = paths_batch_size)
+
+                theta = theta - np.linalg.pinv(H).dot(G)
+
+                # # Stable version
+                # theta = theta + np.linalg.lstsq(H, -G, rcond=None)[0]
+
+            if method == 'gauss-newton':
+
+                # The computation time is roughly the same with NGD as this method does not compute the Hessian but approximate it
+
+
+                J, p_f_sample, Ix_sample, Iq_sample = jacobian_response_function(theta, YZ_x, q, Ix, Iq, C, p_f, paths_batch_size, x_bar)
+
+                pred_x = response_function(Ix_sample, Iq_sample, q, p_f_sample)
+
+                delta_y = fake_observed_counts(pred_x,x_bar)-pred_x
+
+                # # Package solution from scipy
+                # theta = theta + la.lstsq(J, -delta_y )[0]
+
+                # # Update
+                # theta = theta +  np.linalg.inv(J.T.dot(J)).dot(J.T).dot(delta_y)
+                # theta = theta + np.linalg.pinv(J.T.dot(J)).dot(J.T).dot(delta_y)
+
+                # #Stable solution but works only if matrix is full rank
+                # theta = theta +  np.linalg.solve(J.T.dot(J), J.dot(delta_y))
+
+                # Lstsq is used to obtain an approximate solution for the system
+                # https://nmayorov.wordpress.com/2015/06/18/basic-asdlgorithms-for-nonlinear-least-squares/
+                theta = theta +  np.linalg.lstsq(J.T.dot(J), J.T.dot(delta_y))[0]
+
+                # Understand why we ignore the J^T term when doing this, maybe this means just to multiply for a pseudo inverse. This is certainly more numerically stable
+                # theta = theta + np.linalg.lstsq(J, -delta_y, rcond=None)[0]
+
+                # print('here')
+
+            if method == 'lm' or method == 'lm-revised':
+
+                #Source: https://en.wikipedia.org/wiki/Levenberg%E2%80%93Marquardt_algorithm
+
+
+                J, p_f_sample, Ix_sample, Iq_sample = jacobian_response_function(theta, YZ_x, q, Ix, Iq, C, p_f, paths_batch_size, x_bar)
+
+                pred_x = response_function(Ix_sample, Iq_sample, q, p_f_sample)
+
+                delta_y = fake_observed_counts(pred_x, x_bar) - pred_x
+
+                # lambda_lm = 0.1#0.2
+
+                J_T_J = J.T.dot(J)
+
+                if method == 'lm-revised':
+
+                    theta = theta + np.linalg.lstsq(J_T_J + lambda_lm*np.diag(J_T_J), -J.T.dot(delta_y), rcond=None)[0]
+
+                if method == 'lm':
+                    theta = theta + np.linalg.lstsq(J_T_J + lambda_lm*np.eye(J_T_J.shape[0]), -J.T.dot(delta_y), rcond=None)[0]
+
+                #Choice of damping factor
+
+                # Marquardt recommended starting with a value \lambda _{0} and a factor \nu > 1. Initially setting \lambda =\lambda _{0} and computing the residual sum of squares  after one step from the starting point with the damping factor of \lambda =\lambda _{0} and secondly with \lambda _{0}/\nu . If both of these are worse than the initial point, then the damping is increased by successive multiplication by \nu  until a better point is found with a new damping factor of {\lambda _{0}\nu^{k} for some k.
+
+
+            delta_t = time.time() - t0
+            acc_t += delta_t
+
+            thetas.append(theta)
+            times.append(acc_t)
+
+        q = q0
+
+        if 'od_estimation' in outeropt_params and outeropt_params['od_estimation']:
+
+            # Optimization of OD matrix (using plain gradient descent meantime)
+            jacobian_q_x = Ix.dot(p_f.dot(np.ones([p_f.size,1]).T)).dot(Iq.T)
+
+            # Prediction of link flow
+            pred_x = response_function(Ix, Iq, q, p_f)
+
+            # Hyperparam
+            # lambda_q = 1e2 # This works very well for Yang network
+            lambda_q = 1e2 # This works very well for Sioux network
+
+            # This is a sort of RELU in neural networks terms
+            grad_new_q = 1/x_bar.size*(lambda_q*2*(q0-q_bar)+2*jacobian_q_x.T.dot(pred_x-x_bar))
+
+            #Projected Gradient descent update
+            # https://www.cs.ubc.ca/~schmidtm/Courses/5XX-S20/S5.pdf
+            # eta_q = 1e-2 # This works very well for Yang network and GD
+            #
+            eta_q = 1e-4 # This works very well for Sioux network and GD
+
+            q =  np.maximum(np.zeros([q0.size,1]), q0 - grad_new_q * eta_q)
+
+            # # Projected adagrad
+            #
+            # # eta_q = 1e-7  # This works very well for Yang with adagrad
+            # eta_q = 1e-11 # This works very well for Sioux with adagrad
+            # #
+            # acc_grads_q += grad_new_q ** 2
+            # #
+            # epsilon = 1e-8
+            # Gt = np.diag(acc_grads_q.flatten())
+            # q = np.maximum(np.zeros([q0.size,1]), q0 - (eta_q / np.sqrt(Gt+ epsilon)).dot(grad_new_q))
+
+
+
+            print(repr(np.round(q.T,1)))
+
+        # # Values of objective function
+        # obj_fun = objective_function(theta=theta, Ix=Ix, YZ_x=YZ_x)
+
+        # if iter == 0:
+        #     print('initial objective function:' + str(np.sum(obj_fun)))
+        #     print('initial objective function:' + str(np.sum(obj_fun)))
+        # print(theta)
+
+        # print('Method used is :' + method)
+        # print('initial theta: ' + str(thetas[0].T))
+        # print('theta in iter ' + str(iter + 1) + ': ' + str(theta.T))
+
+        # initial_objective = np.mean(
+        #     objective_function(theta=thetas[0], YZ_x=YZ_x, x_bar=x_bar, q=q, Ix=Ix, Iq=Iq, C=C, p_f=p_f_0))
+
+        # Do not provide p_f in this part, because it does not correspond to the p_f in the last iteration but the one before the last
+        # Thus, if there is only one iteration p_f and p_f_0 are equal, and the value of the objective function is wrongly assumed to be the same
+        final_objective = np.mean(
+            objective_function(theta=thetas[-1], YZ_x=YZ_x, x_bar=x_bar, q=q0, Ix=Ix, Iq=Iq, C=C))
+
+
+        # print('objective in iter ' + str(iter + 1) + ': ' + str(final_objective))
+        # print('objective improvement : ' + str(1 - final_objective / initial_objective))
+
+        # print('theta: ' + str(np.array(list(theta_current.values()))))
+
+        # grad_old = grads[-1]
+
+        theta = thetas[-1]
+
+        # Conver theta into a dictionary to return it then
+        theta_dict = dict(zip([*k_Y, *k_Z], theta.flatten()))
+
+        # print('theta: ' + str({key: round(val, 4) for key, val in theta_dict.items()}))
+
+        print('theta: ' + str({key: "{0:.1E}".format(val) for key, val in theta_dict.items()}))
+        # print('theta: ' + str({key: round(val,3) for key, val in theta_dict.items()}))
+
+        if 'c' in theta_dict.keys() and theta_dict['c'] != 0:
+            print('Current ratio theta: ' + str(round(theta_dict['tt'] / theta_dict['c'], 4)))
+
+        print('time: ' + str(np.round(time.time() - t0, 1)) + '[s]')
+
+        return q, theta_dict, grads, final_objective
+        # return theta_dict, None, final_objective
+
+
+    def odtheta_estimation_bilevel(self, Nt: TNetwork, Zt: {}, k_Y: list, k_Z: list, xct: {}, theta0: {}, q0: np.ndarray, outeropt_params: {}, inneropt_params: {}, bilevelopt_params: {}, q_bar: ColumnVector = None, standardization: dict = None, n_paths_column_generation: int = 0, silent_mode = True):
+
+        """ Congested case where Yt do not necessarily inform on the optimal travel times
+
+        Arguments
+        ----------
+        :argument f: vector with path flows
+        :argument M: Path/O-D demand incidence
+        :argument D: Path/link incidence matrix
+        :argument xct: link counts
+        :argument Ni: Network object (TODO: name will be later updated to N)
+        """
+
+        print('\nBilevel optimization for ' + str(Nt.key) + ' network \n')
+
+        # TODO: Schedule the number of iterations so they are higher when the bilevel optimization is finishing
+
+        # Mt = {1: N['train'][i].M}
+        # Ct = {1: tai.estimation.choice_set_matrix_from_M(N['train'][i].M)}
+        # Dt = {1: N['train'][i].D}
+        # k_Y = k_Y; k_Z = k_Z
+        # Yt = {1: N['train'][i].Y_dict}
+        # Zt = {1: N['train'][i].Z_dict}
+        # q0 = tai.network.denseQ(Q=N['train'][i].Q,remove_zeros=remove_zeros_Q)
+        # theta0 = dict.fromkeys([*k_Y, *k_Z], 0)
+        #
+        # results_sue_msa = tai.equilibrium.sue_logit_msa_k_paths(N=N['train'][i], maxIter=maxIter, accuracy=0.01,
+        #                                                            theta=theta_true[i])
+        #
+        # N['train'][i].set_Y_attr_links(y=results_sue_msa['tt_x'], label='tt')
+        # # N['train'][i].Y_dict
+        # xct = np.array(list(results_sue_msa['x'].values()))
+
+        # xct = {1: N['train'][i].x}
+
+        # TODO: the analysis with multiday data remains to be implemented
+        day = 1
+
+        # Update od
+        q_current = copy.deepcopy(q0)
+
+
+        # print('there')
+
+        # N_copy = transportAI.networks.clone_network(N=Nt, label='Clone', randomness = {'Q': False, 'BPR': False, 'Z': False})#[N.label]
+        # N_copy = Nt
+
+        # Initialization
+
+        # TODO: this assume that k_Z has at least one attribute but it may be not the case
+        theta_current = {i: theta0[i] for i in [*k_Y, *k_Z]}
+
+
+
+        # print(theta_current)
+        # theta_current = theta_true[i].copy()
+        # theta_new = theta_current.copy()
+
+
+        x_bar = xct[day][:, np.newaxis]
+
+        print('Iteration : ' + str(1) + '/' + str(int(bilevelopt_params['iters'])))
+
+
+        results = {}
+        results_eq = {}
+
+        # Initial objective function
+
+        initial_inneropt_params = copy.deepcopy(inneropt_params)
+        initial_inneropt_params['k_path_set_selection'] = 0
+
+        results_eq[1] = equilibrium.sue_logit_iterative(Nt=Nt, theta= theta_current, q = q_current, k_Y=k_Y, k_Z=k_Z, params=initial_inneropt_params, n_paths_column_generation=0, standardization = standardization)
+
+        # x_eq = np.array(list(results_eq_initial['x'].values()))
+        x_eq = np.array(list(results_eq[1]['x'].values()))[:,np.newaxis]
 
         # Update values in network
-        Nt.x_dict = results_eq[iter]['x']  # #
+        Nt.x_dict = results_eq[1]['x']  # #
         Nt.x = np.array(list(Nt.x_dict.values()))[:,np.newaxis]
-        Nt.set_Y_attr_links(y=results_eq[iter]['tt_x'], label='tt')
+        Nt.set_Y_attr_links(y=results_eq[1]['tt_x'], label='tt')
 
-        if objective_value < best_objective:
-            best_objective = objective_value
-            best_x_eq = copy.deepcopy(x_eq)
-            best_theta = copy.deepcopy(theta_current)
-            best_q = copy.deepcopy(q_current)
-            best_iter = iter
+        initial_objective = loss_function(x_bar=x_bar, x_eq=x_eq)
 
-        print('\nCurrent objective_value: ' +'{:,}'.format(round(objective_value)))
-        print('Current objective improvement: ' + "{:.2%}". format(np.round(1 - best_objective / initial_objective, 4)))
-        # print('Time current iteration: ' + str(np.round(time.time() - t0, 1)) + ' [s]')
+        results[1] = {'theta': theta_current, 'q': q_current, 'objective': initial_objective,'equilibrium': results_eq[1]}
+
+        # Ix = Nt.D
+        # Iq = Nt.M
+        # YZ_x = get_design_matrix(Y={'tt': results_eq_initial['tt_x']}, Z=Zt[day], k_Y=k_Y, k_Z=k_Z)
+
+        # final_objective = np.mean(
+        #     objective_function(theta=np.array(list(theta_current.values())), YZ_x=YZ_x, x_bar=x_bar, q=q0[:, np.newaxis],
+        #                        Ix=Ix, Iq=Iq, C=Nt.C, p_f=results_eq_initial['p_f']))
 
 
+        # print('\nInitial theta: ' +str({key: round(val, 3) for key, val in theta_current.items()}))
+        print('Initial theta: ' + str({key: "{0:.1E}".format(val) for key, val in theta_current.items()}))
+        # print('Initial q: ', repr(np.round(q_current.T,1)))
+        print('Initial objective: ' + '{:,}'.format(round(initial_objective)))
 
-        results[iter] = {'theta': theta_current, 'q':q_current,'objective': objective_value, 'equilibrium': results_eq[iter]}
+        if 'c' in theta_current.keys() and theta_current['c'] != 0:
+            print('Initial ratio theta: ' + str(round(theta_current['tt'] / theta_current['c'], 4)))
 
-        objective_values.append(objective_value)
-
-        if len(objective_values)>=2:
-
-            if objective_values[-1] < objective_values[-2]:
-
-                # Choice of damping factor for lm
-                outeropt_params['lambda_lm'] = outeropt_params['lambda_lm'] * outeropt_params['v_lm']
-
-            else:
-
-                # Choice of damping factor for lm
-                outeropt_params['lambda_lm'] = outeropt_params['lambda_lm'] / outeropt_params['v_lm']
-
-            print('Marginal objective improvement: ' + "{:.2%}".format(
-                np.round(1 - objective_values[-1] / objective_values[-2], 4)))
-            print('Marginal objective improvement value: ' + '{:,}'.format(
-                np.round(objective_values[-2] - objective_values[-1], 1)))
+        # if iter < 1:
 
         idx_nonas = list(np.where(~np.isnan(x_bar))[0])
 
-        link_keys = [(link.key[0], link.key[1]) for link in Nt.links if not np.isnan(link.observed_count)]
+        link_keys = [(link.key[0],link.key[1]) for link in Nt.links if not np.isnan(link.observed_count)]
 
-        link_capacities = np.array([link.bpr.k for link in Nt.links])[idx_nonas, np.newaxis].flatten()
+        # [link.observed_count for link in Nt.links]
+
+        link_capacities = np.array([link.bpr.k for link in Nt.links if not np.isnan(link.observed_count)])
 
         link_capacities_print = []
         for i in range(len(link_capacities)):
@@ -3032,150 +3044,292 @@ def odtheta_estimation_bilevel(Nt: TNetwork, Zt: {}, k_Y: list, k_Z: list, xct: 
             else:
                 link_capacities_print.append(link_capacities[i])
 
+        initial_error_by_link = error_by_link(x_bar, x_eq, show_nan=False)
+
         # Travel time are originally in minutes
         link_travel_times = \
-        np.array([str(np.round(link.get_traveltime_from_x(Nt.x_dict[link.key]), 2)) for link in Nt.links])[
-            idx_nonas, np.newaxis]
-
+            np.array([str(np.round(link.get_traveltime_from_x(Nt.x_dict[link.key]), 2)) for link in Nt.links if not np.isnan(link.observed_count)])
 
         # This may raise a warning for OD connectors where the length is equal to 0
 
         if 'length' in Nt.links[0].Z_dict:
-            # link = Nt.links[0]
             link_speed_av = \
-                np.array(
-                    [np.round(60 * link.Z_dict['length'] / link.get_traveltime_from_x(Nt.x_dict[link.key]), 1) for link
-                     in Nt.links if not np.isnan(link.observed_count)])
+                np.array([np.round(60 * link.Z_dict['length'] / link.get_traveltime_from_x(Nt.x_dict[link.key]), 1) for link in
+                          Nt.links if not np.isnan(link.observed_count)])
+
+            # link_speed_av = \
+            #     np.array([np.round(60 * link.Z_dict['length'] / link.get_traveltime_from_x(Nt.x_dict[link.key]), 1) for link in
+            #               Nt.links])[
+            #     idx_nonas]
+
         else:
-            link_speed_av = np.array([0] * len(link_travel_times.flatten()))
-
-
-        current_error_by_link = error_by_link(x_bar, x_eq, show_nan=False)
-
-        d_error = current_error_by_link-errors_by_link[-1]
-
-        d_error_print = ["{0:.1E}".format(d_error_i[0]) for d_error_i in list(d_error)]
-
-        # if iter < 1:
-        #
-        #     summary_table = pd.DataFrame(
-        #         {'link_key': link_keys, 'capacity': link_capacities.flatten(), 'predicted': x_eq[idx_nonas].flatten(),
-        #          'obs. count': x_bar[idx_nonas].flatten()
-        #             , 'error': current_error_by_link.flatten()})
-        #
-        #     with pd.option_context('display.float_format', '{:0.1f}'.format):
-        #         print('\n' + summary_table.to_string())
-        #
-        # else:
-
+            link_speed_av = np.array([0]*len(link_travel_times.flatten()))
 
         summary_table = pd.DataFrame(
-        {'link_key': link_keys
-            , 'capacity': link_capacities_print
-            , 'tt[min]': link_travel_times.flatten()
-            , 'speed[mi/hr]': link_speed_av.flatten()
-            , 'count': x_bar[idx_nonas].flatten()
-            , 'predicted': x_eq[idx_nonas].flatten()
-            , 'prev_error': errors_by_link[-1].flatten()
-            ,  'error': current_error_by_link.flatten()
-            , 'd_error': d_error_print
-            })
-
+            {'link_key': link_keys
+                , 'capacity': link_capacities_print
+                , 'tt[min]': link_travel_times.flatten()
+                , 'speed[mi/hr]': link_speed_av.flatten()
+                , 'count': x_bar[idx_nonas].flatten()
+                , 'predicted': x_eq[idx_nonas].flatten()
+                , 'error': initial_error_by_link.flatten()})
 
         if silent_mode is False:
+
             with pd.option_context('display.float_format', '{:0.1f}'.format):
                 print('\n' + summary_table.to_string())
 
-        errors_by_link.append(current_error_by_link)
+        # initial_error_by_link = error_by_link(x_bar, x_eq, show_nan=False)
+        # initial_error_by_link = error_by_link(x_bar, x_eq, show_nan=False)
+        # print('Initial error by link', initial_error_by_link)
 
-        # print('\nKey, Prediction, observed count, error and capacities by link\n', s)
-
-        # print('\nImprovement by link', abs(initial_error_by_link)-abs(error_by_link(x_bar, x_eq, show_nan=False))/abs(initial_error_by_link))
-
-
-        # if plot_options['y'] != '':
-        #     plot_bilevel_optimization(results, list(theta_current.keys()), bilevelopt_params['iters'], plot_options)
-
-        # Select best theta based on minimum objective value
+        # print(results_eq_initial['tt_x'])
 
 
 
-    print('\nSummary results of bilevel optimization')
+        # p_f_0 = results_eq[0]['p_f']
+        # objective_vals = {}
 
-    best_result_eq = results[best_iter]['equilibrium']
+        best_iter = 1
+        best_objective = initial_objective #float("inf")
+        best_q = copy.deepcopy(q_current)
+        best_theta = copy.deepcopy(theta_current)
 
-    # best_theta = dict(zip(theta_current.keys(), list(results[best_iter]['theta'].values())))
-    # best_theta = theta_current
+        objective_values = [initial_objective]
 
-    print('best iter: ' + str(best_iter))
-    # print('best theta: ' + str({key:round(val, 3) for key, val in best_theta.items()}))
-    print('best theta: ' + str({key: "{0:.1E}".format(val) for key, val in best_theta.items()}))
-
-    # print('best q: ' + repr(np.round(best_q.T,1)))
-
-    print('best objective_value: ' + '{:,}'.format(round(best_objective)))
-
-    if 'c' in theta_current.keys() and best_theta['c'] != 0:
-        print('best ratio theta: ' + str(round(best_theta['tt'] / best_theta['c'], 4)))
+        errors_by_link = [initial_error_by_link]
 
 
-    print('Final best objective improvement: ' + "{:.2%}". format(np.round(1 - best_objective / initial_objective, 4)))
-    print('Final best objective improvement value: ' + '{:,}'.format(
-        np.round(initial_objective - best_objective, 1)))
+        outeropt_params['lambda_lm'] = outeropt_params['lambda_lm']/outeropt_params['v_lm']
 
-    print('Total time: ' + str(np.round(time.time() - t0_global, 1)) + ' [s]')
-    # best_theta_dict = dict(zip([*k_Y, *k_Z], best_theta.flatten()))
+        t0_global = time.time()
 
-    # print('Loss by link', error_by_link(x_bar, x_eq,show_nan = False))
+        for iter in np.arange(2,bilevelopt_params['iters']+1, 1):
 
-    return best_q, best_theta, best_objective, best_result_eq, results
+            print('\nIteration : ' + str(iter) + '/' + str(int(bilevelopt_params['iters'])) )
+
+            t0 = time.time()
+
+            # if iter > 0:
+            p_f_0 = results_eq[iter-1]['p_f']
+
+            # Outer problem (* it takes more time than inner problem)
+            q_new, theta_new, grad_new, objective_value \
+                = self.odtheta_estimation_outer_problem(Nt=Nt, k_Y=k_Y, k_Z=k_Z,
+                                                   Yt={1: Nt.Y_dict}, Zt=Zt, q0=q_current,
+                                                   xct=xct,
+                                                   theta0=theta_current, outeropt_params=outeropt_params,
+                                                   p_f_0= p_f_0
+                                                   , standardization = standardization
+                                                   , q_bar = q_bar
+                                                   )
+
+            q_current = q_new.copy()
+            theta_current = theta_new.copy()
+
+            # Inner problem
+            results_eq[iter] = equilibrium.sue_logit_iterative(Nt=Nt, theta=theta_current, q = q_current, k_Y=k_Y, k_Z=k_Z, params=inneropt_params, n_paths_column_generation= n_paths_column_generation, standardization=standardization)
+
+            # Compute new value of link flows and objective function at equilibrium
+            x_eq = np.array(list(results_eq[iter]['x'].values()))[:,np.newaxis]
+            objective_value = loss_function(x_bar=x_bar, x_eq=x_eq)
+
+            # Update values in network
+            Nt.x_dict = results_eq[iter]['x']  # #
+            Nt.x = np.array(list(Nt.x_dict.values()))[:,np.newaxis]
+            Nt.set_Y_attr_links(y=results_eq[iter]['tt_x'], label='tt')
+
+            if objective_value < best_objective:
+                best_objective = objective_value
+                best_x_eq = copy.deepcopy(x_eq)
+                best_theta = copy.deepcopy(theta_current)
+                best_q = copy.deepcopy(q_current)
+                best_iter = iter
+
+            print('\nCurrent objective_value: ' +'{:,}'.format(round(objective_value)))
+            print('Current objective improvement: ' + "{:.2%}". format(np.round(1 - best_objective / initial_objective, 4)))
+            # print('Time current iteration: ' + str(np.round(time.time() - t0, 1)) + ' [s]')
 
 
-# def plot_bilevel_optimization(results: {}, theta_keys, total_iters, plot_options):
-#
-#     iters = len(list(results.keys()))
-#
-#     columns_df = ['iter'] + ['theta_' + str(i) for i in list(theta_keys)] + ['error']
-#     # df_results = pd.DataFrame(columns=columns_df)
-#     df_results = pd.DataFrame(columns=columns_df)
-#
-#     # print(columns_df)
-#
-#     # Create pandas dataframe using each row of the dictionary returned by the bilevel methodç
-#
-#     # Create pandas dataframe with no refined solution
-#     for iter in np.arange(iters):
-#         df_results.loc[iter] = [iter] + list(results[iter]['theta']) + [results[iter]['objective']]
-#
-#     # Create additional variables
-#     df_results['vot'] = df_results['theta_tt'] / df_results['theta_c']
-#
-#
-#     if plot_options['y']== 'theta':
-#         plt.plot(df_results['iter'], df_results['vot'])
-#         plt.xticks(np.arange(0, total_iters, 1.0))
-#         plt.yticks(np.arange(0, 1, 0.2))
-#         plt.axhline(0.1667, linestyle='dashed')
-#
-#     if plot_options['y'] == 'objective':
-#         plt.plot(df_results['iter'], df_results['error'])
-#         plt.xticks(np.arange(0, total_iters, 1.0))
-#         plt.ylim(0, df_results['error'].iloc[0])
-#
-#         # plt.axhline(0.1667, linestyle='dashed')
-#
-#
-#
-#     # print(np.arange(0, total_iters + 1, 1.0))
-#     # ax[(0,0)].plot(df_results['iter'], df_results['vot'])
-#
-#     # plt.plot(df_results['iter'], df_results['error'])
-#
-#
-#     # plt.set
-#     # ax[(0,0)].set_xticks(df_results['iter'])
-#
-#     plt.show()
+
+            results[iter] = {'theta': theta_current, 'q':q_current,'objective': objective_value, 'equilibrium': results_eq[iter]}
+
+            objective_values.append(objective_value)
+
+            if len(objective_values)>=2:
+
+                if objective_values[-1] < objective_values[-2]:
+
+                    # Choice of damping factor for lm
+                    outeropt_params['lambda_lm'] = outeropt_params['lambda_lm'] * outeropt_params['v_lm']
+
+                else:
+
+                    # Choice of damping factor for lm
+                    outeropt_params['lambda_lm'] = outeropt_params['lambda_lm'] / outeropt_params['v_lm']
+
+                print('Marginal objective improvement: ' + "{:.2%}".format(
+                    np.round(1 - objective_values[-1] / objective_values[-2], 4)))
+                print('Marginal objective improvement value: ' + '{:,}'.format(
+                    np.round(objective_values[-2] - objective_values[-1], 1)))
+
+            idx_nonas = list(np.where(~np.isnan(x_bar))[0])
+
+            link_keys = [(link.key[0], link.key[1]) for link in Nt.links if not np.isnan(link.observed_count)]
+
+            link_capacities = np.array([link.bpr.k for link in Nt.links])[idx_nonas, np.newaxis].flatten()
+
+            link_capacities_print = []
+            for i in range(len(link_capacities)):
+                if link_capacities[i] > 10000:
+                    link_capacities_print.append(float('inf'))
+                else:
+                    link_capacities_print.append(link_capacities[i])
+
+            # Travel time are originally in minutes
+            link_travel_times = \
+            np.array([str(np.round(link.get_traveltime_from_x(Nt.x_dict[link.key]), 2)) for link in Nt.links])[
+                idx_nonas, np.newaxis]
+
+
+            # This may raise a warning for OD connectors where the length is equal to 0
+
+            if 'length' in Nt.links[0].Z_dict:
+                # link = Nt.links[0]
+                link_speed_av = \
+                    np.array(
+                        [np.round(60 * link.Z_dict['length'] / link.get_traveltime_from_x(Nt.x_dict[link.key]), 1) for link
+                         in Nt.links if not np.isnan(link.observed_count)])
+            else:
+                link_speed_av = np.array([0] * len(link_travel_times.flatten()))
+
+
+            current_error_by_link = error_by_link(x_bar, x_eq, show_nan=False)
+
+            d_error = current_error_by_link-errors_by_link[-1]
+
+            d_error_print = ["{0:.1E}".format(d_error_i[0]) for d_error_i in list(d_error)]
+
+            # if iter < 1:
+            #
+            #     summary_table = pd.DataFrame(
+            #         {'link_key': link_keys, 'capacity': link_capacities.flatten(), 'predicted': x_eq[idx_nonas].flatten(),
+            #          'obs. count': x_bar[idx_nonas].flatten()
+            #             , 'error': current_error_by_link.flatten()})
+            #
+            #     with pd.option_context('display.float_format', '{:0.1f}'.format):
+            #         print('\n' + summary_table.to_string())
+            #
+            # else:
+
+
+            summary_table = pd.DataFrame(
+            {'link_key': link_keys
+                , 'capacity': link_capacities_print
+                , 'tt[min]': link_travel_times.flatten()
+                , 'speed[mi/hr]': link_speed_av.flatten()
+                , 'count': x_bar[idx_nonas].flatten()
+                , 'predicted': x_eq[idx_nonas].flatten()
+                , 'prev_error': errors_by_link[-1].flatten()
+                ,  'error': current_error_by_link.flatten()
+                , 'd_error': d_error_print
+                })
+
+
+            if silent_mode is False:
+                with pd.option_context('display.float_format', '{:0.1f}'.format):
+                    print('\n' + summary_table.to_string())
+
+            errors_by_link.append(current_error_by_link)
+
+            # print('\nKey, Prediction, observed count, error and capacities by link\n', s)
+
+            # print('\nImprovement by link', abs(initial_error_by_link)-abs(error_by_link(x_bar, x_eq, show_nan=False))/abs(initial_error_by_link))
+
+
+            # if plot_options['y'] != '':
+            #     plot_bilevel_optimization(results, list(theta_current.keys()), bilevelopt_params['iters'], plot_options)
+
+            # Select best theta based on minimum objective value
+
+
+
+        print('\nSummary results of bilevel optimization')
+
+        best_result_eq = results[best_iter]['equilibrium']
+
+        # best_theta = dict(zip(theta_current.keys(), list(results[best_iter]['theta'].values())))
+        # best_theta = theta_current
+
+        print('best iter: ' + str(best_iter))
+        # print('best theta: ' + str({key:round(val, 3) for key, val in best_theta.items()}))
+        print('best theta: ' + str({key: "{0:.1E}".format(val) for key, val in best_theta.items()}))
+
+        # print('best q: ' + repr(np.round(best_q.T,1)))
+
+        print('best objective_value: ' + '{:,}'.format(round(best_objective)))
+
+        if 'c' in theta_current.keys() and best_theta['c'] != 0:
+            print('best ratio theta: ' + str(round(best_theta['tt'] / best_theta['c'], 4)))
+
+
+        print('Final best objective improvement: ' + "{:.2%}". format(np.round(1 - best_objective / initial_objective, 4)))
+        print('Final best objective improvement value: ' + '{:,}'.format(
+            np.round(initial_objective - best_objective, 1)))
+
+        print('Total time: ' + str(np.round(time.time() - t0_global, 1)) + ' [s]')
+        # best_theta_dict = dict(zip([*k_Y, *k_Z], best_theta.flatten()))
+
+        # print('Loss by link', error_by_link(x_bar, x_eq,show_nan = False))
+
+        return best_q, best_theta, best_objective, best_result_eq, results
+
+
+    # def plot_bilevel_optimization(results: {}, theta_keys, total_iters, plot_options):
+    #
+    #     iters = len(list(results.keys()))
+    #
+    #     columns_df = ['iter'] + ['theta_' + str(i) for i in list(theta_keys)] + ['error']
+    #     # df_results = pd.DataFrame(columns=columns_df)
+    #     df_results = pd.DataFrame(columns=columns_df)
+    #
+    #     # print(columns_df)
+    #
+    #     # Create pandas dataframe using each row of the dictionary returned by the bilevel methodç
+    #
+    #     # Create pandas dataframe with no refined solution
+    #     for iter in np.arange(iters):
+    #         df_results.loc[iter] = [iter] + list(results[iter]['theta']) + [results[iter]['objective']]
+    #
+    #     # Create additional variables
+    #     df_results['vot'] = df_results['theta_tt'] / df_results['theta_c']
+    #
+    #
+    #     if plot_options['y']== 'theta':
+    #         plt.plot(df_results['iter'], df_results['vot'])
+    #         plt.xticks(np.arange(0, total_iters, 1.0))
+    #         plt.yticks(np.arange(0, 1, 0.2))
+    #         plt.axhline(0.1667, linestyle='dashed')
+    #
+    #     if plot_options['y'] == 'objective':
+    #         plt.plot(df_results['iter'], df_results['error'])
+    #         plt.xticks(np.arange(0, total_iters, 1.0))
+    #         plt.ylim(0, df_results['error'].iloc[0])
+    #
+    #         # plt.axhline(0.1667, linestyle='dashed')
+    #
+    #
+    #
+    #     # print(np.arange(0, total_iters + 1, 1.0))
+    #     # ax[(0,0)].plot(df_results['iter'], df_results['vot'])
+    #
+    #     # plt.plot(df_results['iter'], df_results['error'])
+    #
+    #
+    #     # plt.set
+    #     # ax[(0,0)].set_xticks(df_results['iter'])
+    #
+    #     plt.show()
 
 def solve_link_level_model(end_params: {}, Mt: {}, Ct: {}, Dt: {}, k_Y: list, Yt: {}, k_Z: list, Zt: {}, xt: {},
                            idx_links: {}, scale: {}, q0: np.array, theta0: {}

@@ -26,6 +26,7 @@ class Path:
         # Create path object from links information
         if links is not None:
             self._links = links
+
             self._nodes = self.get_nodes_from_links(links)
 
         # Create path object from nodes information

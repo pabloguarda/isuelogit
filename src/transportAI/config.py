@@ -501,7 +501,7 @@ class Config:
         # Regularization parameters
 
         #- Number of attributes that will be set to 0, which moderate sparsity: with 20 at least, we observe benefits of regularize
-        self.sim_options['n_R'] = 1#2 #5 #10 #20 #50
+        self.sim_options['n_R'] = 0#2 #5 #10 #20 #50
 
         #Labels of sparse attributes
         self.sim_options['R_labels'] = ['k' + str(i) for i in np.arange(0, self.sim_options['n_R'])]
@@ -555,12 +555,20 @@ class Config:
             self.estimation_options['max_sue_iters_refined'] = 50 #100 #
             # * Each msa iteration takes about 10 seconds for Fresn
 
+            # Spacing of line search for Frank Wolfe
+            self.estimation_options['iters_ls_fw'] = 20
+
             # Learning rate for first order optimization methods
             self.estimation_options['eta_regularized'] = 1e-2
             self.estimation_options['eta_norefined'] = 1e-2
             self.estimation_options['eta_refined'] = 1e-3
             #* If a larger learning rate is used ( > 1e-3), the optimization may start to bump in.
             # Attributes should be rescaled to have a more robust learning rate.
+
+            # Inference
+            self.estimation_options['normalization_softmax'] = True
+            self.estimation_options['numeric_hessian'] = False
+
 
 
         # ii) For simulated networks
@@ -576,6 +584,9 @@ class Config:
             self.estimation_options['iters_norefined'] = 1 #5
             self.estimation_options['iters_refined'] = 1 # gauss newton
             # * 5 ngd iterations works well for simulated network and under congested mode. For consistency with real network, only 1 is used
+
+            # Spacing of line search for Frank Wolfe
+            self.estimation_options['iters_ls_fw'] = 20
 
             # Equilibrium iteration in refined and no refined stages
             self.estimation_options['max_sue_iters_regularized'] = 20  # 20
@@ -593,6 +604,11 @@ class Config:
             #1e-2 works well for simulated networks without noise.
             # 5e-3 works well for simulated networks with noise.
             # As higher the noise, a lower learning rate works better
+
+            # Inference
+            self.estimation_options['normalization_softmax'] = True
+            self.estimation_options['numeric_hessian'] = False
+            #*Normalization is really necessary
 
         # Initial value set for logit parameters
 
@@ -668,12 +684,12 @@ class Config:
         self.paths['folder_pablo_networks'] = os.getcwd() + "/input/public/networks/pablo/"
 
         # Colombus Ohio network
-        self.paths['Colombus_network'] = "/Users/pablo/google-drive/university/cmu/2-research/datasets/private/bin-networks/Columbus"
+        self.paths['Colombus_network'] = "/Users/pablo/OneDrive/university/cmu/2-research/datasets/private/bin-networks/Columbus"
 
         # Fresno and Sac
-        self.paths['Fresno_network'] = '/Users/pablo/google-drive/university/cmu/2-research/datasets/private/od-fresno-sac/SR41'
-        self.paths['Sacramento_network'] = '/Users/pablo/google-drive/university/cmu/2-research/datasets/private/od-fresno-sac/sac'
-        self.paths['Fresno_Sac_networks'] = '/Users/pablo/google-drive/university/cmu/2-research/datasets/private/od-fresno-sac'
+        self.paths['Fresno_network'] = '/Users/pablo/OneDrive/university/cmu/2-research/datasets/private/od-fresno-sac/SR41'
+        self.paths['Sacramento_network'] = '/Users/pablo/OneDrive/university/cmu/2-research/datasets/private/od-fresno-sac/sac'
+        self.paths['Fresno_Sac_networks'] = '/Users/pablo/OneDrive/university/cmu/2-research/datasets/private/od-fresno-sac'
 
         # Folder to write network data
         self.paths['network_data'] = os.getcwd() + "/output/network-data/"
@@ -749,6 +765,7 @@ class Config:
             self.experiment_options['iters_norefined'] = self.estimation_options['iters_norefined']
             self.experiment_options['iters_refined'] = self.estimation_options['iters_refined']
 
+            self.experiment_options['gamma'] = 0
             self.experiment_options['eta_norefined'] = 1e-1 #1e-0
             self.experiment_options['eta_refined'] = 1e-1
             # Note: increasing the number of gradient updates in ngd is the best way to go. As more noise, more gradient updates should be done
@@ -776,6 +793,9 @@ class Config:
             else:
                 self.set_uncongested_mode(False)
                 self.experiment_options['uncongested_mode'] = False
+                self.experiment_options['max_sue_iters'] = 50
+                self.experiment_options['max_sue_iters_norefined'] = 50
+                self.experiment_options['max_sue_iters_refined'] = 50
 
     def set_irrelevant_attributes_experiment(self, replicates, theta_0_range, uncongested_mode, consistency_experiment = True, iters_factor = 1,sd_x = 0.01):
 
@@ -819,12 +839,10 @@ class Config:
             self.experiment_options['accuracy_eq'] = self.estimation_options['accuracy_eq']
             self.experiment_options['max_link_coverage'] = self.sim_options['max_link_coverage']
 
-            self.experiment_options['max_sue_iters'] =  self.sim_options['max_sue_iters']
-            self.experiment_options['max_sue_iters_norefined'] = 50  # 1
-            self.experiment_options['max_sue_iters_refined'] = 50  # 5 #
-
             self.experiment_options['iters_norefined'] = self.estimation_options['iters_norefined']
             self.experiment_options['iters_refined'] = self.estimation_options['iters_refined']
+
+            self.experiment_options['gamma'] = 0
 
             self.experiment_options['eta_norefined'] = 1e-1 #1e-0
             self.experiment_options['eta_refined'] = 1e-2
@@ -898,13 +916,10 @@ class Config:
             # self.experiment_options['outeropt_method_refined'] = 'gauss-newton'
             self.experiment_options['outeropt_method_refined'] = 'ngd'
 
+            self.experiment_options['gamma'] = 0
+
             self.experiment_options['eta_norefined'] = 1e-1  # 1e-0
             self.experiment_options['eta_refined'] = 1e-2
-
-
-            self.experiment_options['max_sue_iters'] =  self.sim_options['max_sue_iters']
-            self.experiment_options['max_sue_iters_norefined'] = 50  # 1
-            self.experiment_options['max_sue_iters_refined'] = 50  # 5 #
 
             self.experiment_options['iters_norefined'] = self.estimation_options['iters_norefined']
             self.experiment_options['iters_refined'] = self.estimation_options['iters_refined']
@@ -935,7 +950,7 @@ class Config:
                 self.experiment_options['uncongested_mode'] = False
                 self.experiment_options['max_sue_iters'] = 50
                 self.experiment_options['max_sue_iters_norefined'] = 50
-                self.experiment_options['max_sue_iters_refined'] = 53
+                self.experiment_options['max_sue_iters_refined'] = 50
 
     # def set_noise_experiment(self, replicates, theta_0_range, sd_x = 0, sd_Q = 0, scale_Q = 1):
     #     """ Wrapper function to perform noise experiment but without noise """
@@ -981,6 +996,7 @@ class Config:
 
             # self.experiment_options['eta'] = 3e-1
             self.experiment_options['eta'] = 1e-0
+            self.experiment_options['gamma'] = 0
             # Note: increasing the number of gradient updates in ngd is the best way to go. As more noise, more gradient updates should be done
 
             # The iterations of NGD distributed between bilevel iters and gradient update must be at least 10
@@ -1061,6 +1077,8 @@ class Config:
         # config.theta_0 = dict.fromkeys(config.theta_0, -2)
         # config.theta_0 = dict.fromkeys(config.theta_0, -4.2)
         self.experiment_options['theta_0'] = dict.fromkeys({'tt'}, -14)
+        self.experiment_options['eta_norefined'] = 2
+        self.experiment_options['eta_refined'] = 2
 
         if uncongested_mode:
 
@@ -1128,6 +1146,7 @@ class Config:
         self.experiment_options['experiment_mode'] = 'Yang biased reference od experiment'
 
         # Learning rate for first order optimization
+        self.experiment_options['gamma'] = 0
         self.experiment_options['eta_norefined'] = 1e-0
         # config.experiment_options['eta_norefined'] = 3e-0
         self.experiment_options['eta_refined'] = 1e-3
@@ -1160,6 +1179,8 @@ class Config:
         self.experiment_options['outeropt_method_refined'] = 'gauss-newton'
         # self.experiment_options['outeropt_method_refined'] = 'lm' #'lm' #gauss-newton
         # config.experiment_options['outeropt_method_refined'] = 'ngd' #'adam'
+
+        self.experiment_options['gamma'] = 0
 
         # Learning rate for first order optimization
         self.experiment_options['eta_norefined'] = 1e-2
@@ -1197,6 +1218,10 @@ class Config:
             self.experiment_options['pseudoconvexity_experiment'] = True
 
             self.experiment_options['experiment_mode'] = 'grid search'
+
+            # No sparse attributes
+            self.sim_options['n_R'] = 0
+            self.estimation_options['k_Z'] = self.estimation_options['k_Z']
 
 
             self.experiment_options['noise_params'] = {}

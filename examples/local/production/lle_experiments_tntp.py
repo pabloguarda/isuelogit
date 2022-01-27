@@ -6,7 +6,10 @@ import os
 
 # Set seed for reproducibility and consistency between experiments
 import numpy as np
+import random
+
 np.random.seed(2021)
+random.seed(2021)
 
 #=============================================================================
 # 1a) MODULES
@@ -81,8 +84,8 @@ theta_0_fixed_effects = 0
 observed_links_fixed_effects = None #'random'
 
 # Feature selection based on t-test from no refined step and ignoring fixed effects (I must NOT do post-selection inference as it violates basic assumptions)
-# config.estimation_options['ttest_selection_norefined'] = False
-config.estimation_options['ttest_selection_norefined'] = True
+config.estimation_options['ttest_selection_norefined'] = False
+# config.estimation_options['ttest_selection_norefined'] = True
 
 # We relax the critical value to remove features that are highly "no significant". A simil of regularization
 config.estimation_options['alpha_selection_norefined'] = 0.05 #if it g is higher than 1, it choose the k minimum values
@@ -115,8 +118,8 @@ config.estimation_options['dissimilarity_weight'] = 0 #0.5 works well
 config.estimation_options['accuracy_eq'] = 1e-4
 
 # Optimization methods used in no refined and refined stages
-config.estimation_options['outeropt_method_norefined'] = 'ngd' #'adam'
-config.estimation_options['outeropt_method_refined'] = 'lm' #'lm' #gauss-newton
+config.estimation_options['outeropt_method_norefined'] = 'ngd'
+config.estimation_options['outeropt_method_refined'] = 'ngd' #'lm' #gauss-newton
 # config.estimation_options['outeropt_method_refined'] = 'gauss-newton'
 # Note: lm works bad for inference, understand why but it may related with scaling?
 
@@ -128,23 +131,28 @@ config.estimation_options['links_batch_size'] = 0#0
 config.estimation_options['eta_norefined'] = 1e-1
 config.estimation_options['eta_refined'] = 1e-2
 
+# Momentum
+config.estimation_options['gamma_norefined'] = 0#0.5
+config.estimation_options['gamma_refined'] = 0 #0.5
+
 # Bilevel iters
 config.estimation_options['bilevel_iters_norefined'] = 10  # 10
 config.estimation_options['bilevel_iters_refined'] = 10 # 5
 
 
 # Parameters for simulation with no noise
-# config.set_simulated_counts(max_link_coverage= 1, sd_x = 0, sd_Q = 0)
+config.set_simulated_counts(max_link_coverage= 1, sd_x = 0, sd_Q = 0, scale_Q = 1)
 
 # Std of 0.2 is tolerable in terms of consistency of statistical inference
-# config.set_simulated_counts(max_link_coverage = 1, sd_x = 0.4, sd_Q = 0.5, scale_Q = 1)
+# config.set_simulated_counts(max_link_coverage = 1, sd_x = 0.2, sd_Q = 0.2, scale_Q = 1)
+# config.set_simulated_counts(max_link_coverage = 1, sd_x = 0.2, sd_Q = 0.2, scale_Q = 0.8)
 # config.set_simulated_counts(max_link_coverage = 1, sd_x = 0.1, sd_Q = 0, scale_Q = 1)
-# config.set_simulated_counts(max_link_coverage = 1, sd_x = 0.2, sd_Q = 0, scale_Q = 1)
 # config.set_simulated_counts(max_link_coverage = 1, snr_x = 20, sd_x = 0, sd_Q = 0, scale_Q =1)
-config.set_simulated_counts(max_link_coverage = 1, snr_x = None, sd_x = 0, sd_Q = 0, scale_Q =1)
+# config.set_simulated_counts(max_link_coverage = 1, snr_x = None, sd_x = 0, sd_Q = 0, scale_Q =1)
 
 # Uncongested mode (Disable when running experiments or bpr parameters will be set to 0)
-# config.set_uncongested_mode(True)
+config.set_uncongested_mode(True)
+# config.set_uncongested_mode(False)
 
 # Under this mode, the true path is used as the path set to learn the logit parameters
 config.set_known_pathset_mode(True)
@@ -159,7 +167,8 @@ config.set_known_pathset_mode(True)
 # EXPERIMENTS
 
 # -  Pseudo-convexity
-# config.set_pseudoconvexity_experiment(theta_grid = np.arange(-15, 15, 2), uncongested_mode = True)
+# config.set_pseudoconvexity_experiment(theta_grid = np.arange(-15, 15, 1), uncongested_mode = True)
+# config.set_pseudoconvexity_experiment(theta_grid = np.arange(-10, 10.1, 1), uncongested_mode = True)
 # config.set_pseudoconvexity_experiment(theta_grid = np.arange(-5, 5, 0.5), uncongested_mode = True)
 # config.set_pseudoconvexity_experiment(theta_grid = np.arange(-1, 1, 0.5), uncongested_mode = True)
 
@@ -167,25 +176,22 @@ config.set_known_pathset_mode(True)
 # config.set_convergence_experiment(iters_factor = 1)
 
 # - Consistency (inference)
-# config.set_consistency_experiment(replicates = 100, theta_0_range = (-1,1), iters_factor = 1, sd_x = 0.03, uncongested_mode = True)
+config.set_consistency_experiment(replicates = 100, theta_0_range = (-1,1), iters_factor = 1, sd_x = 0.03, uncongested_mode = True)
 # config.set_consistency_experiment(replicates = 100, theta_0_range = (-1, 1), iters_factor = 1, sd_x = 0.03, uncongested_mode = False)
 
 # Irrelevant attributes
-# config.set_irrelevant_attributes_experiment(replicates = 10, theta_0_range = (-1, 1), iters_factor = 1, sd_x = 0.01, uncongested_mode = True)
-config.set_irrelevant_attributes_experiment(replicates = 100, theta_0_range = (-1, 1), iters_factor = 1, sd_x = 0.03, uncongested_mode = False)
+# config.set_irrelevant_attributes_experiment(replicates = 100, theta_0_range = (-1, 1), iters_factor = 1, sd_x = 0.03, uncongested_mode = True)
+# config.set_irrelevant_attributes_experiment(replicates = 100, theta_0_range = (-1, 1), iters_factor = 1, sd_x = 0.03, uncongested_mode = False)
 
 # Start from 0 the optimization reduces the amount of false negatives (???)
 # config.set_irrelevant_attributes_experiment(replicates = 10, theta_0_range = 0, iters_factor = 1, uncongested_mode = False)
 
 # - Coverage
 # config.set_noisy_od_counts_experiment(replicates = 100, theta_0_range = (-1, 1), iters_factor = 1, sd_x = 0.03, uncongested_mode = False, coverages = [0.50,0.75,0.95])
+# config.set_noisy_od_counts_experiment(replicates = 100, theta_0_range = (-1, 1), iters_factor = 1, sd_x = 0.03, uncongested_mode = True, coverages = [0.10,0.50,0.75])
+# config.set_noisy_od_counts_experiment(replicates = 100, theta_0_range = (-1, 1), iters_factor = 1, sd_x = 0.03, uncongested_mode = False, coverages = [0.10,0.50,0.75])
 
 # - Noise
-
-# + OD error
-# Until 0.3 of error in O-D matrix is tolerable
-# config.set_noisy_od_counts_experiment(replicates = 100, theta_0_range = (-1, 1), iters_factor = 1, uncongested_mode = True, sd_x = 0, scale_Q = 1, sds_Q = [0.04,0.06,0.08])
-# config.set_noisy_od_counts_experiment(replicates = 100, theta_0_range = (-1, 1), iters_factor = 1, uncongested_mode = False, sd_x = 0, scale_Q = 1, sds_Q = [0.04,0.06,0.08])
 
 # + Link count error
 # Until 0.05-0.1 of error in link count is tolerable given the size of the Sioux Falls network
@@ -195,12 +201,18 @@ config.set_irrelevant_attributes_experiment(replicates = 100, theta_0_range = (-
 # Start from 0 the optimization reduces the amount of false negatives (???)
 # config.set_noisy_od_counts_experiment(replicates = 20, theta_0_range = 0, iters_factor = 1, uncongested_mode = False, sds_x = [0.01,0.05,0.1])
 
+# + OD error
+# Until 0.3 of error in O-D matrix is tolerable
+# config.set_noisy_od_counts_experiment(replicates = 100, theta_0_range = (-1, 1), iters_factor = 1, uncongested_mode = True, sd_x = 0, scale_Q = 1, sds_Q = [0.04,0.06,0.08])
+# config.set_noisy_od_counts_experiment(replicates = 100, theta_0_range = (-1, 1), iters_factor = 1, uncongested_mode = False, sd_x = 0, scale_Q = 1, sds_Q = [0.04,0.06,0.08])
+
 # - Misspecification error
 
 # + OD scale
 # Until 0.05 of error in the scale of the O-D matrix is tolerable
 # config.set_noisy_od_counts_experiment(replicates = 20, theta_0_range = (-2, 2), iters_factor = 1, uncongested_mode = True, sd_x = 0.01, scale_Q = 1, scales_Q = [0.9,0.95,1.05,1.1])
-# config.set_noisy_od_counts_experiment(replicates = 20, theta_0_range = (-1, 1), iters_factor = 1, uncongested_mode = False, sd_x = 0.01, scale_Q = 1, scales_Q = [0.9,0.95,1.05,1.1])
+# config.set_noisy_od_counts_experiment(replicates = 100, theta_0_range = (-1, 1), iters_factor = 1, uncongested_mode = True, sd_x = 0.03, scale_Q = 1, scales_Q = [0.94,0.96,1.04,1.06])
+# config.set_noisy_od_counts_experiment(replicates = 100, theta_0_range = (-1, 1), iters_factor = 1, uncongested_mode = False, sd_x = 0.03, scale_Q = 1, scales_Q = [0.94,0.96,1.04,1.06])
 
 # config.set_optimization_benchmark_experiment(True, replicates = 2, theta_0_range = (-2, 2), uncongested_mode = True)
 
@@ -210,6 +222,9 @@ config.set_irrelevant_attributes_experiment(replicates = 100, theta_0_range = (-
 # config.estimation_options['q_random_search'] = True # Include od demand matrix factor variation for random search
 # config.estimation_options['n_draws_random_search'] = 20 # To avoid a wrong scaling factor, at least 20 random draws needs to be performed
 # config.estimation_options['scaling_Q'] = True #True
+
+
+# if config.experiment_options['experiment_mode'] is None:
 
 # - Number of attributes that will be set to 0, which moderate sparsity: with 20 at least, we observe benefits of regularize
 config.sim_options['n_R'] = 3#3  # 2 #5 #10 #20 #50
@@ -426,7 +441,7 @@ if config.sim_options['simulated_counts'] is True:
         Nt=N['train'][current_network]  # tai.modeller.clone_network(N['train'][i], label = 'clone')
         , theta = theta_true[current_network]
         , k_Y = k_Y, k_Z = k_Z_simulation
-        , eq_params = {'iters': config.sim_options['max_sue_iters'], 'accuracy_eq': config.estimation_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': 50}
+        , eq_params = {'iters': config.sim_options['max_sue_iters'], 'accuracy_eq': config.estimation_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': config.estimation_options['iters_ls_fw']}
         , coverage = config.sim_options['max_link_coverage']
         , noise_params = config.sim_options['noise_params']
         , uncongested_mode=config.sim_options['uncongested_mode']
@@ -545,8 +560,8 @@ if config.experiment_options['pseudoconvexity_experiment']:
         Nt=N['train'][current_network]  # tai.modeller.clone_network(N['train'][i], label = 'clone')
         , theta=theta_true[current_network]
         , k_Y=k_Y, k_Z=k_Z_simulation
-        , eq_params={'iters': config.sim_options['max_sue_iters'],
-                     'accuracy_eq': config.estimation_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': 50}
+        , eq_params={'iters': config.experiment_options['max_sue_iters'],
+                     'accuracy_eq': config.estimation_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': config.estimation_options['iters_ls_fw']}
         , coverage=config.sim_options['max_link_coverage']
         , noise_params=config.sim_options['noise_params']
         , n_paths=config.sim_options['n_paths_synthetic_counts']
@@ -562,7 +577,7 @@ if config.experiment_options['pseudoconvexity_experiment']:
 
     # colors = ['black', 'red', 'blue']
     # attributes = ['tt', 'c','s']
-    colors = ['black', 'red']
+    colors = ['red', 'blue']
     attributes = ['tt', 'c']
 
     for attr, color  in zip(attributes, colors):
@@ -578,7 +593,7 @@ if config.experiment_options['pseudoconvexity_experiment']:
                                                       , theta=theta_true[current_network]
                                                       , gradients=True, hessians=True
                                                       # , paths_column_generation=config.experiment_options['paths_column_generation']
-                                                      , inneropt_params={'iters': config.sim_options['max_sue_iters'], 'accuracy_eq': config.experiment_options['accuracy_eq'], 'uncongested_mode': config.experiment_options['uncongested_mode']}
+                                                      , inneropt_params={'iters': config.experiment_options['max_sue_iters'], 'accuracy_eq': config.experiment_options['accuracy_eq'], 'uncongested_mode': config.experiment_options['uncongested_mode']}
                                                       )
 
         # Create pandas dataframe
@@ -690,7 +705,7 @@ if config.experiment_options['optimization_benchmark_experiment']:
             , k_Y=k_Y, k_Z=config.experiment_options['k_Z']
             , eq_params={'iters': config.experiment_options['max_sue_iters'],
                          'accuracy_eq': config.experiment_options['accuracy_eq']
-                , 'method': 'line_search', 'iters_ls': 10}
+                , 'method': 'line_search', 'iters_ls': config.estimation_options['iters_ls_fw']}
             , coverage=config.experiment_options['max_link_coverage']
             , noise_params=config.experiment_options['noise_params']
             , uncongested_mode=config.sim_options['uncongested_mode']
@@ -711,8 +726,10 @@ if config.experiment_options['optimization_benchmark_experiment']:
 
         for method in config.experiment_options['optimization_methods']:
 
+            bilevel_estimation_norefined = tai.estimation.Estimation(config.theta_0)
+
             q_values[method], theta_values[method], objective_values[method], result_eq_values[method], results[method] \
-                = tai.estimation.odtheta_estimation_bilevel(
+                = bilevel_estimation_norefined.odtheta_estimation_bilevel(
                 # Nt= tai.modeller.clone_network(N['train'][i], label = N['train'][i].label),
                 Nt=N['train'][current_network],
                 k_Y=k_Y, k_Z=config.experiment_options['k_Z'],
@@ -734,15 +751,15 @@ if config.experiment_options['optimization_benchmark_experiment']:
                     'eta_scaling': 1e-1,
                     'eta': config.experiment_options['eta'],  # works well for simulated networks
                     # 'eta': 1e-4, # works well for Fresno real network
-                    'gamma': 0,
-                    'v_lm': 1e1, 'lambda_lm': 1e0,
+                    'gamma': config.experiment_options['gamma'],
+                    'v_lm': 10, 'lambda_lm': 1,
                     'beta_1': 0.8, 'beta_2': 0.8,
                     'batch_size': 0,
                     'paths_batch_size': config.estimation_options['paths_batch_size']
                 },
 
                 inneropt_params={'iters': config.experiment_options['max_sue_iters'],
-                                 'accuracy_eq': config.experiment_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': 10, 'uncongested_mode': config.experiment_options['uncongested_mode']},
+                                 'accuracy_eq': config.experiment_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': config.estimation_options['iters_ls_fw'], 'uncongested_mode': config.experiment_options['uncongested_mode']},
 
                 bilevelopt_params={'iters': config.experiment_options['bilevel_iters']},  # {'iters': 10},
                 # plot_options = {'y': 'objective'}
@@ -892,7 +909,7 @@ if config.experiment_options['convergence_experiment']:
             , k_Y=k_Y, k_Z=k_Z_simulation
             , eq_params={'iters': config.experiment_options['max_sue_iters'],
                          'accuracy_eq': config.estimation_options['accuracy_eq'], 'method': 'line_search',
-                         'iters_ls': 50}
+                         'iters_ls': config.estimation_options['iters_ls_fw']}
             , coverage=config.sim_options['max_link_coverage']
             , noise_params=config.sim_options['noise_params']
             , uncongested_mode= config.experiment_options['uncongested_mode']
@@ -904,8 +921,10 @@ if config.experiment_options['convergence_experiment']:
 
         xc = xc_simulated
 
+        bilevel_estimation_norefined = tai.estimation.Estimation(config.theta_0)
+
         q_norefined_bilevelopt, theta_norefined_bilevelopt, objective_norefined_bilevelopt, result_eq_norefined_bilevelopt, results_norefined_bilevelopt[scenario] \
-            = tai.estimation.odtheta_estimation_bilevel(
+            = bilevel_estimation_norefined.odtheta_estimation_bilevel(
             # Nt= tai.modeller.clone_network(N['train'][i], label = N['train'][i].label),
             Nt=N['train'][current_network],
             k_Y=k_Y, k_Z=k_Z_estimation,
@@ -930,12 +949,12 @@ if config.experiment_options['convergence_experiment']:
                 'eta': config.experiment_options['eta_norefined'],  # works well for simulated networks
                 # 'eta': 1e-4, # works well for Fresno real network
                 'gamma': 0,
-                'v_lm': 1, 'lambda_lm': 0,
+                'v_lm': 10, 'lambda_lm': 1,
                 'beta_1': 0.9, 'beta_2': 0.99
             },
             inneropt_params={'iters': config.experiment_options['max_sue_iters_norefined'],
                              'accuracy_eq': config.estimation_options['accuracy_eq']
-                , 'method': 'line_search', 'iters_ls': 10
+                , 'method': 'line_search', 'iters_ls': config.estimation_options['iters_ls_fw']
                 , 'k_path_set_selection': config.estimation_options['k_path_set_selection']
                 , 'dissimilarity_weight': config.estimation_options['dissimilarity_weight']
                 , 'uncongested_mode': config.experiment_options['uncongested_mode']
@@ -949,9 +968,12 @@ if config.experiment_options['convergence_experiment']:
         config.estimation_results['best_loss_norefined'] = objective_norefined_bilevelopt
 
         # Fine scale solution (the initial objective can be different because we know let's more iterations to be performed to achieve equilibrium)
+
+        bilevel_estimation_refined = tai.estimation.Estimation(theta_norefined_bilevelopt)
+
         q_refined_bilevelopt, theta_refined_bilevelopt, objective_refined_bilevelopt, result_eq_refined_bilevelopt\
             , results_refined_bilevelopt[scenario] \
-            = tai.estimation.odtheta_estimation_bilevel(Nt=N['train'][current_network],
+            = bilevel_estimation_refined .odtheta_estimation_bilevel(Nt=N['train'][current_network],
                                                         k_Y=k_Y, k_Z=k_Z_estimation,
                                                         Zt={1: N['train'][current_network].Z_dict},
                                                         # q0=N['train'][current_network].q,
@@ -971,7 +993,7 @@ if config.experiment_options['convergence_experiment']:
                                                             , 'eta_scaling': 1e-2
                                                             , 'eta': config.experiment_options['eta_refined']  # 1e-6
                                                             , 'gamma': 0
-                                                            , 'v_lm': 1e3, 'lambda_lm': 1e1
+                                                            , 'v_lm': 10, 'lambda_lm': 1
                                                             , 'beta_1': 0.9, 'beta_2': 0.99
                                                             , 'batch_size': config.estimation_options['links_batch_size']
                                                             , 'paths_batch_size': config.estimation_options[
@@ -980,7 +1002,7 @@ if config.experiment_options['convergence_experiment']:
                                                         inneropt_params={
                                                             'iters': config.experiment_options['max_sue_iters_refined'],
                                                             'accuracy_eq': config.estimation_options['accuracy_eq'],
-                                                            'method': 'line_search', 'iters_ls': 20
+                                                            'method': 'line_search', 'iters_ls': config.estimation_options['iters_ls_fw']
                                                             , 'uncongested_mode': config.experiment_options[
                                                                 'uncongested_mode']
                                                         },
@@ -1016,7 +1038,8 @@ if config.experiment_options['convergence_experiment']:
                                               , Ix=N['train'][current_network].D, Iq=N['train'][current_network].M
                                               , C=N['train'][current_network].C
                                               , pct_lowest_sse=config.estimation_options['pct_lowest_sse_refined']
-                                              , alpha=0.05)
+                                              , alpha=0.05                                  , normalization=config.estimation_options['normalization_softmax']
+                                              , numeric_hessian=config.estimation_options['numeric_hessian'])
 
         with pd.option_context('display.float_format', '{:0.3f}'.format):
             # pd.set_option('display.max_rows', 500)
@@ -1135,7 +1158,7 @@ if config.experiment_options['consistency_experiment']:
             , k_Y=k_Y, k_Z=config.experiment_options['k_Z']
             , eq_params={'iters': config.experiment_options['max_sue_iters'],
                          'accuracy_eq': config.experiment_options['accuracy_eq'], 'method': 'line_search',
-                         'iters_ls': 50}
+                         'iters_ls': config.estimation_options['iters_ls_fw']}
             , coverage=config.experiment_options['max_link_coverage']
             , noise_params=config.experiment_options['noise_params']
             , uncongested_mode=config.experiment_options['uncongested_mode']
@@ -1159,12 +1182,11 @@ if config.experiment_options['consistency_experiment']:
         # else:
         #     config.experiment_options['theta_0'] = config.experiment_options['theta_true'] + np.random.uniform(0.5,len(k_Y + config.experiment_options['k_Z']))
 
-
-
+        bilevel_estimation_norefined = tai.estimation.Estimation(config.theta_0)
 
         t0 = time.time()
         q_norefined, theta_norefined, objective_norefined, result_eq_norefined, results_norefined \
-            = tai.estimation.odtheta_estimation_bilevel(
+            = bilevel_estimation_norefined.odtheta_estimation_bilevel(
             # Nt= tai.modeller.clone_network(N['train'][i], label = N['train'][i].label),
             Nt=N['train'][current_network],
             k_Y=k_Y, k_Z=config.experiment_options['k_Z'],
@@ -1185,16 +1207,16 @@ if config.experiment_options['consistency_experiment']:
                 'eta_scaling': 1e-1,
                 'eta': config.experiment_options['eta_norefined'],  # works well for simulated networks
                 # 'eta': 1e-4, # works well for Fresno real network
-                'gamma': 0,
-                'v_lm': 1, 'lambda_lm': 0,
+                'gamma': config.experiment_options['gamma'],
+                'v_lm': 10, 'lambda_lm': 1,
                 'beta_1': 0.8, 'beta_2': 0.8,
                 'batch_size': 0,
                 'paths_batch_size': config.estimation_options['paths_batch_size']
             },
 
             inneropt_params={'iters': config.experiment_options['max_sue_iters_norefined'],
-                             'accuracy_eq': config.experiment_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': 50
-                             , 'uncongested_mode': config.sim_options['uncongested_mode']
+                             'accuracy_eq': config.experiment_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': config.estimation_options['iters_ls_fw']
+                             , 'uncongested_mode': config.experiment_options['uncongested_mode']
                              },
             bilevelopt_params={'iters': config.experiment_options['bilevel_iters_norefined']},  # {'iters': 10},
             # plot_options = {'y': 'objective'}
@@ -1204,8 +1226,10 @@ if config.experiment_options['consistency_experiment']:
 
         t0 = time.time()
 
+        bilevel_estimation_refined = tai.estimation.Estimation(config.experiment_options['theta_0'])
+
         q_refined, theta_refined, objective_refined, result_eq_refined, results_refined \
-            = tai.estimation.odtheta_estimation_bilevel(
+            = bilevel_estimation_refined.odtheta_estimation_bilevel(
             Nt=N['train'][current_network],
             k_Y=k_Y, k_Z=config.experiment_options['k_Z'],
             Zt={1: N['train'][current_network].Z_dict},
@@ -1222,17 +1246,17 @@ if config.experiment_options['consistency_experiment']:
                 , 'iters': config.experiment_options['iters_refined']
                 # int(2e1)
                 , 'eta_scaling': 1e-2,
-                'eta': 1e-1  # 1e-6
-                , 'gamma': 0,
-                'v_lm' : 1e2, 'lambda_lm' : 1e1,
+                'eta': config.experiment_options['eta_refined']  # 1e-6
+                , 'gamma': config.experiment_options['gamma'],
+                'v_lm' : 10, 'lambda_lm' : 1,
                 'beta_1': 0.8, 'beta_2': 0.8,
                 'batch_size': 0,
                 'paths_batch_size': config.estimation_options['paths_batch_size']
             },
             inneropt_params={
                 'iters': config.experiment_options['max_sue_iters_refined'],
-                'accuracy_eq': config.experiment_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': 50
-                , 'uncongested_mode': config.sim_options['uncongested_mode']
+                'accuracy_eq': config.experiment_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': config.estimation_options['iters_ls_fw']
+                , 'uncongested_mode': config.experiment_options['uncongested_mode']
             },
             # {'iters': 100, 'accuracy_eq': config.experiment_options['accuracy_eq']},
             bilevelopt_params={
@@ -1246,8 +1270,11 @@ if config.experiment_options['consistency_experiment']:
         t0 = time.time()
 
         # Combined methods
+
+        bilevel_estimation_combined = tai.estimation.Estimation(theta_norefined)
+
         q_refined_combined, theta_refined_combined, objective_refined_combined, result_eq_refined_combined, results_refined_combined \
-            = tai.estimation.odtheta_estimation_bilevel(
+            = bilevel_estimation_combined.odtheta_estimation_bilevel(
             Nt=N['train'][current_network],
             k_Y=k_Y, k_Z=config.experiment_options['k_Z'],
             Zt={1: N['train'][current_network].Z_dict},
@@ -1265,16 +1292,16 @@ if config.experiment_options['consistency_experiment']:
                 # int(2e1)
                 , 'eta_scaling': 1e-2,
                 'eta': 1e-1  # 1e-6
-                , 'gamma': 0,
-                'v_lm' : 1e2, 'lambda_lm' : 1e1,
+                , 'gamma':  config.experiment_options['gamma'],
+                'v_lm' : 10, 'lambda_lm' : 1,
                 'beta_1': 0.8, 'beta_2': 0.8,
                 'batch_size': 0,
                 'paths_batch_size': config.estimation_options['paths_batch_size']
             },
             inneropt_params={
                 'iters': config.experiment_options['max_sue_iters_refined'],
-                'accuracy_eq': config.experiment_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': 50
-                , 'uncongested_mode': config.sim_options['uncongested_mode']
+                'accuracy_eq': config.experiment_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': config.estimation_options['iters_ls_fw']
+                , 'uncongested_mode': config.experiment_options['uncongested_mode']
             },
             # {'iters': 100, 'accuracy_eq': config.experiment_options['accuracy_eq']},
             bilevelopt_params={
@@ -1287,7 +1314,7 @@ if config.experiment_options['consistency_experiment']:
 
         time_ngd_gn = time.time() + time_ngd + - t0
 
-        # tai.printer.enablePrint()
+        tai.printer.enablePrint()
 
         # Statistical inference
 
@@ -1295,6 +1322,7 @@ if config.experiment_options['consistency_experiment']:
         best_x_eq_refined = np.array(list(result_eq_refined['x'].values()))[:, np.newaxis]
         best_x_eq_combined = np.array(list(result_eq_refined_combined['x'].values()))[:, np.newaxis]
 
+        print('\nInference with no refined solution')
         parameter_inference_norefined_table, model_inference_norefined_table \
             = tai.estimation.hypothesis_tests(theta_h0=0
                                               , theta=theta_norefined
@@ -1310,8 +1338,17 @@ if config.experiment_options['consistency_experiment']:
                                               , Ix=N['train'][current_network].D, Iq=N['train'][current_network].M
                                               , C=N['train'][current_network].C
                                               , pct_lowest_sse=100
-                                              , alpha=config.experiment_options['alpha'])
+                                              , alpha=config.experiment_options['alpha']
+                                              , normalization = config.estimation_options['normalization_softmax']
+                                              , numeric_hessian= config.estimation_options['numeric_hessian']
+                                              )
 
+        with pd.option_context('display.float_format', '{:0.3f}'.format):
+            print('\nSummary of logit parameters: \n', parameter_inference_norefined_table.to_string(index=False))
+
+            print('\nSummary of model: \n', model_inference_norefined_table.to_string(index=False))
+
+        print('\nInference with refined solution')
         parameter_inference_refined_table, model_inference_refined_table \
             = tai.estimation.hypothesis_tests(theta_h0=0
                                               , theta=theta_refined
@@ -1327,8 +1364,17 @@ if config.experiment_options['consistency_experiment']:
                                               , Ix=N['train'][current_network].D, Iq=N['train'][current_network].M
                                               , C=N['train'][current_network].C
                                               , pct_lowest_sse=100
-                                              , alpha=config.experiment_options['alpha'])
+                                              , alpha=config.experiment_options['alpha']
+                                              , normalization=config.estimation_options['normalization_softmax']
+                                              , numeric_hessian=config.estimation_options['numeric_hessian']
+                                              )
 
+        with pd.option_context('display.float_format', '{:0.3f}'.format):
+            print('\nSummary of logit parameters: \n', parameter_inference_refined_table.to_string(index=False))
+
+            print('\nSummary of model: \n', model_inference_refined_table.to_string(index=False))
+
+        print('\nInference with combined solution')
         parameter_inference_refined_combined_table, model_inference_refined_combined_table \
             = tai.estimation.hypothesis_tests(theta_h0=0
                                               , theta=theta_refined_combined
@@ -1344,7 +1390,15 @@ if config.experiment_options['consistency_experiment']:
                                               , Ix=N['train'][current_network].D, Iq=N['train'][current_network].M
                                               , C=N['train'][current_network].C
                                               , pct_lowest_sse=100
-                                              , alpha=config.experiment_options['alpha'])
+                                              , alpha=config.experiment_options['alpha']
+                                              , normalization=config.estimation_options['normalization_softmax']
+                                              , numeric_hessian=config.estimation_options['numeric_hessian']
+                                              )
+
+        with pd.option_context('display.float_format', '{:0.3f}'.format):
+            print('\nSummary of logit parameters: \n', parameter_inference_refined_combined_table.to_string(index=False))
+
+            print('\nSummary of model: \n', model_inference_refined_combined_table.to_string(index=False))
 
         # Store results by attribute
 
@@ -1524,7 +1578,7 @@ if config.experiment_options['irrelevant_attributes_experiment']:
             , k_Y=k_Y, k_Z=config.experiment_options['k_Z']
             , eq_params={'iters': config.experiment_options['max_sue_iters'],
                          'accuracy_eq': config.experiment_options['accuracy_eq'], 'method': 'line_search',
-                         'iters_ls': 50}
+                         'iters_ls': config.estimation_options['iters_ls_fw']}
             , coverage=config.experiment_options['max_link_coverage']
             , noise_params=config.experiment_options['noise_params']
             , uncongested_mode=config.experiment_options['uncongested_mode']
@@ -1555,11 +1609,11 @@ if config.experiment_options['irrelevant_attributes_experiment']:
         #     config.experiment_options['theta_0'] = config.experiment_options['theta_true'] + np.random.uniform(0.5,len(k_Y + config.experiment_options['k_Z']))
 
 
-
+        bilevel_estimation_norefined = tai.estimation.Estimation(config.theta_0)
 
         t0 = time.time()
         q_norefined, theta_norefined, objective_norefined, result_eq_norefined, results_norefined \
-            = tai.estimation.odtheta_estimation_bilevel(
+            = bilevel_estimation_norefined.odtheta_estimation_bilevel(
             # Nt= tai.modeller.clone_network(N['train'][i], label = N['train'][i].label),
             Nt=N['train'][current_network],
             k_Y=k_Y, k_Z=config.experiment_options['k_Z'],
@@ -1581,14 +1635,14 @@ if config.experiment_options['irrelevant_attributes_experiment']:
                 'eta': config.experiment_options['eta_norefined'],  # works well for simulated networks
                 # 'eta': 1e-4, # works well for Fresno real network
                 'gamma': 0,
-                'v_lm': 1, 'lambda_lm': 0,
+                'v_lm': 10, 'lambda_lm': 1,
                 'beta_1': 0.8, 'beta_2': 0.8,
                 'batch_size': 0,
                 'paths_batch_size': config.estimation_options['paths_batch_size']
             },
 
             inneropt_params={'iters': config.experiment_options['max_sue_iters_norefined'],
-                             'accuracy_eq': config.experiment_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': 50
+                             'accuracy_eq': config.experiment_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': config.estimation_options['iters_ls_fw']
                              , 'uncongested_mode': config.experiment_options['uncongested_mode']
                              },
             bilevelopt_params={'iters': config.experiment_options['bilevel_iters_norefined']},  # {'iters': 10},
@@ -1599,8 +1653,10 @@ if config.experiment_options['irrelevant_attributes_experiment']:
 
         t0 = time.time()
 
+        bilevel_estimation_refined = tai.estimation.Estimation(theta_norefined)
+
         q_refined, theta_refined, objective_refined, result_eq_refined, results_refined \
-            = tai.estimation.odtheta_estimation_bilevel(
+            = bilevel_estimation_refined.odtheta_estimation_bilevel(
             Nt=N['train'][current_network],
             k_Y=k_Y, k_Z=config.experiment_options['k_Z'],
             Zt={1: N['train'][current_network].Z_dict},
@@ -1619,14 +1675,14 @@ if config.experiment_options['irrelevant_attributes_experiment']:
                 , 'eta_scaling': 1e-2,
                 'eta': config.experiment_options['eta_refined']  # 1e-6
                 , 'gamma': 0,
-                'v_lm' : 1e2, 'lambda_lm' : 1e1,
+                'v_lm' : 10, 'lambda_lm' : 1,
                 'beta_1': 0.8, 'beta_2': 0.8,
                 'batch_size': 0,
                 'paths_batch_size': config.estimation_options['paths_batch_size']
             },
             inneropt_params={
                 'iters': config.experiment_options['max_sue_iters_refined'],
-                'accuracy_eq': config.experiment_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': 50
+                'accuracy_eq': config.experiment_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': config.estimation_options['iters_ls_fw']
                 , 'uncongested_mode': config.experiment_options['uncongested_mode']
             },
             # {'iters': 100, 'accuracy_eq': config.experiment_options['accuracy_eq']},
@@ -1641,8 +1697,11 @@ if config.experiment_options['irrelevant_attributes_experiment']:
         t0 = time.time()
 
         # Combined methods
+
+        bilevel_estimation_combined = tai.estimation.Estimation(theta_norefined)
+
         q_refined_combined, theta_refined_combined, objective_refined_combined, result_eq_refined_combined, results_refined_combined \
-            = tai.estimation.odtheta_estimation_bilevel(
+            = bilevel_estimation_combined.odtheta_estimation_bilevel(
             Nt=N['train'][current_network],
             k_Y=k_Y, k_Z=config.experiment_options['k_Z'],
             Zt={1: N['train'][current_network].Z_dict},
@@ -1661,14 +1720,14 @@ if config.experiment_options['irrelevant_attributes_experiment']:
                 , 'eta_scaling': 1e-2,
                 'eta': config.experiment_options['eta_combined']  # 1e-6
                 , 'gamma': 0,
-                'v_lm' : 1e2, 'lambda_lm' : 1e1,
+                'v_lm' : 10, 'lambda_lm' : 1,
                 'beta_1': 0.8, 'beta_2': 0.8,
                 'batch_size': 0,
                 'paths_batch_size': config.estimation_options['paths_batch_size']
             },
             inneropt_params={
                 'iters': config.experiment_options['max_sue_iters_refined'],
-                'accuracy_eq': config.experiment_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': 50
+                'accuracy_eq': config.experiment_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': config.estimation_options['iters_ls_fw']
                 , 'uncongested_mode': config.experiment_options['uncongested_mode']
             },
             # {'iters': 100, 'accuracy_eq': config.experiment_options['accuracy_eq']},
@@ -1690,6 +1749,7 @@ if config.experiment_options['irrelevant_attributes_experiment']:
         best_x_eq_refined = np.array(list(result_eq_refined['x'].values()))[:, np.newaxis]
         best_x_eq_combined = np.array(list(result_eq_refined_combined['x'].values()))[:, np.newaxis]
 
+        print('\nInference with no refined solution')
         parameter_inference_norefined_table, model_inference_norefined_table \
             = tai.estimation.hypothesis_tests(theta_h0=0
                                               , theta=theta_norefined
@@ -1705,8 +1765,16 @@ if config.experiment_options['irrelevant_attributes_experiment']:
                                               , Ix=N['train'][current_network].D, Iq=N['train'][current_network].M
                                               , C=N['train'][current_network].C
                                               , pct_lowest_sse=100
-                                              , alpha=config.experiment_options['alpha'])
+                                              , alpha=config.experiment_options['alpha']                                              , normalization = config.estimation_options['normalization_softmax']
+                                              , numeric_hessian= config.estimation_options['numeric_hessian']
+                                              )
 
+        with pd.option_context('display.float_format', '{:0.3f}'.format):
+            print('\nSummary of logit parameters: \n', parameter_inference_norefined_table.to_string(index=False))
+
+            print('\nSummary of model: \n', model_inference_norefined_table.to_string(index=False))
+
+        print('\nInference with refined solution')
         parameter_inference_refined_table, model_inference_refined_table \
             = tai.estimation.hypothesis_tests(theta_h0=0
                                               , theta=theta_refined
@@ -1722,8 +1790,17 @@ if config.experiment_options['irrelevant_attributes_experiment']:
                                               , Ix=N['train'][current_network].D, Iq=N['train'][current_network].M
                                               , C=N['train'][current_network].C
                                               , pct_lowest_sse=100
-                                              , alpha=config.experiment_options['alpha'])
+                                              , alpha=config.experiment_options['alpha']                                              , normalization = config.estimation_options['normalization_softmax']
+                                              , numeric_hessian= config.estimation_options['numeric_hessian']
+                                              )
 
+        with pd.option_context('display.float_format', '{:0.3f}'.format):
+            print('\nSummary of logit parameters: \n', parameter_inference_refined_table.to_string(index=False))
+
+            print('\nSummary of model: \n', model_inference_refined_table.to_string(index=False))
+
+
+        print('\nInference with combined solution')
         parameter_inference_refined_combined_table, model_inference_refined_combined_table \
             = tai.estimation.hypothesis_tests(theta_h0=0
                                               , theta=theta_refined_combined
@@ -1739,7 +1816,14 @@ if config.experiment_options['irrelevant_attributes_experiment']:
                                               , Ix=N['train'][current_network].D, Iq=N['train'][current_network].M
                                               , C=N['train'][current_network].C
                                               , pct_lowest_sse=100
-                                              , alpha=config.experiment_options['alpha'])
+                                              , alpha=config.experiment_options['alpha']                                              , normalization = config.estimation_options['normalization_softmax']
+                                              , numeric_hessian= config.estimation_options['numeric_hessian']
+                                              )
+
+        with pd.option_context('display.float_format', '{:0.3f}'.format):
+            print('\nSummary of logit parameters: \n', parameter_inference_refined_combined_table.to_string(index=False))
+
+            print('\nSummary of model: \n', model_inference_refined_combined_table.to_string(index=False))
 
         # Store results by attribute
 
@@ -1930,6 +2014,8 @@ if config.experiment_options['noisy_od_counts_experiment']:
         levels = config.experiment_options['coverages']
         config.experiment_options['experiment_mode'] = 'Link coverage experiment'
 
+    print('Starting', config.experiment_options['experiment_mode'])
+
     parameter_inference_table = pd.DataFrame()
     model_inference_table = pd.DataFrame()
 
@@ -1976,7 +2062,7 @@ if config.experiment_options['noisy_od_counts_experiment']:
                 , k_Y=k_Y, k_Z=config.experiment_options['k_Z']
                 , eq_params={'iters': config.experiment_options['max_sue_iters'],
                              'accuracy_eq': config.experiment_options['accuracy_eq'], 'method': 'line_search',
-                             'iters_ls': 50}
+                             'iters_ls': config.estimation_options['iters_ls_fw']}
                 , coverage=config.experiment_options['max_link_coverage']
                 , noise_params=config.experiment_options['noise_params']
                 , uncongested_mode=config.experiment_options['uncongested_mode']
@@ -1994,9 +2080,10 @@ if config.experiment_options['noisy_od_counts_experiment']:
 
             # tai.printer.blockPrint()
 
+            bilevel_estimation_norefined = tai.estimation.Estimation(config.theta_0)
 
             q_norefined, theta_norefined, objective_norefined, result_eq_norefined, results_norefined \
-                = tai.estimation.odtheta_estimation_bilevel(
+                = bilevel_estimation_norefined.odtheta_estimation_bilevel(
                 # Nt= tai.modeller.clone_network(N['train'][i], label = N['train'][i].label),
                 Nt=N['train'][current_network],
                 k_Y=k_Y, k_Z=config.experiment_options['k_Z'],
@@ -2013,20 +2100,22 @@ if config.experiment_options['noisy_od_counts_experiment']:
                     'eta': config.experiment_options['eta_norefined'],  # works well for simulated networks
                     # 'eta': 1e-4, # works well for Fresno real network
                     'gamma': 0,
-                    'v_lm': 1, 'lambda_lm': 0,
+                    'v_lm': 10, 'lambda_lm': 1,
                     'beta_1': 0.8, 'beta_2': 0.8,
                     'batch_size': 0,
                     'paths_batch_size': config.estimation_options['paths_batch_size']
                 },
                 inneropt_params={'iters': config.experiment_options['max_sue_iters_norefined'],
-                                 'accuracy_eq': config.experiment_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': 50
+                                 'accuracy_eq': config.experiment_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': config.estimation_options['iters_ls_fw']
                                  , 'uncongested_mode': config.sim_options['uncongested_mode']
                                  },
                 bilevelopt_params={'iters': config.experiment_options['bilevel_iters_norefined']},  #
             )
 
+            bilevel_estimation_refined = tai.estimation.Estimation(theta_norefined)
+
             q_refined, theta_refined, objective_refined, result_eq_refined, results_refined \
-                = tai.estimation.odtheta_estimation_bilevel(
+                = bilevel_estimation_refined.odtheta_estimation_bilevel(
                 Nt=N['train'][current_network],
                 k_Y=k_Y, k_Z=config.experiment_options['k_Z'],
                 Zt={1: N['train'][current_network].Z_dict},
@@ -2041,14 +2130,14 @@ if config.experiment_options['noisy_od_counts_experiment']:
                     , 'eta_scaling': 1e-2,
                     'eta': config.experiment_options['eta_refined']  # 1e-6
                     , 'gamma': 0,
-                    'v_lm' : 1e2, 'lambda_lm' : 1e1,
+                    'v_lm' : 10, 'lambda_lm' : 1,
                     'beta_1': 0.8, 'beta_2': 0.8,
                     'batch_size': 0,
                     'paths_batch_size': config.estimation_options['paths_batch_size']
                 },
                 inneropt_params={
                     'iters': config.experiment_options['max_sue_iters_refined'],
-                    'accuracy_eq': config.experiment_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': 50
+                    'accuracy_eq': config.experiment_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': config.estimation_options['iters_ls_fw']
                     , 'uncongested_mode': config.sim_options['uncongested_mode']
                 },
                 bilevelopt_params={
@@ -2059,6 +2148,7 @@ if config.experiment_options['noisy_od_counts_experiment']:
             # Statistical inference
             best_x_eq_refined = np.array(list(result_eq_refined['x'].values()))[:, np.newaxis]
 
+            print('\nInference with refined solution')
             parameter_inference_refined_table, model_inference_refined_table \
                 = tai.estimation.hypothesis_tests(theta_h0=0
                                                   , theta=theta_refined
@@ -2074,7 +2164,11 @@ if config.experiment_options['noisy_od_counts_experiment']:
                                                   , Ix=N['train'][current_network].D, Iq=N['train'][current_network].M
                                                   , C=N['train'][current_network].C
                                                   , pct_lowest_sse=100
-                                                  , alpha=config.experiment_options['alpha'])
+                                                  , alpha=config.experiment_options['alpha']
+                                                  , normalization=config.estimation_options['normalization_softmax']
+                                                  , numeric_hessian=config.estimation_options['numeric_hessian']
+                                                  )
+
             with pd.option_context('display.float_format', '{:0.3f}'.format):
                 print('\nSummary of logit parameters: \n', parameter_inference_refined_table.to_string(index=False))
 
@@ -2287,7 +2381,7 @@ if config.estimation_options['theta_search'] is not None:
                                                       , q_bounds = config.bounds_q #config.bounds_q
                                                       , inneropt_params={
                                                         'iters': config.estimation_options['max_sue_iters_norefined']
-                                                        , 'accuracy_eq': config.estimation_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': 10, 'uncongested_mode': config.sim_options['uncongested_mode']
+                                                        , 'accuracy_eq': config.estimation_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': config.estimation_options['iters_ls_fw'], 'uncongested_mode': config.sim_options['uncongested_mode']
             }
                                                       , silent_mode = True
                                                       , uncongested_mode = False
@@ -2340,7 +2434,7 @@ if config.estimation_options['scaling_Q']:
                                           # , scale_grid = [9e-1,10e-1,11e-1]
                                           , silent_mode = True
                                           , inneropt_params = {'iters': config.estimation_options['max_sue_iters_norefined'], 'accuracy_eq': config.estimation_options['accuracy_eq']
-                                                                , 'method': 'line_search', 'iters_ls': 10, 'uncongested_mode': config.sim_options['uncongested_mode']
+                                                                , 'method': 'line_search', 'iters_ls': config.estimation_options['iters_ls_fw'], 'uncongested_mode': config.sim_options['uncongested_mode']
                                                                }
                                           )
 
@@ -2369,7 +2463,7 @@ config.estimation_results['mean_counts_prediction_loss'], config.estimation_resu
 print('\nObjective function under mean count prediction: ' + '{:,}'.format(round(config.estimation_results['mean_counts_prediction_loss'],1)))
 
 # Naive prediction using uncongested network
-config.estimation_results['equilikely_prediction_loss'] \
+config.estimation_results['equilikely_prediction_loss'], x_eq_equilikely \
     = tai.estimation.loss_predicted_counts_uncongested_network(
     x_bar = np.array(list(xc.values()))[:, np.newaxis], Nt = N['train'][current_network]
     , k_Y = k_Y, k_Z = config.estimation_options['k_Z'], theta_0 = dict.fromkeys(config.theta_0, 0))
@@ -2437,7 +2531,7 @@ if config.sim_options['regularization']:
             'eta': config.estimation_options['eta_regularized'],  # works well for simulated networks
             # 'eta': 1e-4, # works well for Fresno real network
             'gamma': 0,
-            'v_lm': 1, 'lambda_lm': 0,
+            'v_lm': 10, 'lambda_lm': 1,
             'beta_1': 0.8, 'beta_2': 0.8
         },
         inneropt_params={'iters': config.estimation_options['max_sue_iters_regularized'], 'accuracy_eq': config.estimation_options['accuracy_eq']
@@ -2475,9 +2569,10 @@ if config.sim_options['regularization']:
 if k_Z_estimation is None:
     k_Z_estimation = config.estimation_options['k_Z']
 
+bilevel_estimation_norefined = tai.estimation.Estimation(config.theta_0)
 
 q_norefined_bilevelopt, theta_norefined_bilevelopt, objective_norefined_bilevelopt,result_eq_norefined_bilevelopt, results_norefined_bilevelopt \
-    = tai.estimation.odtheta_estimation_bilevel(
+    = bilevel_estimation_norefined.odtheta_estimation_bilevel(
     # Nt= tai.modeller.clone_network(N['train'][i], label = N['train'][i].label),
     Nt= N['train'][current_network],
     k_Y=k_Y, k_Z=k_Z_estimation,
@@ -2505,12 +2600,12 @@ q_norefined_bilevelopt, theta_norefined_bilevelopt, objective_norefined_bilevelo
         'eta_scaling': 1e-1,
         'eta': config.estimation_options['eta_norefined'], # works well for simulated networks
         # 'eta': 1e-4, # works well for Fresno real network
-        'gamma': 0,
-        'v_lm': 1, 'lambda_lm': 0,
+        'gamma': config.estimation_options['gamma_norefined'],
+        'v_lm': 10, 'lambda_lm': 1,
         'beta_1': 0.9, 'beta_2': 0.99
         },
     inneropt_params = {'iters': config.estimation_options['max_sue_iters_norefined'], 'accuracy_eq': config.estimation_options['accuracy_eq']
-        , 'method': 'line_search', 'iters_ls': 10
+        , 'method': 'line_search', 'iters_ls': config.estimation_options['iters_ls_fw']
         , 'k_path_set_selection': config.estimation_options['k_path_set_selection']
         ,'dissimilarity_weight' : config.estimation_options['dissimilarity_weight']
         , 'uncongested_mode': config.sim_options['uncongested_mode']
@@ -2574,7 +2669,9 @@ parameter_inference_norefined_table, model_inference_norefined_table \
                                       , Ix=N['train'][current_network].D, Iq=N['train'][current_network].M
                                       , C=N['train'][current_network].C
                                       , pct_lowest_sse=config.estimation_options['pct_lowest_sse_norefined']
-                                      , alpha=0.05)
+                                      , alpha=0.05                                              , normalization = config.estimation_options['normalization_softmax']
+                                              , numeric_hessian= config.estimation_options['numeric_hessian']
+                                              )
 
 with pd.option_context('display.float_format', '{:0.3f}'.format):
 
@@ -2659,9 +2756,12 @@ if config.estimation_options['ttest_selection_norefined'] :
 
 if not config.estimation_options['outofsample_prediction_mode']:
 
+    bilevel_estimation_refined = tai.estimation.Estimation(theta_norefined_bilevelopt)
+
+
     # Fine scale solution (the initial objective can be different because we know let's more iterations to be performed to achieve equilibrium)
     q_refined_bilevelopt, theta_refined_bilevelopt, objective_refined_bilevelopt,result_eq_refined_bilevelopt, results_refined_bilevelopt \
-        = tai.estimation.odtheta_estimation_bilevel(Nt= N['train'][current_network],
+        = bilevel_estimation_refined.odtheta_estimation_bilevel(Nt= N['train'][current_network],
                                                     k_Y=k_Y, k_Z=k_Z_estimation,
                                                     Zt={1: N['train'][current_network].Z_dict},
                                                     # q0 = N['train'][current_network].q,
@@ -2683,13 +2783,13 @@ if not config.estimation_options['outofsample_prediction_mode']:
                                                         ,'iters': config.estimation_options['iters_refined'] #int(2e1)
                                                         , 'eta_scaling': 1e-2
                                                         , 'eta': config.estimation_options['eta_refined'] #1e-6
-                                                        , 'gamma': 0
-                                                        , 'v_lm' : 1e3, 'lambda_lm' : 1e1
+                                                        , 'gamma': config.estimation_options['gamma_refined']
+                                                        , 'v_lm' : 10, 'lambda_lm' : 1
                                                         , 'beta_1': 0.9, 'beta_2': 0.99
                                                         , 'batch_size': config.estimation_options['links_batch_size']
                                                         , 'paths_batch_size': config.estimation_options['paths_batch_size']
                                                     },
-                                                    inneropt_params = {'iters': config.estimation_options['max_sue_iters_refined'], 'accuracy_eq': config.estimation_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': 20
+                                                    inneropt_params = {'iters': config.estimation_options['max_sue_iters_refined'], 'accuracy_eq': config.estimation_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': config.estimation_options['iters_ls_fw']
                                                     , 'uncongested_mode': config.sim_options['uncongested_mode']
                                                     },  #{'iters': 100, 'accuracy_eq': config.estimation_options['accuracy_eq']},
                                                     bilevelopt_params = {'iters': config.estimation_options['bilevel_iters_refined']},  #{'iters': 10}
@@ -2754,7 +2854,9 @@ if not config.estimation_options['outofsample_prediction_mode']:
                                           , Ix=N['train'][current_network].D, Iq=N['train'][current_network].M
                                           , C=N['train'][current_network].C
                                           , pct_lowest_sse=config.estimation_options['pct_lowest_sse_refined']
-                                          , alpha=0.05)
+                                          , alpha=0.05                                              , normalization = config.estimation_options['normalization_softmax']
+                                              , numeric_hessian= config.estimation_options['numeric_hessian']
+                                              )
 
     with pd.option_context('display.float_format', '{:0.3f}'.format):
         # pd.set_option('display.max_rows', 500)
@@ -2804,10 +2906,12 @@ for axi in [axs[0],axs[1]]:
     axi.tick_params(axis = 'x', labelsize=16)
     axi.tick_params(axis = 'y', labelsize=16)
 
-plt.show()
+# plt.show()
 
 tai.writer.write_figure_to_log_folder(fig = fig
                                       , filename = 'distribution_predicted_count_error.pdf', log_file = config.log_file)
+
+plt.close(fig)
 
 # Heatmap O-D matrix
 
@@ -2840,12 +2944,13 @@ od_pivot_df = od_df.pivot_table(index = 'origin', columns = 'destination', value
 # uniform_data = np.random.rand(10, 12)
 fig, ax = plt.subplots()
 ax = sns.heatmap(od_pivot_df, linewidth=0.5, cmap="Blues")
-plt.show()
+# plt.show()
+
 
 tai.writer.write_figure_to_log_folder(fig = fig
                                       , filename = 'heatmap_OD_matrix.pdf', log_file = config.log_file)
 
-
+plt.close(fig)
 
 # - Generate pandas dataframe prior plotting
 results_norefined_refined_df = tai.descriptive_statistics \

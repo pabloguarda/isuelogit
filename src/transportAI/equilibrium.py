@@ -542,7 +542,7 @@ def sue_logit_iterative(Nt: TNetwork, theta: {}, k_Y: LogitFeatures, k_Z: LogitF
             # Path utilities associated to endogenous attributes (travel time) is the only that changes over iterations
 
             vf_Y = np.array([path.traveltime * theta['tt'] for path in Nt.paths])[:,np.newaxis]
-
+            # np.mean(   vf_Y )
             # if standardization is not None:
             #     vf_Y = preprocessing.scale(vf_Y, with_mean=standardization['mean'], with_std=standardization['sd'], axis=0)
 
@@ -556,28 +556,32 @@ def sue_logit_iterative(Nt: TNetwork, theta: {}, k_Y: LogitFeatures, k_Z: LogitF
             x_weighted = copy.deepcopy(x_current)
             f_weighted = copy.deepcopy(f_current)
 
+            x_weighted_dict = dict(zip(list(Nt.links_dict.keys()), list(x_weighted.flatten())))
+
+            initial_fisk_objective_function = sue_objective_function_fisk(Nt=Nt, x_dict=x_weighted_dict, f=f_weighted, theta=theta, k_Z=k_Z)
+
         if it >= 1:
 
             if method == 'line_search':
 
-                if it>1:
-                    iters_ls = params['iters_ls']
+                # if it>1:
+                iters_ls = params['iters_ls']
 
-                    x_weighted_dict = dict(zip(list(Nt.links_dict.keys()), x_weighted))
-                    x_current_dict = dict(zip(list(Nt.links_dict.keys()), x_current))
+                x_weighted_dict = dict(zip(list(Nt.links_dict.keys()), x_weighted))
+                x_current_dict = dict(zip(list(Nt.links_dict.keys()), x_current))
 
-                    lambda_ls, xmin_ls, fmin_ls, objectivemin_ls = sue_line_search(Nt = Nt, theta = theta, k_Z = k_Z
-                        , iters = iters_ls, method = 'grid_search'
-                        , x1_dict = x_weighted_dict, x2_dict = x_current_dict
-                        ,f1 = f_weighted, f2 = f_current)
+                lambda_ls, xmin_ls, fmin_ls, objectivemin_ls = sue_line_search(Nt = Nt, theta = theta, k_Z = k_Z
+                    , iters = iters_ls, method = 'grid_search'
+                    , x1_dict = x_weighted_dict, x2_dict = x_current_dict
+                    ,f1 = f_weighted, f2 = f_current)
 
 
-                    f_weighted = fmin_ls
-                    x_weighted = xmin_ls
+                f_weighted = fmin_ls
+                x_weighted = xmin_ls
 
                 # x_dict = dict(zip(list(Nt.links_dict.keys()), x_weighted))
 
-                    lambdas_ls.append(lambda_ls)
+                lambdas_ls.append(lambda_ls)
 
                 # print('fisk objective', sue_objective_function_fisk(Nt=Nt, x_dict=x_dict , f=f_weighted, theta=theta, k_Z=k_Z))
 
@@ -586,33 +590,37 @@ def sue_logit_iterative(Nt: TNetwork, theta: {}, k_Y: LogitFeatures, k_Z: LogitF
                 f_weighted = f_current
 
             #evaluate sue objective function
-            x_dict = dict(zip(list(Nt.links_dict.keys()), list(x_weighted.flatten())))
+            x_weighted_dict = dict(zip(list(Nt.links_dict.keys()), list(x_weighted.flatten())))
 
-            fisk_objective_function = sue_objective_function_fisk(Nt=Nt, x_dict=x_dict, f=f_weighted, theta=theta, k_Z=k_Z)
+            fisk_objective_function = sue_objective_function_fisk(Nt=Nt, x_dict=x_weighted_dict, f=f_weighted, theta=theta, k_Z=k_Z)
 
             fisk_objective_functions.append(fisk_objective_function)
 
-            if len(fisk_objective_functions)>2:
-                max_fisk_objective_functions = np.max(fisk_objective_functions[:-1])
-                #TODO: change definition for equilibrium gap (boyles)
+            if len(fisk_objective_functions)>=2:
+                # max_fisk_objective_functions = np.max(fisk_objective_functions[:-1])
+                # #TODO: change definition for equilibrium gap (boyles)
+                #
+                # change = (fisk_objective_function - max_fisk_objective_functions)
+                #
+                # gap = np.linalg.norm(
+                #     np.divide(change, max_fisk_objective_functions, out=np.zeros_like(change), where=fisk_objective_function != 0))
 
-                # change = (x_weighted - x_current)
-                # gap = round(np.linalg.norm(
-                #     np.divide(change, x_weighted, out=np.zeros_like(change), where=x_weighted != 0)), 2)
-
-                change = (fisk_objective_function - max_fisk_objective_functions)
+                change = (fisk_objective_functions[-1] - fisk_objective_functions[-2])
 
                 gap = np.linalg.norm(
-                    np.divide(change, max_fisk_objective_functions, out=np.zeros_like(change), where=fisk_objective_function != 0))
+                    np.divide(change, fisk_objective_functions[-1], out=np.zeros_like(change), where=fisk_objective_functions[-1] != 0))
+
+
 
                 gap_x.append(gap)
             # gap_x.append(np.sum(np.abs(x_msa - x_current) / len(x_current)))
 
-        # Create dictionary with path probabilities
-        pf_dict = {str(path.get_nodes_labels()): p_f[i] for i, path in zip(np.arange(len(p_f)), Nt.paths)}
+        # prev_fisk_objective_function = fisk_objective_function
 
         if k_path_set_selection > 0 and path_set_selection_done is False:
 
+            # Create dictionary with path probabilities
+            pf_dict = {str(path.get_nodes_labels()): p_f[i] for i, path in zip(np.arange(len(p_f)), Nt.paths)}
 
 
             # print('\nPerforming path selection:', 'dissimilarity_weight=' + str(dissimilarity_weight), 'k=' + str(k_path_set_selection))
@@ -634,6 +642,8 @@ def sue_logit_iterative(Nt: TNetwork, theta: {}, k_Y: LogitFeatures, k_Z: LogitF
         # Update travel times in links (and thus in paths)
         for link, j in zip(Nt.links, range(len(x_weighted))):
             link.set_traveltime_from_x(x=x_weighted[j])
+
+        # Nt.links[0].traveltime
 
         it += 1
 
@@ -672,7 +682,7 @@ def sue_logit_iterative(Nt: TNetwork, theta: {}, k_Y: LogitFeatures, k_Z: LogitF
             print('lambdas:', ["{0:.2E}".format(val) for val in lambdas_ls])
 
         print('initial sue fisk objective: ' + '{:,}'.format(
-            round(fisk_objective_functions[0],2)))
+            round(initial_fisk_objective_function,2)))
         print('final sue fisk objective: ' + '{:,}'.format(
             round(fisk_objective_functions[-1],2)))
 
@@ -705,10 +715,10 @@ def sue_logit_iterative(Nt: TNetwork, theta: {}, k_Y: LogitFeatures, k_Z: LogitF
         , 'tt_x': dict(zip(links_keys, [link.traveltime for link in Nt.links]))
         , 'gap_x': gap_x  # np.sum(np.abs(x_msa - x_current)/len(x_current))
         , 'p_f': p_f
+        , 'f': f
             }
 
-def sue_line_search(iters, method, Nt, x1_dict:dict, x2_dict:dict, f1: Vector, f2: Vector
-                    , theta: dict, k_Z: [], k_Y: [] = ['tt']):
+def sue_line_search(iters, method, Nt, x1_dict:dict, x2_dict:dict, f1: Vector, f2: Vector, theta: dict, k_Z: [], k_Y: [] = ['tt']):
 
 
     # Under the assumption the best lambda result from solving a convex problem, we can use the bisection method
@@ -743,10 +753,6 @@ def sue_line_search(iters, method, Nt, x1_dict:dict, x2_dict:dict, f1: Vector, f
             left_objective = sue_objective_function_fisk(Nt=Nt, x_dict=x1_dict, f=f1, theta=theta, k_Z=k_Z)
 
 
-
-
-
-
     if method == 'grid_search':
         objective_opt = float('-inf')
         lambda_opt = None
@@ -756,8 +762,10 @@ def sue_line_search(iters, method, Nt, x1_dict:dict, x2_dict:dict, f1: Vector, f
         grid_lambda = np.linspace(0,1, iters)
 
         for lambda_ls in grid_lambda:
+
+            # From Damberg (1996)
+
             fnew = lambda_ls * f1 + (1 - lambda_ls) * f2
-            # TODO: It may make sense to just do the convex combination in link space
             xnew = Nt.D.dot(fnew)
             xnew_dict = dict(zip(list(x1_dict.keys()), xnew))
 

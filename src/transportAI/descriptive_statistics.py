@@ -88,7 +88,7 @@ def distribution_pems_counts(filepath, selected_period, selected_links = None, c
 
     fg.fig.tight_layout()
 
-    plt.show()  #
+    # plt.show()  #
 
     # plt.savefig('test_figure')
 
@@ -235,7 +235,7 @@ def get_gap_estimates_over_iterations(results_norefined: pd.DataFrame, results_r
             gap_estimates_over_iterations_df = gap_estimates_over_iterations_df.rename(columns = {attr_key: 'gap_'+attr_key})
 
     #VOT
-    if 'vot' in gap_estimates_over_iterations_df.keys():
+    if 'vot' in gap_estimates_over_iterations_df.keys() and not gap_estimates_over_iterations_df['vot'].isnull().values.any():
 
         gap_estimates_over_iterations_df = gap_estimates_over_iterations_df.rename(
             columns={'vot': 'gap_vot'})
@@ -477,7 +477,7 @@ def scatter_plots_features_vs_counts(links_df):
     # fig1.show()
     # g1.savefig('output1.png')
 
-    plt.show()
+    # plt.show()
 
     # Save figure
 
@@ -498,7 +498,7 @@ def scatter_plots_features_vs_counts(links_df):
     # g2.savefig('output2.png')
 
     # g.fig.show()
-    plt.show()
+    # plt.show()
 
     # Bar plots to depict relationships between ordinal predictions
 

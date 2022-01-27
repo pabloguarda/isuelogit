@@ -138,7 +138,6 @@ class TNetwork(nx.Graph):
         self._k_fixed_effects = []
 
 
-
     # @property
     # def infrastructure(self):
     #     return self._infrastructure

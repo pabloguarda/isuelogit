@@ -2,6 +2,14 @@
 # 1) SETUP
 # =============================================================================
 import os
+
+# Set seed for reproducibility and consistency between experiments
+import numpy as np
+import random
+
+np.random.seed(2021)
+random.seed(2021)
+
 #=============================================================================
 # 1a) MODULES
 #==============================================================================
@@ -9,10 +17,10 @@ import os
 # Internal modules
 import transportAI as tai
 
+# External modules
+
 # import transportAI.modeller
 
-# External modules
-import numpy as np
 import sys
 import pandas as pd
 from sortedcontainers import SortedSet
@@ -21,7 +29,6 @@ import copy
 import time
 # import datetime
 
-import random
 from scipy import stats
 
 import matplotlib
@@ -45,9 +52,9 @@ import tracemalloc
 
 #Note: The strategy does not work with 'Eastern-Massachusetts' under an uncongested network. Do not why
 
-# config = tai.config.Config(network_key = 'N7')
+config = tai.config.Config(network_key = 'N3')
 # config = tai.config.Config(network_key = 'Yang')
-config = tai.config.Config(network_key = 'Wang')
+# config = tai.config.Config(network_key = 'Wang')
 # config = tai.config.Config(network_key = 'LoChan')
 
 
@@ -140,6 +147,7 @@ config.set_simulated_counts(max_link_coverage = 1, sd_x = 0, sd_Q = 0, scale_Q =
 
 # Uncongested mode
 # config.set_uncongested_mode(True)
+config.set_uncongested_mode(False)
 
 # Under this mode, the true path is used as the path set to learn the logit parameters
 config.set_known_pathset_mode(True)
@@ -157,16 +165,16 @@ config.set_known_pathset_mode(True)
 # config.set_monotonicity_experiment(theta_grid = np.arange(-15, 15, 0.1), uncongested_mode = False)
 
 # - Pseudo-convexity
-# config.set_pseudoconvexity_experiment(theta_grid = np.arange(-15, 15, 0.1), uncongested_mode = True)
+# config.set_pseudoconvexity_experiment(theta_grid = np.arange(-15, 15, 0.1), uncongested_mode = False)
 
 # - Inductive bias
-# config.set_inductive_bias_experiment(uncongested_mode = False)
+config.set_inductive_bias_experiment(uncongested_mode = False)
 
 # - Inference
-# config.set_inference_experiment(uncongested_mode = False, sd_x = 0.01)
+# config.set_inference_experiment(uncongested_mode = False, sd_x = 0.03)
 
 # - Distorted OD matrix
-config.set_od_bias_yang_experiment(uncongested_mode = False)
+# config.set_od_bias_yang_experiment(uncongested_mode = False)
 
 
 # Random initilization of theta parameter and performed before scaling Q matrix
@@ -225,8 +233,6 @@ current_network = config.sim_options['current_network']
 # =============================================================================
 # 2.1) CREATION OF TOY NETWORKS
 # =============================================================================
-
-
 
 # i) CUSTOM NETWORK CREATION
 
@@ -667,8 +673,8 @@ if config.experiment_options['pseudoconvexity_experiment']:
             Nt=N['train'][network]  # tai.modeller.clone_network(N['train'][i], label = 'clone')
             , theta=theta_true[network]
             , k_Y=k_Y, k_Z=k_Z_simulation
-            , eq_params={'iters': config.sim_options['max_sue_iters'],
-                         'accuracy_eq': config.estimation_options['accuracy_eq'], 'method': 'line_search',
+            , eq_params={'iters': config.experiment_options['max_sue_iters'],
+                         'accuracy_eq': config.experiment_options['accuracy_eq'], 'method': 'line_search',
                          'iters_ls': 50}
             , uncongested_mode=config.experiment_options['uncongested_mode']
             , coverage=config.sim_options['max_link_coverage']
@@ -700,8 +706,7 @@ if config.experiment_options['pseudoconvexity_experiment']:
                                                       ,
                                                       inneropt_params={'iters': config.experiment_options['max_sue_iters'],
                                                                        'accuracy_eq': config.experiment_options[
-                                                                           'accuracy_eq'], 'uncongested_mode': config.experiment_options[
-                                                              'uncongested_mode']
+                                                                           'accuracy_eq'], 'uncongested_mode': config.experiment_options['uncongested_mode']
                                                                        }
                                                       )
     
@@ -859,8 +864,10 @@ if config.experiment_options['inductive_bias_experiment']:
 
             xc = xc_simulated
 
+            bilevel_estimation_norefined = tai.estimation.Estimation(config.theta_0)
+
             q_norefined_bilevelopt, theta_norefined_bilevelopt, objective_norefined_bilevelopt, result_eq_norefined_bilevelopt, results_norefined_bilevelopt[network] \
-                = tai.estimation.odtheta_estimation_bilevel(
+                = bilevel_estimation_norefined.odtheta_estimation_bilevel(
                 # Nt= tai.modeller.clone_network(N['train'][i], label = N['train'][i].label),
                 Nt=N['train'][network],
                 k_Y=k_Y, k_Z=k_Z_estimation,
@@ -878,7 +885,7 @@ if config.experiment_options['inductive_bias_experiment']:
                     'iters_scaling': int(0e0),
                     'iters': config.estimation_options['iters_norefined'],  # 10
                     'eta_scaling': 1e-1,
-                    'eta': config.estimation_options['eta_norefined'],  # works well for simulated networks
+                    'eta': config.experiment_options['eta_norefined'],  # works well for simulated networks
                     # 'eta': 1e-4, # works well for Fresno real network
                     'gamma': 0,
                     'v_lm': 1, 'lambda_lm': 0,
@@ -931,9 +938,12 @@ if config.experiment_options['inductive_bias_experiment']:
 
 
             # Fine scale solution (the initial objective can be different because we know let's more iterations to be performed to achieve equilibrium)
+
+            bilevel_estimation_refined = tai.estimation.Estimation(theta_norefined_bilevelopt)
+
             q_refined_bilevelopt, theta_refined_bilevelopt, objective_refined_bilevelopt, result_eq_refined_bilevelopt\
                 , results_refined_bilevelopt[network] \
-                = tai.estimation.odtheta_estimation_bilevel(Nt=N['train'][network],
+                = bilevel_estimation_refined.odtheta_estimation_bilevel(Nt=N['train'][network],
                                                             k_Y=k_Y, k_Z=k_Z_estimation,
                                                             Zt={1: N['train'][network].Z_dict},
                                                             # q0=N['train'][network].q,
@@ -951,7 +961,7 @@ if config.experiment_options['inductive_bias_experiment']:
                                                                 , 'iters': config.estimation_options['iters_refined']
                                                                 # int(2e1)
                                                                 , 'eta_scaling': 1e-2
-                                                                , 'eta': config.estimation_options['eta_refined']  # 1e-6
+                                                                , 'eta': config.experiment_options['eta_refined']  # 1e-6
                                                                 , 'gamma': 0
                                                                 , 'v_lm': 1e3, 'lambda_lm': 1e1
                                                                 , 'beta_1': 0.9, 'beta_2': 0.99
@@ -1170,8 +1180,10 @@ if config.experiment_options['inference_experiment']:
             if k_Z_simulation is None:
                 k_Z_simulation = config.estimation_options['k_Z']
 
+            bilevel_estimation_norefined = tai.estimation.Estimation(config.theta_0)
+
             q_norefined_bilevelopt, theta_norefined_bilevelopt, objective_norefined_bilevelopt, result_eq_norefined_bilevelopt, results_norefined_bilevelopt[network] \
-                = tai.estimation.odtheta_estimation_bilevel(
+                = bilevel_estimation_norefined.odtheta_estimation_bilevel(
                 # Nt= tai.modeller.clone_network(N['train'][i], label = N['train'][i].label),
                 Nt=N['train'][network],
                 k_Y=k_Y, k_Z=k_Z_estimation,
@@ -1242,9 +1254,12 @@ if config.experiment_options['inference_experiment']:
 
 
             # Fine scale solution (the initial objective can be different because we know let's more iterations to be performed to achieve equilibrium)
+
+            bilevel_estimation_refined = tai.estimation.Estimation(theta_norefined_bilevelopt)
+
             q_refined_bilevelopt, theta_refined_bilevelopt, objective_refined_bilevelopt, result_eq_refined_bilevelopt\
                 , results_refined_bilevelopt[network] \
-                = tai.estimation.odtheta_estimation_bilevel(Nt=N['train'][network],
+                = bilevel_estimation_refined.odtheta_estimation_bilevel(Nt=N['train'][network],
                                                             k_Y=k_Y, k_Z=k_Z_estimation,
                                                             Zt={1: N['train'][network].Z_dict},
                                                             # q0=N['train'][network].q,
@@ -1466,8 +1481,10 @@ if config.experiment_options['Yang_biased_reference_od_experiment']:
 
     for scenario, q0 in q0s.items():
 
+        bilevel_estimation_norefined = tai.estimation.Estimation(config.theta_0)
+
         q_norefined_bilevelopt, theta_norefined_bilevelopt, objective_norefined_bilevelopt, result_eq_norefined_bilevelopt, results_norefined_bilevelopt[scenario] \
-            = tai.estimation.odtheta_estimation_bilevel(
+            = bilevel_estimation_norefined.odtheta_estimation_bilevel(
             # Nt= tai.modeller.clone_network(N['train'][i], label = N['train'][i].label),
             Nt=N['train'][current_network],
             k_Y=k_Y, k_Z=k_Z_estimation,
@@ -1510,10 +1527,12 @@ if config.experiment_options['Yang_biased_reference_od_experiment']:
         config.estimation_results['theta_norefined'] = theta_norefined_bilevelopt
         config.estimation_results['best_loss_norefined'] = objective_norefined_bilevelopt
 
+        bilevel_estimation_refined = tai.estimation.Estimation(theta_norefined_bilevelopt)
+
         # Fine scale solution (the initial objective can be different because we know let's more iterations to be performed to achieve equilibrium)
         q_refined_bilevelopt, theta_refined_bilevelopt, objective_refined_bilevelopt, result_eq_refined_bilevelopt\
             , results_refined_bilevelopt[scenario] \
-            = tai.estimation.odtheta_estimation_bilevel(Nt=N['train'][current_network],
+            = bilevel_estimation_refined.odtheta_estimation_bilevel(Nt=N['train'][current_network],
                                                         k_Y=k_Y, k_Z=k_Z_estimation,
                                                         Zt={1: N['train'][current_network].Z_dict},
                                                         # q0=N['train'][current_network].q,
@@ -1878,7 +1897,7 @@ config.estimation_results['mean_counts_prediction_loss'], config.estimation_resu
 print('\nObjective function under mean count prediction: ' + '{:,}'.format(round(config.estimation_results['mean_counts_prediction_loss'],1)))
 
 # Naive prediction using uncongested network
-config.estimation_results['equilikely_prediction_loss'] \
+config.estimation_results['equilikely_prediction_loss'], x_eq_equilikely \
     = tai.estimation.loss_predicted_counts_uncongested_network(
     x_bar = np.array(list(xc.values()))[:, np.newaxis], Nt = N['train'][current_network]
     , k_Y = k_Y, k_Z = config.estimation_options['k_Z'], theta_0 = dict.fromkeys(config.theta_0, 0))
@@ -1980,8 +1999,12 @@ if config.sim_options['regularization']:
 if k_Z_estimation is None:
     k_Z_estimation = config.estimation_options['k_Z']
 
+
+bilevel_estimation_norefined = tai.estimation.Estimation(config.theta_0)
+
+
 q_norefined_bilevelopt, theta_norefined_bilevelopt, objective_norefined_bilevelopt, result_eq_norefined_bilevelopt, results_norefined_bilevelopt \
-    = tai.estimation.odtheta_estimation_bilevel(
+    = bilevel_estimation_norefined.odtheta_estimation_bilevel(
     # Nt= tai.modeller.clone_network(N['train'][i], label = N['train'][i].label),
     Nt=N['train'][current_network],
     k_Y=k_Y, k_Z=k_Z_estimation,
@@ -2125,9 +2148,12 @@ if config.estimation_options['ttest_selection_norefined']:
 
 if not config.estimation_options['outofsample_prediction_mode']:
 
+
+    bilevel_estimation_refined = tai.estimation.Estimation(theta_norefined_bilevelopt)
+
     # Fine scale solution (the initial objective can be different because we know let's more iterations to be performed to achieve equilibrium)
     q_refined_bilevelopt, theta_refined_bilevelopt, objective_refined_bilevelopt, result_eq_refined_bilevelopt, results_refined_bilevelopt \
-        = tai.estimation.odtheta_estimation_bilevel(Nt=N['train'][current_network],
+        = bilevel_estimation_refined .odtheta_estimation_bilevel(Nt=N['train'][current_network],
                                                     k_Y=k_Y, k_Z=k_Z_estimation,
                                                     Zt={1: N['train'][current_network].Z_dict},
                                                     # q0=N['train'][current_network].q,

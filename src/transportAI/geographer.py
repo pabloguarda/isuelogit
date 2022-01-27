@@ -16,6 +16,7 @@ import folium
 import webbrowser
 import urllib
 import os
+import math
 
 import shapely.geometry
 from shapely.geometry import Point, LineString
@@ -445,6 +446,47 @@ def write_line_segments_shp(links, folderpath: str, networkname: str, config) ->
     print('\nShapefile with links of ' + networkname + ' was written')
 
 
+def write_links_congestion_map_shp(links, flows, folderpath: str, networkname: str, config) -> None:
+    """ Save line segments using x,y coordinates from nodes """
+
+    # Links positions comes from x,y coordinates of nodes, which are expected to be different from the raw file to better match the shape of the network in a real map
+
+    df = pd.DataFrame()
+
+    df['geometry'] = [LineString(link.position) for link in links]
+    df['id'] = [str(link.id) for link in links]
+    df['key'] = [str(link.key) for link in links]
+    df['init_id'] = [str(link.init_node.id) for link in links]
+    df['term_id'] = [str(link.term_node.id) for link in links]
+    df['init_xy'] = [str(np.round(link.init_node.position.get_xy())) for link in links]
+    df['term_xy'] = [str(np.round(link.term_node.position.get_xy())) for link in links]
+    df['direction'] = [str(link.direction) for link in links]
+    df['direction_confidence'] = [str((round(link.direction_confidence[0],1),round(link.direction_confidence[1],1))) for link in links]
+    df['lane'] = [str(link.Z_dict['lane']) for link in links]
+    df['link_type'] = [str(link.link_type) for link in links]
+    df['cap'] = [str(link.bpr.k) for link in links]
+    df['link_flow'] = list(flows.flatten())
+
+    df['cong_idx'] = np.minimum(df['link_flow']/df['cap'].astype('float'),1).round(4)
+
+    gdf = gpd.GeoDataFrame(df, geometry=df.geometry)
+
+    # gdf.keys()
+
+    # crs = {'init': 'epsg:27700'}
+
+    # gdf.plot()
+
+    # plt.show()
+
+    gdf.set_crs(config.gis_options['crs_ca'])
+
+    # Save shapefile
+    gdf.to_file(driver='ESRI Shapefile', filename=folderpath + '/' + networkname + "_congestion_map.shp")
+
+    print('\nShapefile with links congestion of ' + networkname + ' was written')
+
+
 def write_census_blocks_data_fresno(countyname: str, filepath: str, config):
 
     # note that field names with more than 10 characters will be shorten down
@@ -851,19 +893,28 @@ def manual_match_network_and_stations_fresno(network_gdf: gpd.GeoDataFrame, link
         # print(int(link.id))
 
         if len(link_info)>0:
-            pems_id1 = list(link_info['pems_id1'])[0]
-            pems_id2 = list(link_info['pems_id2'])[0]
-            pems_id3 = list(link_info['pems_id3'])[0]
+            pems_id1 = str(list(link_info['pems_id1'])[0])
+            pems_id2 = str(list(link_info['pems_id2'])[0])
+            pems_id3 = str(list(link_info['pems_id3'])[0])
+
+            # if math.isnan(pems_id1):
+            #     pems_id1 = None
+            #
+            # if np.isnan(pems_id2):
+            #     pems_id2 = None
+            #
+            # if np.isnan(pems_id3):
+            #     pems_id3 = None
+
 
             # print(pems_id1)
-
-            if pems_id1 is not None:
+            if pems_id1.isdigit():
                 link.pems_stations_ids.append(int(pems_id1))
 
-            if pems_id2 is not None:
+            if pems_id2.isdigit():
                 link.pems_stations_ids.append(int(pems_id2))
 
-            if pems_id3 is not None:
+            if pems_id3.isdigit():
                 link.pems_stations_ids.append(int(pems_id3))
                 # print(link.pems_stations_ids)
 

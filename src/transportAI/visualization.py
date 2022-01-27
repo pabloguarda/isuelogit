@@ -2032,7 +2032,7 @@ class Artist:
         ax[(0, 0)].set_title("\n\n")
         ax[(0, 0)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
         ax[(0, 0)].set_ylabel(r"$n^{-1} \  ||x(\hat{\theta})-\bar{x}||_2^2$")
-        ax[(0, 0)].set_xticks([-15, -10, -5, 0, 5, 10, 15])
+
         ax[(0, 0)].set_xticklabels([])
 
         for attr, color, label in zip(attrs, colors, labels):
@@ -2046,7 +2046,7 @@ class Artist:
         # y_vals = [np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1)) for x_val in x_range]
         ax[(0, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
         ax[(0, 1)].set_ylabel(r"$n^{-1} \ \nabla_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)$")
-        ax[(0, 1)].set_xticks([-15, -10, -5, 0, 5, 10,15])
+
         ax[(0, 1)].set_xticklabels([])
 
         for attr, color, label in zip(attrs, colors, labels):
@@ -2059,6 +2059,7 @@ class Artist:
         # y_vals = [np.sign(np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1))) for x_val in x_range]
         ax[(1, 0)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
         ax[(1, 0)].set_ylabel(r"$n^{-1} \ \textmd{sign} (\nabla_{\theta} ||x(\hat{\theta})-\bar{x}||_2^2 )$")
+
 
         for attr, color, label in zip(attrs, colors, labels):
             y_vals = np.sign(results_df[results_df['attr'] == attr]['grad_f_vals'])
@@ -2090,6 +2091,7 @@ class Artist:
         # y_vals = np.sign(y_vals)
         ax[(1, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
         ax[(1, 1)].set_ylabel(r"$n^{-1} \  \textmd{sign} (\nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)) $")
+
 
         for attr, color, label in zip(attrs, colors, labels):
             y_vals = np.sign(results_df[results_df['attr'] == attr]['hessian_f_vals'])
@@ -2138,6 +2140,8 @@ class Artist:
 
         # set labels
         plt.setp(ax[-1, :], xlabel=r"$\hat{\theta}$")
+        ax[(0, 0)].set_xticks([-15, -10, -5, 0, 5, 10,15])
+        ax[(0, 1)].set_xticks([-15, -10, -5, 0, 5, 10,15])
         ax[(1, 0)].set_xticks([-15, -10, -5, 0, 5, 10,15])
         ax[(1, 1)].set_xticks([-15, -10, -5, 0, 5, 10,15])
         # plt.setp(ax[:, 0], ylabel=r"$\theta_i$")
@@ -2660,7 +2664,7 @@ class Artist:
         ax[(1, 0)].set_ylabel('false negatives')
 
         # 4) False positives
-        sns.barplot(x="method", y="fp", data=results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fp')], ax=ax[(1, 1)], color = 'white',errcolor="black", edgecolor="black",linewidth=1.5, errwidth=1.5)
+        sns.barplot(x="method", y="fp", data= results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fp')], ax=ax[(1, 1)], color = 'white',errcolor="black", edgecolor="black",linewidth=1.5, errwidth=1.5)
         # sns.catplot(x="level", y="fn", hue = 'kind', kind = 'point'
         #     , data=results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fp')], ax=ax[(1, 1)], color = 'white',errcolor="black", edgecolor="black",linewidth=1.5, errwidth=1.5)
         ax[(1, 1)].axhline(0, linestyle='--', color='gray')

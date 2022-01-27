@@ -90,6 +90,8 @@ dependencies:
 - autograd
 - numdifftools
 
+# Machine Learning
+- pytorch
 
 # GIS
 - addfips
