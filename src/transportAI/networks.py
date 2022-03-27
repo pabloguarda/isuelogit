@@ -573,7 +573,7 @@ class TNetwork(nx.Graph):
     # @staticmethod
     # def generate_paths_dict(link_keys: [tuple]):
     #     # paths_keys = self.get_paths_keys(self.G)
-    #     return {link_label: transportAI.Link(label = link_label) for link_label in link_keys}
+    #     return {link_label: isuelogit.Link(label = link_label) for link_label in link_keys}
 
 
 

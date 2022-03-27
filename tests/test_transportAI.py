@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""Tests for `transportAI` package."""
+"""Tests for `isuelogit` package."""
 
 import pytest
 

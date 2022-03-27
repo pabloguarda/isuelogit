@@ -668,7 +668,7 @@ def read_fresno_network(folderpath: str) -> (Matrix, pd.DataFrame, pd.DataFrame)
     # ===================================================================
     # NETWORK SUMMARY (SR41.net)
     # ===================================================================
-    # import transportAI as tai
+    # import isuelogit as tai
     # folder = tai.Config().paths['Fresno_network']
     # filepath = folder + '/SR41.net'
     #
@@ -774,7 +774,7 @@ def read_sacramento_network(folderpath: str) -> (Matrix, pd.DataFrame, pd.DataFr
     # ===================================================================
     # NETWORK SUMMARY (pfe.net)
     # ===================================================================
-    # import transportAI as tai
+    # import isuelogit as tai
     # folder = tai.Config().paths['Sacramento_network']
     # filepath = folder + '/pfe.net'
     #

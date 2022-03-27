@@ -299,7 +299,7 @@ class Reporter(ABC):
 
 def write_tntp_github_to_dat(root, subfolder):
     """
-    This method generate dat files that are used by the method  transportAI.equilibrium.sue_logit_dial
+    This method generate dat files that are used by the method  isuelogit.equilibrium.sue_logit_dial
     """
 
     inputLocation = root + subfolder
@@ -379,7 +379,7 @@ def write_tntp_github_to_dat(root, subfolder):
 
 def write_network_to_dat(root, subfolder, prefix_filename, N):
     """
-    This method generate dat files that are used by the method  transportAI.equilibrium.sue_logit_dial
+    This method generate dat files that are used by the method  isuelogit.equilibrium.sue_logit_dial
     """
 
     inputLocation = root + subfolder

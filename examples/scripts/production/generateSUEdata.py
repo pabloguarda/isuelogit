@@ -14,7 +14,7 @@ np.random.seed(2021)
 # Internal modules
 import transportAI as tai
 
-# import transportAI.modeller
+# import isuelogit.modeller
 
 # External modules
 import sys

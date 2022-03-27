@@ -3,7 +3,7 @@ from __future__ import absolute_import
 
 # TODO: import everything from init in order to debug properly
 
-"""Top-level package for transportAI."""
+"""Top-level package for isuelogit."""
 
 __author__ = """Pablo Guarda"""
 __email__ = 'pabloguarda@cmu.edu'

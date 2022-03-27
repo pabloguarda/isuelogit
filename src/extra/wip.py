@@ -1198,7 +1198,7 @@ class BenchmarkOptimizersExperiment(NetworkExperiment):
 
         # artist = visualization.Artist(folder_plots=config.log_file['experimentpath'])
 
-        # /Users/pablo/google-drive/data-science/github/transportAI/output/log/experiments
+        # /Users/pablo/google-drive/data-science/github/isuelogit/output/log/experiments
 
         # artist.inference_experiments(results_experiment=results_experiment
         #                                        , theta_true=theta_true[current_network], subfoldername='')

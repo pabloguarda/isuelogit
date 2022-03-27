@@ -36,14 +36,14 @@ setup(
     description="Modelling transportation systems with AI",
     entry_points={
         'console_scripts': [
-            'transportAI=transportAI.cli:main',
+            'isuelogit=isuelogit.cli:main',
         ],
     },
     license="MIT license",
     long_description=readme + '\n\n' + history,
     include_package_data=True,
     keywords='AI',
-    name='transportAI',
+    name='isuelogit',
     package_dir={'': 'src'},
     packages=find_packages('src'),
     setup_requires=setup_requirements,

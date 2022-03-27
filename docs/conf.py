@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# transportAI documentation build configuration file, created by
+# isuelogit documentation build configuration file, created by
 # sphinx-quickstart on Fri Jun  9 13:47:02 2017.
 #
 # This file is execfile()d with the current directory set to its
@@ -46,7 +46,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'transportAI'
+project = 'isuelogit'
 copyright = "2020, Pablo Guarda"
 author = "Pablo Guarda"
 
@@ -127,8 +127,8 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass
 # [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'transportAI.tex',
-     'transportAI Documentation',
+    (master_doc, 'isuelogit.tex',
+     'isuelogit Documentation',
      'Pablo Guarda', 'manual'),
 ]
 
@@ -138,8 +138,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'transportAI',
-     'transportAI Documentation',
+    (master_doc, 'isuelogit',
+     'isuelogit Documentation',
      [author], 1)
 ]
 
@@ -150,10 +150,10 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'transportAI',
-     'transportAI Documentation',
+    (master_doc, 'isuelogit',
+     'isuelogit Documentation',
      author,
-     'transportAI',
+     'isuelogit',
      'One line description of project.',
      'Miscellaneous'),
 ]

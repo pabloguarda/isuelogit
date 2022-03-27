@@ -10,7 +10,7 @@ import pandas as pd
 #from __future__ import absolute_import
 
 # import .architect
-# from transportAI.arquitect import Arquitect
+# from isuelogit.arquitect import Arquitect
 
 # from . import modeller as md
 from transportAI.factory import Modeller

@@ -1,4 +1,4 @@
-"""Unit test package for transportAI."""
+"""Unit test package for isuelogit."""
 """ The aim is to maximize the code coverage by adding as many and meaningful tests as possible """
 
 """ To run tests on code write the following in terminal: 

@@ -21,10 +21,8 @@ data/
 examples/notebooks/
 /data/
 
-#input
 output/
-
-#output
-input/
+input/private
+input/public
 
 cache/

@@ -204,7 +204,7 @@ class DataReader:
         os.environ['JAVA_HOME'] = "/Library/Java/JavaVirtualMachines/jdk-13.0.1.jdk/Contents/Home"
 
         # Need to Explicitly point to python3 if you are using Python 3.x
-        os.environ['PYSPARK_PYTHON']="/Applications/anaconda3/envs/transportAI/bin/python"
+        os.environ['PYSPARK_PYTHON']="/Applications/anaconda3/envs/isuelogit/bin/python"
 
         # sys.path.append(os.environ['SPARK_HOME'] + '/python')
         # sys.path.append(os.environ['PYSPARK_PYTHON'] + '/python/lib/py4j-0.9-src.zip"')
@@ -286,7 +286,7 @@ class DataReader:
         # TODO: add the option to download data from specific date, months and years, and district.
         # Meanwhile I manually download data from Oct 2020 and 2019 but script is working
 
-        # transportAI.utils.download_pems_data(path_download = os.getcwd() + '/data/public/pems/counts/raw'
+        # isuelogit.utils.download_pems_data(path_download = os.getcwd() + '/data/public/pems/counts/raw'
         #                    , years = [str(e) for e in range(2019, 2021)]
         #                    )
 
@@ -589,7 +589,7 @@ class DataReader:
         #     schema(custom_schema). \
         #     load(filepaths.split(','))
 
-        # filepaths = ['/Users/pablo/google-drive/data-science/github/transportAI/input/private/Fresno/inrix/speed/Fresno_CA_2019-10-01_to_2019-11-01_15_min_part_1/data.csv', '/Users/pablo/google-drive/data-science/github/transportAI/input/private/Fresno/inrix/speed/Fresno_CA_2019-10-01_to_2019-11-01_15_min_part_2/data.csv']
+        # filepaths = ['/Users/pablo/google-drive/data-science/github/isuelogit/input/private/Fresno/inrix/speed/Fresno_CA_2019-10-01_to_2019-11-01_15_min_part_1/data.csv', '/Users/pablo/google-drive/data-science/github/isuelogit/input/private/Fresno/inrix/speed/Fresno_CA_2019-10-01_to_2019-11-01_15_min_part_2/data.csv']
 
         inrix_data_sdf = self.sqlContext.read.csv(filepaths, header=True, schema=custom_schema)
 
@@ -1202,7 +1202,7 @@ def read_spatiotemporal_data_fresno(network,
     # Write shapefile with relevant block data from TIGER files (need to be done only once)
     # geographer \
     #     .write_census_blocks_data_fresno(countyname= 'Fresno'
-    #                                      , filepath= '/Users/pablo/google-drive/data-science/github/transportAI/input/public/census/ACS_2018_5YR_BG_06_CALIFORNIA.gdb')
+    #                                      , filepath= '/Users/pablo/google-drive/data-science/github/isuelogit/input/public/census/ACS_2018_5YR_BG_06_CALIFORNIA.gdb')
 
     if options['data_processing']['census']:
 

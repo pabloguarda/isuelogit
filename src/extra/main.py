@@ -3,7 +3,7 @@
 import os
 
 # # Set working directory
-os.chdir('/Users/pablo/google-drive/data-science/github/transportAI')
+os.chdir('/Users/pablo/google-drive/data-science/github/isuelogit')
 
 #Make relative imports work
 import sys
@@ -16,7 +16,7 @@ import sys
 import os
 
 # import runpy
-# runpy.run_module('transportAI', run_name="__main__",alter_sys=True)
+# runpy.run_module('isuelogit', run_name="__main__",alter_sys=True)
 # runpy.run_module(os.getcwd() + '/examples/local/production/od-theta-example.py', run_name="__main__",alter_sys=True)
 
 
@@ -28,18 +28,18 @@ import os
 
 # https://stackoverflow.com/questions/3657955/how-to-execute-another-python-script-from-your-script-and-be-able-to-debug
 
-# import transportAI
+# import isuelogit
 import runpy
 
 # from examples.local.production import odthetaexample
 
 # exec(open(os.getcwd() + '/examples/local/production/odthetaexample.py').read())
 
-# import transportAI
+# import isuelogit
 
 # print(sys.path)
 
-# sys.path.append('/Users/pablo/google-drive/data-science/github/transportAI/examples/local/production')
+# sys.path.append('/Users/pablo/google-drive/data-science/github/isuelogit/examples/local/production')
 
 # This is the way to make possible to debug
 # import odthetaexample

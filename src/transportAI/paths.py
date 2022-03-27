@@ -288,7 +288,7 @@ def _all_simple_paths_dinetwork(G, source, targets, cutoff):
     visited = collections.OrderedDict.fromkeys([source])
     # G = nx.DiGraph(A)
     stack = [iter(G[source])]
-    # stack = [((v) for u, v, k in transportAI.network.Network.edges_from_source(source=source, links=N.links))]
+    # stack = [((v) for u, v, k in isuelogit.network.Network.edges_from_source(source=source, links=N.links))]
     while stack:
         children = stack[-1]
         child = next(children, None)
