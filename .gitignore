@@ -6,7 +6,7 @@ venv-isuelogit/
 examples/
 
 # Local packages
-local-packages
+local-packages/
 
 # requirements
 requirements/dev.txt
