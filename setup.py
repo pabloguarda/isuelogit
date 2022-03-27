@@ -33,7 +33,7 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
     ],
-    description="Modelling transportation systems with AI",
+    description="Inverse Stochastic User Equilibrium with Logit Assignment (isuelogit)",
     entry_points={
         'console_scripts': [
             'isuelogit=isuelogit.cli:main',
@@ -50,7 +50,7 @@ setup(
     test_suite='tests',
     install_requires=read_requirements("prod.txt"),
     test_requires=read_requirements("dev.txt"),
-    url='https://github.com/pabloguarda/transportAI',
+    url='https://github.com/pabloguarda/isuelogit',
     version='0.1.0',
     zip_safe=False,
 )
