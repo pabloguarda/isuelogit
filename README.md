@@ -9,7 +9,9 @@ A key limitation of sue-logit is that it requires to know the parameters of the 
 ## Development setup
 
 1. Clone the repository
-2. Install the package: `pip install -e .`
-3. Install the development dependencies: `conda env update -f requirements/environment.yml`
-4. Run the tests: `pytest`
+2. Create virtual environment: `python3 -m venv venv`
+3. Activative virtual environment: `source venv/bin/activate`
+4. Install the package: `pip install -e .`
+5. Install the development dependencies: `pip install -r requirements/prod.txt`
+6. Run the tests: `pytest`
 
