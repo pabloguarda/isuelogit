@@ -3,7 +3,7 @@
 # =============================================================================
 
 # Internal modules
-import transportAI as tai
+import isuelogit as isl
 
 # External modules
 import numpy as np
@@ -25,16 +25,16 @@ network_name = 'SiouxFalls'
 # network_name =  'Barcelona'
 
 # Reporter of estimation results
-estimation_reporter = tai.writer.Reporter(foldername=network_name, seed = 2022)
+estimation_reporter = isl.writer.Reporter(foldername=network_name, seed = 2022)
 
 # =============================================================================
 # a) READ TNTP DATA
 # =============================================================================
 
 # Read input data files
-links_df = tai.reader.read_tntp_linkdata(
-    folderpath=os.getcwd() + "/input/public/networks/github/",
-    subfoldername=network_name)
+links_df = isl.reader.read_tntp_linkdata(network_name=network_name,
+                                         folderpath=os.getcwd() + "/input/public/networks/github/",
+                                         local_files = True)
 
 # Add link key
 links_df['link_key'] = [(i, j, '0') for i, j in zip(links_df['init_node'], links_df['term_node'])]
@@ -44,7 +44,7 @@ links_df['link_key'] = [(i, j, '0') for i, j in zip(links_df['init_node'], links
 # =============================================================================
 
 # Create Network Generator
-network_generator = tai.factory.NetworkGenerator()
+network_generator = isl.factory.NetworkGenerator()
 
 A = network_generator.generate_adjacency_matrix(links_keys=list(links_df['link_key'].values))
 
@@ -77,7 +77,7 @@ tntp_network.set_bpr_functions(bprdata=bpr_parameters_df)
 link_features_df = links_df[['link_key','length', 'speed', 'link_type', 'toll']]
 
 # Create data generator
-linkdata_generator = tai.factory.LinkDataGenerator()
+linkdata_generator = isl.factory.LinkDataGenerator()
 
 # Generate synthetic link attributes
 synthetic_features_df = linkdata_generator.simulate_features(links=tntp_network.links,
@@ -106,15 +106,15 @@ tntp_network.load_features_data(linkdata=link_features_df)
 # e) UTILITY FUNCTION
 # =============================================================================
 
-utility_function = tai.estimation.UtilityFunction(features_Y=['tt'],
-                                               # features_Z= [],
-                                               features_Z=['c', 's'],
-                                               # features_Z= ['s', 'c'],
-                                               # initial_values={'tt': -0.5, 'c': -4, 's': -2},
-                                               # initial_values={'tt': -1, 'c': -6, 's': -2},
-                                               # initial_values={'tt': -1.4, 'c': -6.4},
-                                               true_values={'tt': -1, 'c': -6, 's': -3}
-                                               )
+utility_function = isl.estimation.UtilityFunction(features_Y=['tt'],
+                                                  # features_Z= [],
+                                                  features_Z=['c', 's'],
+                                                  # features_Z= ['s', 'c'],
+                                                  # initial_values={'tt': -0.5, 'c': -4, 's': -2},
+                                                  # initial_values={'tt': -1, 'c': -6, 's': -2},
+                                                  # initial_values={'tt': -1.4, 'c': -6.4},
+                                                  true_values={'tt': -1, 'c': -6, 's': -3}
+                                                  )
 
 # Add sparse features
 utility_function.add_sparse_features(Z=sparse_features_labels)
@@ -124,8 +124,7 @@ utility_function.add_sparse_features(Z=sparse_features_labels)
 # =============================================================================
 
 # Read od matrix
-Q = tai.reader.read_tntp_od(folderpath=os.getcwd() + "/input/public/networks/github/",
-                            subfoldername=network_name)
+Q = isl.reader.read_tntp_od(network_name=network_name)
 
 # Load O-D matrix
 tntp_network.load_OD(Q= Q)
@@ -135,7 +134,7 @@ tntp_network.load_OD(Q= Q)
 # =============================================================================
 
 # Create path generator
-paths_generator = tai.factory.PathsGenerator()
+paths_generator = isl.factory.PathsGenerator()
 
 # Generate and Load paths in network
 paths_generator.load_k_shortest_paths(network=tntp_network, k=3)
@@ -144,7 +143,7 @@ paths_generator.load_k_shortest_paths(network=tntp_network, k=3)
 # j) GENERATION OF SYNTHETIC COUNTS
 # =============================================================================
 
-equilibrator = tai.equilibrium.LUE_Equilibrator(network=tntp_network,
+equilibrator = isl.equilibrium.LUE_Equilibrator(network=tntp_network,
                                                 utility_function=utility_function,
                                                 uncongested_mode=True,
                                                 max_iters=100,
@@ -171,18 +170,18 @@ tntp_network.load_traffic_counts(counts=counts)
 # a) Networks topology
 # =============================================================================
 
-tai.descriptive_statistics.summary_table_networks([tntp_network])
+isl.descriptive_statistics.summary_table_networks([tntp_network])
 
 # =============================================================================
 # b) LINK COUNTS AND TRAVERSING PATHS
 # =============================================================================
 
-tai.descriptive_statistics.adjusted_link_coverage(network=tntp_network, counts=counts)
+isl.descriptive_statistics.adjusted_link_coverage(network=tntp_network, counts=counts)
 # =============================================================================
 # c) Links features and counts
 # =============================================================================
 
-summary_table_links_df = tai.descriptive_statistics.summary_table_links(links=tntp_network.links)
+summary_table_links_df = isl.descriptive_statistics.summary_table_links(links=tntp_network.links)
 
 with pd.option_context('display.float_format', '{:0.1f}'.format):
     print(summary_table_links_df.to_string())
@@ -194,14 +193,14 @@ estimation_reporter.write_table(df = summary_table_links_df, filename = 'summary
 # 5) BILEVEL OPTIMIZATION
 # =============================================================================
 
-outer_optimizer_norefined = tai.estimation.OuterOptimizer(
+outer_optimizer_norefined = isl.estimation.OuterOptimizer(
     method='ngd',
     iters=1,  # 10
     eta=1e-1,
     # path_size_correction = 1
 )
 
-learner_norefined = tai.estimation.Learner(
+learner_norefined = isl.estimation.Learner(
     equilibrator=equilibrator,
     outer_optimizer=outer_optimizer_norefined,
     utility_function=utility_function,
@@ -209,7 +208,7 @@ learner_norefined = tai.estimation.Learner(
     name='norefined'
 )
 
-outer_optimizer_refined = tai.estimation.OuterOptimizer(
+outer_optimizer_refined = isl.estimation.OuterOptimizer(
     # method='gauss-newton',
     method='lm-revised',
     # method='ngd',
@@ -218,7 +217,7 @@ outer_optimizer_refined = tai.estimation.OuterOptimizer(
     # path_size_correction = 1
 )
 
-learner_refined = tai.estimation.Learner(
+learner_refined = isl.estimation.Learner(
     network=tntp_network,
     equilibrator=equilibrator,
     outer_optimizer=outer_optimizer_refined,
@@ -232,13 +231,13 @@ learner_refined = tai.estimation.Learner(
 
 # Naive prediction using mean counts
 mean_counts_prediction_loss, mean_count_benchmark_model, \
-    = tai.estimation.mean_count_prediction(counts=np.array(list(counts.values()))[:, np.newaxis])
+    = isl.estimation.mean_count_prediction(counts=np.array(list(counts.values()))[:, np.newaxis])
 
 print('\nObjective function under mean count prediction: ' + '{:,}'.format(round(mean_counts_prediction_loss, 1)))
 
 # Naive prediction using uncongested network
 equilikely_prediction_loss, x_eq_equilikely \
-    = tai.estimation.loss_counts_uncongested_network(
+    = isl.estimation.loss_counts_uncongested_network(
     network = tntp_network,
     equilibrator=equilibrator,
     counts=tntp_network.counts_vector,
@@ -304,11 +303,11 @@ estimation_reporter.write_inference_tables(
 
 # Convergence
 
-results_df = tai.descriptive_statistics \
+results_df = isl.descriptive_statistics \
     .get_loss_and_estimates_over_iterations(results_norefined=learning_results_norefined
                                             , results_refined=learning_results_refined)
 
-fig = tai.visualization.Artist().convergence(
+fig = isl.visualization.Artist().convergence(
     results_norefined_df=results_df[results_df['stage'] == 'norefined'],
     results_refined_df=results_df[results_df['stage'] == 'refined'],
     simulated_data= True,
@@ -333,8 +332,8 @@ best_x_refined = np.array(list(learning_results_refined[best_iter_refined]['x'].
 fig, axs = plt.subplots(1, 2, sharey=True, tight_layout=True, figsize=(10, 5))
 
 # We can set the number of bins with the `bins` kwarg
-axs[0].hist(tai.estimation.error_by_link(observed_counts=tntp_network.counts_vector, predicted_counts=best_x_norefined))
-axs[1].hist(tai.estimation.error_by_link(observed_counts=tntp_network.counts_vector, predicted_counts=best_x_refined))
+axs[0].hist(isl.estimation.error_by_link(observed_counts=tntp_network.counts_vector, predicted_counts=best_x_norefined))
+axs[1].hist(isl.estimation.error_by_link(observed_counts=tntp_network.counts_vector, predicted_counts=best_x_refined))
 
 for axi in [axs[0], axs[1]]:
     axi.tick_params(axis='x', labelsize=16)

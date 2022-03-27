@@ -1,4 +1,4 @@
-import transportAI as tai
+import isuelogit as isl
 import osmnx as ox
 import geopandas as gpd
 import networkx as nx
@@ -17,7 +17,7 @@ path_data_folder = "/Users/pablo/google-drive/university/cmu/2-research/datasets
 # SPARK (environment setup)
 #=============================================================================
 
-data_analyst = tai.analyst.DataReader()
+data_analyst = isl.analyst.DataReader()
 
 # sc, sqlContext = data_analyst.setup_spark_context()
 
@@ -29,7 +29,7 @@ data_analyst = tai.analyst.DataReader()
 #
 path_inrix_shp = path_data_folder + 'private/inrix/fresno/shapefiles/USA_CA_RestOfState_shapefile/USA_CA_RestOfState.shp'
 
-inrix_gdf = tai.geographer.read_inrix_shp(filepath = path_inrix_shp, county ='Fresno')
+inrix_gdf = isl.geographer.read_inrix_shp(filepath = path_inrix_shp, county ='Fresno')
 
 inrix_gdf.plot(figsize=(5, 5), edgecolor="purple", facecolor="None")
 
@@ -62,12 +62,12 @@ ox.plot_graph(Gc, bgcolor="white", edge_color='blue')
 
 Gc = ox.utils_graph.get_largest_component(osm_graph, strongly=True)
 ox.plot_graph(Gc, bgcolor="white", edge_color='blue')
-# tai.geographer.show_folium_map(ox.plot_graph_folium(Gc), 'test')
+# isl.geographer.show_folium_map(ox.plot_graph_folium(Gc), 'test')
 
 
 m = folium.Map(tiles='openstreetmap', zoom_start = 10)
 folium.GeoJson(inrix_gdf).add_to(m)
-# tai.geographer.show_folium_map(m, 'test')
+# isl.geographer.show_folium_map(m, 'test')
 
 # ox.plot_graph(ox.graph_from_place('Carnegie Mellon, Pittsburgh, USA', network_type='drive',buffer_dist=1000))
 
@@ -103,7 +103,7 @@ path_pems_stations = 'data/public/pems/stations/raw/D06/'\
 # #Create geopandas dataframe
 # stations_gdf = gpd.GeoDataFrame(stations_df, geometry = gpd.points_from_xy(stations_df.Longitude,stations_df.Latitude), crs = inrix_gdf.crs)
 
-stations_gdf = tai.geographer.read_pems_stations_fresno(path_pems_stations)
+stations_gdf = isl.geographer.read_pems_stations_fresno(path_pems_stations)
 
 #Plot
 stations_gdf.plot(figsize=(5,5), edgecolor="purple", facecolor="None")
@@ -219,7 +219,7 @@ location_center = list(inrix_buffer_gdf.unary_union.centroid.coords)[0]
 
 m = folium.Map(tiles='openstreetmap', zoom_start = 10, location = list(reversed(location_center)))
 folium.GeoJson(inrix_buffer_gdf).add_to(m)
-# tai.geographer.show_folium_map(m,'test')
+# isl.geographer.show_folium_map(m,'test')
 
 # ii) Spatial join between inrix and osm
 #
@@ -229,7 +229,7 @@ location_center2 = list(inrix_osm_gdf.unary_union.centroid.coords)[0]
 
 m2 = folium.Map(tiles='openstreetmap', zoom_start = 11, location = list(reversed(location_center2)))
 folium.GeoJson(inrix_osm_gdf).add_to(m2)
-# tai.geographer.show_folium_map(m2,'test')
+# isl.geographer.show_folium_map(m2,'test')
 
 # inrix_osm_gdf.plot()
 # plt.show()
@@ -240,7 +240,7 @@ folium.GeoJson(inrix_osm_gdf).add_to(m2)
 location_center3 = list(osm_gdf.unary_union.centroid.coords)[0]
 m3 = folium.Map(tiles='openstreetmap', zoom_start = 11, location = list(reversed(location_center3)))
 folium.GeoJson(osm_gdf).add_to(m3)
-# tai.geographer.show_folium_map(m3,'test')
+# isl.geographer.show_folium_map(m3,'test')
 
 
 # iii) Remove dupplicates
@@ -482,7 +482,7 @@ fresno_graph = ox.graph_from_gdfs(gdf_edges=ox.graph_to_gdfs(osm_graph)[1], gdf_
 ox.plot_graph(fresno_graph, bgcolor="white", edge_color='black')
 # plt.show()
 
-# tai.geographer.show_folium_map(ox.plot_graph_folium(fresno_graph), filename = 'test1')
+# isl.geographer.show_folium_map(ox.plot_graph_folium(fresno_graph), filename = 'test1')
 
 
 #=============================================================================
@@ -510,7 +510,7 @@ route_map = ox.plot_route_folium(fresno_graph, route)
 # folium.Choropleth(test, data=test['flow_avg'],
 #              columns=['flow_avg'], fill_color='YlOrBr').add_to(m)
 
-# tai.show_folium_map(route_map, filename = 'test')
+# isl.show_folium_map(route_map, filename = 'test')
 
 
 
@@ -585,7 +585,7 @@ m = folium.Map()
 folium.Choropleth(test, data=test['flow_avg'],
              columns=['flow_avg'], fill_color='YlOrBr').add_to(m)
 
-tai.geographer.show_folium_map(m, filename = 'test')
+isl.geographer.show_folium_map(m, filename = 'test')
 
 
 #=============================================================================

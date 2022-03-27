@@ -3,7 +3,7 @@
 # =============================================================================
 
 # Internal modules
-import transportAI as tai
+import isuelogit as isl
 
 # External modules
 import os
@@ -52,9 +52,9 @@ network_name = 'SiouxFalls'
 # =============================================================================
 
 # Read input data files
-links_df = tai.reader.read_tntp_linkdata(
+links_df = isl.reader.read_tntp_linkdata(
     folderpath=os.getcwd() + "/input/public/networks/github/",
-    subfoldername= network_name)
+    network_name= network_name)
 
 # Add link key
 links_df['link_key'] = [(i, j, '0') for i, j in zip(links_df['init_node'], links_df['term_node'])]
@@ -64,7 +64,7 @@ links_df['link_key'] = [(i, j, '0') for i, j in zip(links_df['init_node'], links
 # =============================================================================
 
 # Create Network Generator
-network_generator = tai.factory.NetworkGenerator()
+network_generator = isl.factory.NetworkGenerator()
 
 # Create adjacency matrix
 A = network_generator.generate_adjacency_matrix(links_keys = list(links_df['link_key'].values))
@@ -103,7 +103,7 @@ tntp_network.set_bpr_functions(bprdata = bpr_parameters_df)
 # =============================================================================
 
 # Read od matrix
-Q = tai.reader.read_tntp_od(folderpath = os.getcwd() + "/input/public/networks/github/", subfoldername = network_name)
+Q = isl.reader.read_tntp_od(folderpath = os.getcwd() + "/input/public/networks/github/", network_name= network_name)
 
 # Load O-D matrix
 tntp_network.load_OD(Q  = Q)
@@ -113,7 +113,7 @@ tntp_network.load_OD(Q  = Q)
 # =============================================================================
 
 # Create path generator
-paths_generator = tai.factory.PathsGenerator()
+paths_generator = isl.factory.PathsGenerator()
 
 # Generate and Load paths in network
 paths_generator.load_k_shortest_paths(network = tntp_network, k=3)
@@ -122,7 +122,7 @@ paths_generator.load_k_shortest_paths(network = tntp_network, k=3)
 # g) EQUILIBRATOR
 # =============================================================================
 
-equilibrator = tai.equilibrium.LUE_Equilibrator(
+equilibrator = isl.equilibrium.LUE_Equilibrator(
     network = tntp_network,
     max_iters=100,
     method='fw',
@@ -137,7 +137,7 @@ equilibrator = tai.equilibrium.LUE_Equilibrator(
 # g) Utility function
 # =============================================================================
 
-utility_function = tai.estimation.UtilityFunction(features_Y=['tt'],
+utility_function = isl.estimation.UtilityFunction(features_Y=['tt'],
                                                   features_Z=['c', 's'],
                                                   true_values={'tt': -1, 'c': -6, 's': -3})
 
@@ -149,7 +149,7 @@ utility_function = tai.estimation.UtilityFunction(features_Y=['tt'],
 # =============================================================================
 # a) SUMMARY OF NETWORK CHARACTERISTICS
 # =============================================================================
-tai.descriptive_statistics.summary_table_networks([tntp_network])
+isl.descriptive_statistics.summary_table_networks([tntp_network])
 
 # =============================================================================
 # 4) EXPERIMENTS
@@ -161,12 +161,12 @@ tai.descriptive_statistics.summary_table_networks([tntp_network])
 
 if run_experiment['pseudoconvexity']:
 
-    pseudoconvexity_experiment = tai.experiments.PseudoconvexityExperiment(
+    pseudoconvexity_experiment = isl.experiments.PseudoconvexityExperiment(
         seed=_SEED,
         name='Pseudo-convexity Experiment',
         utility_function= utility_function,
-        linkdata_generator=tai.factory.LinkDataGenerator(noise_params={'mu_x': 0, 'sd_x': 0*_SD_X}),
-        equilibrator=tai.equilibrium.LUE_Equilibrator(paths_generator = paths_generator, uncongested_mode=True),
+        linkdata_generator=isl.factory.LinkDataGenerator(noise_params={'mu_x': 0, 'sd_x': 0*_SD_X}),
+        equilibrator=isl.equilibrium.LUE_Equilibrator(paths_generator = paths_generator, uncongested_mode=True),
         network=tntp_network)
 
     # Generate new random features ('c,'s') and load them in the network
@@ -188,23 +188,23 @@ if run_experiment['pseudoconvexity']:
 
 if run_experiment['convergence']:
 
-    outer_optimizer_norefined = tai.estimation.OuterOptimizer(
+    outer_optimizer_norefined = isl.estimation.OuterOptimizer(
         method='ngd',
         iters=1,
         eta=_ETA_NGD
     )
 
-    outer_optimizer_refined = tai.estimation.OuterOptimizer(
+    outer_optimizer_refined = isl.estimation.OuterOptimizer(
         method='lm',
         iters=1,
     )
 
-    convergence_experiment = tai.experiments.ConvergenceExperiment(
+    convergence_experiment = isl.experiments.ConvergenceExperiment(
         seed=_SEED,
         name='Convergence Experiment',
         outer_optimizers=[outer_optimizer_norefined, outer_optimizer_refined],
         utility_function= utility_function,
-        linkdata_generator=tai.factory.LinkDataGenerator(noise_params={'mu_x': 0, 'sd_x': 0*_SD_X}),
+        linkdata_generator=isl.factory.LinkDataGenerator(noise_params={'mu_x': 0, 'sd_x': 0*_SD_X}),
         equilibrator=equilibrator,
         bilevel_iters=_BILEVEL_ITERS,
         network=tntp_network)
@@ -221,23 +221,23 @@ if run_experiment['convergence']:
 
 if run_experiment['congestion']:
 
-    outer_optimizer_norefined = tai.estimation.OuterOptimizer(
+    outer_optimizer_norefined = isl.estimation.OuterOptimizer(
         method='ngd',
         iters=1,
         eta=_ETA_NGD
     )
 
-    outer_optimizer_refined = tai.estimation.OuterOptimizer(
+    outer_optimizer_refined = isl.estimation.OuterOptimizer(
         method='lm',
         iters=1,
     )
 
-    congestion_experiment = tai.experiments.ODExperiment(
+    congestion_experiment = isl.experiments.ODExperiment(
         seed=_SEED,
         name='Congestion OD Experiment',
         outer_optimizers=[outer_optimizer_norefined, outer_optimizer_refined],
         utility_function=utility_function,
-        linkdata_generator=tai.factory.LinkDataGenerator(noise_params={'sd_x': _SD_X}),
+        linkdata_generator=isl.factory.LinkDataGenerator(noise_params={'sd_x': _SD_X}),
         equilibrator=equilibrator,
         bilevel_iters=_BILEVEL_ITERS,
         network=tntp_network)
@@ -263,23 +263,23 @@ if run_experiment['consistency']:
 
     tntp_network.scale_OD(scale=_SCALE_OD)
 
-    outer_optimizer_no_refined = tai.estimation.OuterOptimizer(
+    outer_optimizer_no_refined = isl.estimation.OuterOptimizer(
         method='ngd',
         iters=1,
         eta= _ETA_NGD
     )
 
-    outer_optimizer_refined_1 = tai.estimation.OuterOptimizer(
+    outer_optimizer_refined_1 = isl.estimation.OuterOptimizer(
         method='lm',
         iters=1
     )
 
-    outer_optimizer_refined_2 = tai.estimation.OuterOptimizer(
+    outer_optimizer_refined_2 = isl.estimation.OuterOptimizer(
         method='lm',
         iters=1
     )
 
-    consistency_experiment = tai.experiments.ConsistencyExperiment(
+    consistency_experiment = isl.experiments.ConsistencyExperiment(
         seed=_SEED,
         name='Consistency Experiment',
         equilibrator=equilibrator,
@@ -287,7 +287,7 @@ if run_experiment['consistency']:
                           outer_optimizer_refined_1,
                           outer_optimizer_refined_2],
         utility_function=utility_function,
-        linkdata_generator=tai.factory.LinkDataGenerator(noise_params={'sd_x': _SD_X}),
+        linkdata_generator=isl.factory.LinkDataGenerator(noise_params={'sd_x': _SD_X}),
         network=tntp_network)
 
     # Note: Random features ('c,'s') are generated and loaded in the network at every replicate
@@ -310,23 +310,23 @@ if run_experiment['irrelevant_attributes']:
 
     tntp_network.scale_OD(scale = _SCALE_OD)
 
-    outer_optimizer_no_refined = tai.estimation.OuterOptimizer(
+    outer_optimizer_no_refined = isl.estimation.OuterOptimizer(
         method='ngd',
         iters=1,
         eta=_ETA_NGD
     )
 
-    outer_optimizer_refined_1 = tai.estimation.OuterOptimizer(
+    outer_optimizer_refined_1 = isl.estimation.OuterOptimizer(
         method='lm',
         iters=1
     )
 
-    outer_optimizer_refined_2 = tai.estimation.OuterOptimizer(
+    outer_optimizer_refined_2 = isl.estimation.OuterOptimizer(
         method='lm',
         iters=1
     )
 
-    irrelevant_attributes_experiment = tai.experiments.ConsistencyExperiment(
+    irrelevant_attributes_experiment = isl.experiments.ConsistencyExperiment(
         seed=_SEED,
         name='Irrelevant Attributes Experiment',
         equilibrator=equilibrator,
@@ -334,7 +334,7 @@ if run_experiment['irrelevant_attributes']:
                           outer_optimizer_refined_1,
                           outer_optimizer_refined_2],
         utility_function=utility_function,
-        linkdata_generator=tai.factory.LinkDataGenerator(noise_params={'sd_x': _SD_X}),
+        linkdata_generator=isl.factory.LinkDataGenerator(noise_params={'sd_x': _SD_X}),
         network=tntp_network)
 
     # Note: Random features ('c,'s') and 3 sparse attributes are generated and loaded in the network at every replicate
@@ -357,25 +357,25 @@ if run_experiment['noisy_counts']:
 
     tntp_network.scale_OD(scale=_SCALE_OD)
 
-    outer_optimizer_norefined = tai.estimation.OuterOptimizer(
+    outer_optimizer_norefined = isl.estimation.OuterOptimizer(
         method='ngd',
         iters=1,
         eta= _ETA_NGD
     )
 
-    outer_optimizer_refined = tai.estimation.OuterOptimizer(
+    outer_optimizer_refined = isl.estimation.OuterOptimizer(
         iters=1,
         method='lm',
         # method='ngd',
         # eta=_ETA_NGD
     )
 
-    noisy_counts_experiment = tai.experiments.CountsExperiment(
+    noisy_counts_experiment = isl.experiments.CountsExperiment(
         seed=_SEED,
         name='Noisy Counts Experiment',
         outer_optimizers= [outer_optimizer_norefined, outer_optimizer_refined],
         utility_function=utility_function,
-        linkdata_generator=tai.factory.LinkDataGenerator(),
+        linkdata_generator=isl.factory.LinkDataGenerator(),
         equilibrator=equilibrator,
         bilevel_iters= _BILEVEL_ITERS,
         network=tntp_network)
@@ -402,26 +402,26 @@ if run_experiment['sensor_coverage']:
 
     tntp_network.scale_OD(scale=_SCALE_OD)
 
-    outer_optimizer_norefined = tai.estimation.OuterOptimizer(
+    outer_optimizer_norefined = isl.estimation.OuterOptimizer(
         method='ngd',
         iters=1,
         eta= _ETA_NGD
     )
 
-    outer_optimizer_refined = tai.estimation.OuterOptimizer(
+    outer_optimizer_refined = isl.estimation.OuterOptimizer(
         iters=1,
         method='lm',
         # method='ngd',
         # eta=_ETA_NGD
     )
 
-    sensor_coverage_experiment = tai.experiments.CountsExperiment(
+    sensor_coverage_experiment = isl.experiments.CountsExperiment(
         seed=_SEED,
         name='Sensor Coverage Experiment',
         outer_optimizers=[outer_optimizer_norefined, outer_optimizer_refined],
         # outer_optimizers=[outer_optimizer_norefined],
         utility_function=utility_function,
-        linkdata_generator=tai.factory.LinkDataGenerator(noise_params={'sd_x': _SD_X}),
+        linkdata_generator=isl.factory.LinkDataGenerator(noise_params={'sd_x': _SD_X}),
         equilibrator=equilibrator,
         bilevel_iters=_BILEVEL_ITERS,
         network=tntp_network)
@@ -449,13 +449,13 @@ if run_experiment['noisy_od']:
 
     tntp_network.scale_OD(scale=_SCALE_OD)
 
-    outer_optimizer_norefined = tai.estimation.OuterOptimizer(
+    outer_optimizer_norefined = isl.estimation.OuterOptimizer(
         iters=1,
         method='ngd',
         eta= _ETA_NGD
     )
 
-    outer_optimizer_refined = tai.estimation.OuterOptimizer(
+    outer_optimizer_refined = isl.estimation.OuterOptimizer(
         iters=1,
         method='lm',
         # method='ngd',
@@ -463,12 +463,12 @@ if run_experiment['noisy_od']:
 
     )
 
-    noisy_od_experiment = tai.experiments.ODExperiment(
+    noisy_od_experiment = isl.experiments.ODExperiment(
         seed=_SEED,
         name='Noisy OD Experiment',
         outer_optimizers=[outer_optimizer_norefined, outer_optimizer_refined],
         utility_function=utility_function,
-        linkdata_generator=tai.factory.LinkDataGenerator(noise_params={'sd_x': _SD_X}),
+        linkdata_generator=isl.factory.LinkDataGenerator(noise_params={'sd_x': _SD_X}),
         equilibrator=equilibrator,
         bilevel_iters=_BILEVEL_ITERS,
         network=tntp_network)
@@ -494,25 +494,25 @@ if run_experiment['ill_scaled_od']:
 
     tntp_network.scale_OD(scale = _SCALE_OD)
 
-    outer_optimizer_norefined = tai.estimation.OuterOptimizer(
+    outer_optimizer_norefined = isl.estimation.OuterOptimizer(
         method='ngd',
         iters=1,
         eta=_ETA_NGD
     )
 
-    outer_optimizer_refined = tai.estimation.OuterOptimizer(
+    outer_optimizer_refined = isl.estimation.OuterOptimizer(
         iters=1,
         method='lm',
         # method='ngd',
         # eta=_ETA_NGD
     )
 
-    ill_scaled_od_experiment = tai.experiments.ODExperiment(
+    ill_scaled_od_experiment = isl.experiments.ODExperiment(
         seed=_SEED,
         name='Ill-scaled OD Experiment',
         outer_optimizers=[outer_optimizer_norefined, outer_optimizer_refined],
         utility_function=utility_function,
-        linkdata_generator=tai.factory.LinkDataGenerator(noise_params={'sd_x': _SD_X}),
+        linkdata_generator=isl.factory.LinkDataGenerator(noise_params={'sd_x': _SD_X}),
         equilibrator=equilibrator,
         bilevel_iters=_BILEVEL_ITERS,
         network=tntp_network)

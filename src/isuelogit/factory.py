@@ -67,7 +67,7 @@ def generate_Q(network: TNetwork,
 
     for (i, j) in zip(*tuple(nonzero_entries_Q_mask)):
 
-        # Q = tai.config.sim_options['custom_networks']['A']['N2']
+        # Q = isl.config.sim_options['custom_networks']['A']['N2']
         # print((i,j))
 
         printer.printProgressBar(counter, expected_non_zero_Q_entries, prefix='Progress:', suffix='', length=20)
@@ -1052,7 +1052,7 @@ class ODGenerator(Generator):
 
         for (i, j) in zip(*tuple(nonzero_entries_Q_mask)):
 
-            # Q = tai.config.sim_options['custom_networks']['A']['N2']
+            # Q = isl.config.sim_options['custom_networks']['A']['N2']
             # print((i,j))
 
             printer.printProgressBar(counter, expected_non_zero_Q_entries, prefix='Progress:', suffix='', length=20)
@@ -1298,11 +1298,11 @@ class NetworkGenerator(Generator):
     def build_colombus_network(self, folder, label, options, **kwargs):
 
         # # Write dat files
-        # writer.write_tntp_github_to_dat(folder, subfoldername)
+        # writer.write_tntp_github_to_dat(folder, network_name)
 
         # print(read_paths)
 
-        # folder = tai.config.paths['Colombus_network']
+        # folder = isl.config.paths['Colombus_network']
 
         for key, value in kwargs.items():
             options[key] = value
@@ -1662,7 +1662,7 @@ class NetworkGenerator(Generator):
         # if setup_options['reading']['Q'] and not setup_options['reading']['sparse_Q']:
         #     # print('here reading ')
         #
-        #     Q = reader.read_tntp_od(folderpath=setup_options['folder'], subfoldername=setup_options['subfoldername'])
+        #     Q = reader.read_tntp_od(folderpath=setup_options['folder'], network_name=setup_options['network_name'])
         #
         #     # Do not need to read again using internal reader
         #     setup_options['reading']['Q'] = False

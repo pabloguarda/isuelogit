@@ -9,7 +9,7 @@ if "%SPHINXBUILD%" == "" (
 )
 set SOURCEDIR=.
 set BUILDDIR=_build
-set SPHINXPROJ=transportAI
+set SPHINXPROJ=isuelogit
 
 if "%1" == "" goto help
 

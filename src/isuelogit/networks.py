@@ -19,8 +19,6 @@ from links import Link, generate_links_keys, generate_links_nodes_dicts, BPR
 from utils import Options,get_design_matrix
 # from factory import generate_A_Q_custom_networks
 
-
-
 class TNetwork(nx.Graph):
 
     # RELEVANT MATRICES

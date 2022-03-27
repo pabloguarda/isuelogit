@@ -21,7 +21,7 @@ def test_content(response):
 
 
 def test_package_import():
-    import transportAI as tt
+    import isuelogit as tt
     assert tt.__version__
 
 # Gradient and hessian checks

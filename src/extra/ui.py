@@ -13,7 +13,7 @@ import pandas as pd
 # from isuelogit.arquitect import Arquitect
 
 # from . import modeller as md
-from transportAI.factory import Modeller
+from isuelogit.factory import Modeller
 from extra.agents import Traveller
 
 #from . import architect

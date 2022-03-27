@@ -673,7 +673,7 @@ class Artist:
         self.save_fig(fig=fig, filename=filename, folder=subfolder)
 
 
-    # def consistency_nonlinear_link_logit_estimation(self, filename, subfoldername, theta_est:{}, vot_est:{}, theta_true:{}, N_label, n_bootstraps: int):
+    # def consistency_nonlinear_link_logit_estimation(self, filename, network_name, theta_est:{}, vot_est:{}, theta_true:{}, N_label, n_bootstraps: int):
     #
     #     fig, ax = plt.subplots(ncols=2, nrows=2)
     #
@@ -730,7 +730,7 @@ class Artist:
     #
     #     # Axis labels
     #     plt.show()
-    #     self.save_fig(fig=fig, filename=filename, subfoldername = subfoldername)
+    #     self.save_fig(fig=fig, filename=filename, network_name = network_name)
 
     def error_nonlinear_link_logit_estimation(self, filename, subfolder, theta_est:{}, vot_est:{}, theta_true:{}, N_label, n_samples: int):
 
@@ -1060,7 +1060,7 @@ class Artist:
 
         fig.tight_layout()
 
-        # fig.savefig(self.folder + '/' + subfoldername + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
+        # fig.savefig(self.folder + '/' + network_name + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
 
         plt.show()
 
@@ -2490,7 +2490,7 @@ class Artist:
             plt.cla()
             plt.close()
 
-        # fig.savefig(self.folder + '/' + subfoldername + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
+        # fig.savefig(self.folder + '/' + network_name + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
 
 
 
@@ -2932,7 +2932,7 @@ class Artist:
             plt.cla()
             plt.close()
 
-        # fig.savefig(self.folder + '/' + subfoldername + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
+        # fig.savefig(self.folder + '/' + network_name + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
 
         self.save_fig(g.fig, folder, 'parameter_estimates')
 

@@ -42,7 +42,7 @@ def multiday_network(N, n_days, label,remove_zeros_Q, q_range, R_labels, cutoff_
 
         # i = 'SiouxFalls'
 
-        # q = tai.network.denseQ(Q=N['train'][i].Q, remove_zeros=remove_zeros_Q); M = N['train'][i].M; D = N['train'][i].D; links = N['train'][i].links_dict; paths = N['train'][i].paths; Z_dict = N['train'][i].Z_dict; features = []; theta = theta_true[i]; cp_solver = 'ECOS'; feastol = 1e-24; features_Y = ['tt']
+        # q = isl.network.denseQ(Q=N['train'][i].Q, remove_zeros=remove_zeros_Q); M = N['train'][i].M; D = N['train'][i].D; links = N['train'][i].links_dict; paths = N['train'][i].paths; Z_dict = N['train'][i].Z_dict; features = []; theta = theta_true[i]; cp_solver = 'ECOS'; feastol = 1e-24; features_Y = ['tt']
 
         if network is None:
             network = self.network
@@ -313,7 +313,7 @@ def multiday_estimation(N, end_params, theta0, q0, theta_true, remove_zeros_Q, n
         # constraints_q0  = [{'type':'ineq', 'fun': lambda x: x[range_q]}]
         # constraints_q0=[]
 
-        results_logit_sue_links[network_label] = tai.estimation.solve_link_level_model(end_params=end_params,
+        results_logit_sue_links[network_label] = isl.estimation.solve_link_level_model(end_params=end_params,
                                                                                    Mt={i: N_i.M for i, N_i
                                                                                        in N_multiday[
                                                                                            network_label].items()},
@@ -361,7 +361,7 @@ def multiday_estimation(N, end_params, theta0, q0, theta_true, remove_zeros_Q, n
                                                          results_logit_sue_links[network_label]['theta']['c']
 
         # print(np.round(results_logit_sue_links[network_label]['q'],1))
-        # print(tai.network.denseQ(N_multiday[network_label][0].Q, remove_zeros=remove_zeros_Q))
+        # print(isl.network.denseQ(N_multiday[network_label][0].Q, remove_zeros=remove_zeros_Q))
 
         # print(results_logit_sue_links[network_label]['theta'])
         # print(theta_true)
@@ -453,7 +453,7 @@ def sue_logit_OD_estimation(Nt, D, M, q_obs, tt_obs, links: Links, paths: Paths,
     :arg features: subset of attributes from X chosen to perform assignment
     """
     # i = 'N6'
-    # q_obs = tai.network.denseQ(Q = N['train'][i].Q, remove_zeros = remove_zeros_Q)
+    # q_obs = isl.network.denseQ(Q = N['train'][i].Q, remove_zeros = remove_zeros_Q)
     # x_obs = np.array(list(results_sue['train'][i]['x'].values()))
     # tt_obs = np.array(list(results_sue['train'][i]['tt_x'].values()))
     # np.sum(x_obs)
@@ -1201,7 +1201,7 @@ class BenchmarkOptimizersExperiment(NetworkExperiment):
         # /Users/pablo/google-drive/data-science/github/isuelogit/output/log/experiments
 
         # artist.inference_experiments(results_experiment=results_experiment
-        #                                        , theta_true=theta_true[current_network], subfoldername='')
+        #                                        , theta_true=theta_true[current_network], network_name='')
 
         # Write report in log file
 

@@ -2,6 +2,6 @@
 Usage
 =====
 
-To use transportAI in a project::
+To use isuelogit in a project::
 
-    import transportAI
+    import isuelogit

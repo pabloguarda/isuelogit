@@ -10,7 +10,7 @@ np.random.seed(2021)
 random.seed(2021)
 
 # Internal modules
-import transportAI as tai
+import isuelogit as isl
 
 # External modules
 import pandas as pd
@@ -98,7 +98,7 @@ network_name = 'Yang'
 # network_name = 'Sheffi'
 
 # Create Network Generator
-network_generator = tai.factory.NetworkGenerator()
+network_generator = isl.factory.NetworkGenerator()
 
 # Get dictionaries with adjacency and O-D matrices for a set of custom networks.
 A, Q = network_generator.get_A_Q_custom_networks([network_name])
@@ -115,7 +115,7 @@ custom_network = network_generator.build_network(A = A,network_name= network_nam
 # Set Link Performance functions and link level attributes
 
 # Create data generator to generate synthetic link attributes
-linkdata_generator = tai.factory.LinkDataGenerator(noise_params = {'mu_x': 0, 'sd_x': 0})
+linkdata_generator = isl.factory.LinkDataGenerator(noise_params = {'mu_x': 0, 'sd_x': 0})
 
 # Generate synthetic link attributes
 link_features_df = linkdata_generator.simulate_features(
@@ -164,7 +164,7 @@ custom_network.set_bpr_functions(bprdata = bpr_parameters_df)
 # c) BEHAVIORAL PARAMETERS AND UTILITY FUNCTIONS
 # =============================================================================
 
-utility_function = tai.estimation.UtilityFunction(features_Y=['tt'],
+utility_function = isl.estimation.UtilityFunction(features_Y=['tt'],
                                                # features_Z= [],
                                                features_Z= ['c'],
                                                true_values={'tt': -1, 'c': 0},
@@ -188,7 +188,7 @@ custom_network.load_OD(Q  = Q)
 # =============================================================================
 
 # Create path generator
-paths_generator = tai.factory.PathsGenerator()
+paths_generator = isl.factory.PathsGenerator()
 
 # Generate and Load paths in network
 paths_generator.load_k_shortest_paths(network = custom_network, k=2)
@@ -206,7 +206,7 @@ custom_network = network_generator.setup_incidence_matrices(network= custom_netw
 
 # CREATE PATH FEATURE TO CONTROL PATH CORRELATION
 
-path_size_factors = tai.paths.compute_path_size_factors(D = custom_network.D,
+path_size_factors = isl.paths.compute_path_size_factors(D = custom_network.D,
                                                         paths_od = custom_network.paths_od)
 
 
@@ -215,7 +215,7 @@ path_size_factors = tai.paths.compute_path_size_factors(D = custom_network.D,
 # j) GENERATION OF SYNTHETIC COUNTS
 # =============================================================================
 
-equilibrator = tai.equilibrium.LUE_Equilibrator(network = custom_network,
+equilibrator = isl.equilibrium.LUE_Equilibrator(network = custom_network,
                                                 uncongested_mode = True,
                                                 max_iters = 100,
                                                 method = 'fw',
@@ -277,19 +277,19 @@ custom_network.load_traffic_counts(counts=counts)
 # a) Networks topology
 # =============================================================================
 
-tai.descriptive_statistics.summary_table_networks([custom_network])
+isl.descriptive_statistics.summary_table_networks([custom_network])
 
 # =============================================================================
 # b) LINK COUNTS AND TRAVERSING PATHS
 # =============================================================================
 
-tai.descriptive_statistics.adjusted_link_coverage(network =custom_network, counts= counts)
+isl.descriptive_statistics.adjusted_link_coverage(network =custom_network, counts= counts)
 
 # =============================================================================
 # c) Links features and counts
 # =============================================================================
 summary_table_links_df \
-    = tai.descriptive_statistics.summary_table_links(
+    = isl.descriptive_statistics.summary_table_links(
     links = custom_network.get_observed_links(),
     Z_attrs = ['w', 's']
 )
@@ -330,8 +330,8 @@ if estimation_options['regularization']:
     lasso_standardization = {'mean': True, 'sd': True}
 
     theta_regularized, objective_regularized, result_eq_regularized, results_regularized \
-        = tai.estimation.solve_bilevel_lue(
-        # network= tai.factory.clone_network(N['train'][i], label = N['train'][i].label),
+        = isl.estimation.solve_bilevel_lue(
+        # network= isl.factory.clone_network(N['train'][i], label = N['train'][i].label),
         Nt=custom_network,
         k_Y=k_Y, k_Z=estimation_options['features'],
         Zt={1: custom_network.Z_dict},
@@ -375,7 +375,7 @@ if estimation_options['regularization']:
 
     grid_lambda = [0, 1e-3, 1e-2, 5e-2, 1e-1, 1, 1e2, 1e3]
 
-    tai.estimation.lasso_regularization(network=custom_network, grid_lambda=grid_lambda
+    isl.estimation.lasso_regularization(network=custom_network, grid_lambda=grid_lambda
                                         , theta_estimate=theta_regularized
                                         , features_Y=k_Y, features_Z=estimation_options['features']
                                         , equilibrator={'iters': estimation_options['max_sue_iters_regularized'],
@@ -392,20 +392,20 @@ if estimation_options['regularization']:
 # utility_function.random_initializer((-0.1,0.1))
 # utility_function.constant_initializer(-5)
 
-outer_optimizer_norefined = tai.estimation.OuterOptimizer(
+outer_optimizer_norefined = isl.estimation.OuterOptimizer(
     method= 'gd',
     iters= 1,  # 10
     eta= 1e-1
 )
 
 
-learner_norefined = tai.estimation.Learner(equilibrator = equilibrator,
+learner_norefined = isl.estimation.Learner(equilibrator = equilibrator,
                                            outer_optimizer= outer_optimizer_norefined,
                                            utility_function = utility_function,
                                            network = custom_network
                                            )
 
-outer_optimizer_refined = tai.estimation.OuterOptimizer(
+outer_optimizer_refined = isl.estimation.OuterOptimizer(
     # method= 'ngd',
     # method='gauss-newton',
     method='lm',
@@ -415,7 +415,7 @@ outer_optimizer_refined = tai.estimation.OuterOptimizer(
     # path_size_correction = 1
 )
 
-learner_refined = tai.estimation.Learner(network=custom_network,
+learner_refined = isl.estimation.Learner(network=custom_network,
                                          equilibrator=equilibrator,
                                          outer_optimizer=outer_optimizer_refined,
                                          utility_function=utility_function
@@ -435,7 +435,7 @@ if estimation_options['theta_search'] == 'grid':
     utility_function.parameters.values = utility_function.parameters.initial_values
 
     best_theta_gs \
-        = tai.estimation.grid_search_theta(network= custom_network,
+        = isl.estimation.grid_search_theta(network= custom_network,
                                            equilibrator=equilibrator,
                                            utility_function=utility_function,
                                            counts=np.array(list(counts.values()))[:, np.newaxis],
@@ -453,7 +453,7 @@ if estimation_options['theta_search'] == 'random':
 
     utility_function.parameters.values = utility_function.parameters.initial_values
 
-    theta_rs, _ = tai.estimation.random_search_theta(
+    theta_rs, _ = isl.estimation.random_search_theta(
         network=custom_network,
         utility_function=utility_function,
         counts=np.array(list(counts.values()))[:, np.newaxis],
@@ -471,7 +471,7 @@ if estimation_options['ttest_search_theta']:
 
     # utility_function.parameters.values = utility_function.parameters.initial_values
 
-    ttests = tai.estimation.grid_search_theta_ttest(network=custom_network,
+    ttests = isl.estimation.grid_search_theta_ttest(network=custom_network,
                                                     equilibrator=equilibrator,
                                                     utility_function=utility_function,
                                                     counts = custom_network.link_data.counts_vector,
@@ -486,7 +486,7 @@ if estimation_options['ttest_search_Q']:
     # utility_function.parameters.values = dict.fromkeys(utility_function.parameters.initial_values.keys(),-1)
     # utility_function.parameters.values = utility_function.parameters.initial_values
 
-    ttests = tai.estimation.grid_search_Q_ttest(network=custom_network,
+    ttests = isl.estimation.grid_search_Q_ttest(network=custom_network,
                                                 equilibrator=equilibrator,
                                                 utility_function=utility_function,
                                                 counts = custom_network.link_data.counts_vector,
@@ -511,7 +511,7 @@ if estimation_options['scaling_Q']:
         scale_grid_q.append(list(min_q_scale_rs.values())[0])
 
     # We do not generate new paths but use those that were read already from a I/O
-    loss_scaling = tai.estimation.scaling_Q(
+    loss_scaling = isl.estimation.scaling_Q(
         counts=np.array(list(counts.values()))[:, np.newaxis],
         network=custom_network,
         utility_function=utility_function,
@@ -534,7 +534,7 @@ if estimation_options['scaling_Q']:
 
     # Perform scaling that minimizes the loss
     custom_network.Q = min_scale * custom_network.Q
-    custom_network.q = tai.networks.denseQ(Q=custom_network.Q,
+    custom_network.q = isl.networks.denseQ(Q=custom_network.Q,
                                            remove_zeros=custom_network.setup_options['remove_zeros_Q'])
 
     print('Q matrix was rescaled with a ' + str(round(min_scale, 2)) + ' factor')
@@ -549,9 +549,9 @@ if estimation_options['scaling_Q']:
     )
 
     # ttest_gs, criticalval_gs, pval_gs \
-    #     = tai.estimation.ttest_theta(theta_h0=0
+    #     = isl.estimation.ttest_theta(theta_h0=0
     #                                  , theta=theta_0
-    #                                  , YZ_x=tai.estimation.get_design_matrix(Y={'tt': results_congested_gs['tt_x']}, Z=custom_network.Z_dict, features_Y=features_Y, features=estimation_options['features'])
+    #                                  , YZ_x=isl.estimation.get_design_matrix(Y={'tt': results_congested_gs['tt_x']}, Z=custom_network.Z_dict, features_Y=features_Y, features=estimation_options['features'])
     #                                  , counts=np.array(list(counts.values()))[:, np.newaxis]
     #                                  , q=custom_network.q
     #                                  , Ix=custom_network.D
@@ -566,7 +566,7 @@ if estimation_options['scaling_Q']:
 
 # ii) NO REFINED OPTIMIZATION AND INFERENCE WITH FIRST ORDER OPTIMIZATION METHODS
 
-# bilevel_estimation_norefined = tai.estimation.LUE_Learner(config.theta_0)
+# bilevel_estimation_norefined = isl.estimation.LUE_Learner(config.theta_0)
 
 print('\nStatistical Inference with no refined solution')
 
@@ -682,10 +682,10 @@ else:
 
 # Networks graphs
 
-# plot = tai.visualization.Artist(folder_plots = estimation.dirs['estimation_folder'])
+# plot = isl.visualization.Artist(folder_plots = estimation.dirs['estimation_folder'])
 
 # plot.plot_custom_networks(N = {i:custom_networks[i] for i in ['N1','N2','N3','N4']},
-#                           show_edge_labels = True, subfoldername = "networks", filename = "custom_networks")
+#                           show_edge_labels = True, network_name = "networks", filename = "custom_networks")
 
 # # Visualization
 # plots_options = {}
@@ -721,11 +721,11 @@ else:
 # plt.show()
 
 # # Plot real network
-# plot.draw_MultiDiNetwork(G = custom_networks[subfoldername].G, node_size=100, font_size=8, edge_curvature= 0.1, show_edge_labels= False)
+# plot.draw_MultiDiNetwork(G = custom_networks[network_name].G, node_size=100, font_size=8, edge_curvature= 0.1, show_edge_labels= False)
 # plt.show()
 #
 # Plot all networks together
-# plot.plot_all_networks(N = custom_networks, show_edge_labels = False, subfoldername = "networks", filename = "all_networks")
+# plot.plot_all_networks(N = custom_networks, show_edge_labels = False, network_name = "networks", filename = "all_networks")
 
 
 
@@ -788,7 +788,7 @@ if observed_links_fixed_effects is not None:
 if estimation_options['prop_validation_sample'] > 0:
 
     # Get a training and testing sample
-    xc, counts_validation = tai.estimation.generate_training_validation_samples(
+    xc, counts_validation = isl.estimation.generate_training_validation_samples(
         xct=counts
         , prop_validation=estimation_options['prop_validation_sample']
     )
@@ -802,7 +802,7 @@ else:
 # # OD estimation over iterations
 #
 # # Plot
-# plot2 = tai.Artist(folder_plots=config.plots_options['folder_plots'], dim_subplots=(1, 2))
+# plot2 = isl.Artist(folder_plots=config.plots_options['folder_plots'], dim_subplots=(1, 2))
 #
 # # - Create pandas dataframe
 # columns_df = ['stage'] + ['iter'] + ['objective']
@@ -832,7 +832,7 @@ else:
 #                                , results_refined_df = df_bilevel_refined
 #                                , methods=[estimation_options['outeropt_method_norefined'],
 #                                           estimation_options['outeropt_method_refined']]
-#                                , filename = 'q_estimation_convergence.pdf', subfoldername="experiments/inference")
+#                                , filename = 'q_estimation_convergence.pdf', network_name="experiments/inference")
 #
-# tai.writer.write_figure_to_log_folder(fig=fig
+# isl.writer.write_figure_to_log_folder(fig=fig
 #                                       , filename='q_estimation_convergence.pdf', log_file=config.log_file)

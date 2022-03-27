@@ -1,3 +1,0 @@
-[console_scripts]
-transportAI = transportAI.cli:main
-

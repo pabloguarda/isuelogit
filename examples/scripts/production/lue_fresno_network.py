@@ -3,7 +3,7 @@
 # =============================================================================
 
 # Internal modules
-import transportAI as tai
+import isuelogit as isl
 
 # External modules
 import ast
@@ -26,10 +26,10 @@ estimation_options['ttest_search_Q'] = False
 network_name = 'Fresno'
 
 # Estimation reporter
-estimation_reporter = tai.writer.Reporter(foldername=network_name, seed = 2022)
+estimation_reporter = isl.writer.Reporter(foldername=network_name, seed = 2022)
 
 # Reader of geospatial and spatio-temporal data
-data_reader = tai.etl.DataReader(network_key=network_name)
+data_reader = isl.etl.DataReader(network_key=network_name)
 
 # First Tuesday of October, 2019
 data_reader.select_period(date='2019-10-01', hour=16)
@@ -42,11 +42,11 @@ data_reader.select_period(date='2019-10-01', hour=16)
 # =============================================================================
 
 # Read nodes data
-nodes_df = pd.read_csv(tai.dirs['input_folder'] + '/network-data/nodes/'  + 'fresno-nodes-data.csv')
+nodes_df = pd.read_csv(isl.dirs['input_folder'] + '/network-data/nodes/'  + 'fresno-nodes-data.csv')
 
 # Read nodes spatiotemporal link data
 links_df = pd.read_csv(
-    tai.dirs['input_folder'] + 'network-data/links/' + str(data_reader.options['selected_date'])+ '-fresno-link-data.csv',
+    isl.dirs['input_folder'] + 'network-data/links/' + str(data_reader.options['selected_date'])+ '-fresno-link-data.csv',
     converters={"link_key": ast.literal_eval,"pems_id": ast.literal_eval})
 
 # =============================================================================
@@ -54,7 +54,7 @@ links_df = pd.read_csv(
 # =============================================================================
 
 # Create Network Generator
-network_generator = tai.factory.NetworkGenerator()
+network_generator = isl.factory.NetworkGenerator()
 
 A = network_generator.generate_adjacency_matrix(links_keys=list(links_df['link_key'].values))
 
@@ -77,7 +77,7 @@ if data_reader.options['selected_year'] == 2020:
 # =============================================================================
 
 # Create path generator
-paths_generator = tai.factory.PathsGenerator()
+paths_generator = isl.factory.PathsGenerator()
 
 # # Generate and Load paths in network
 # paths_generator.load_k_shortest_paths(network = fresno_network, k=3)
@@ -106,7 +106,7 @@ fresno_network.set_bpr_functions(bprdata=bpr_parameters_df)
 fresno_network.load_features_data(links_df, link_key = 'link_key')
 
 # Spatio-temporal data must have read before
-tai.etl.feature_engineering_fresno(links=fresno_network.links, network=fresno_network)
+isl.etl.feature_engineering_fresno(links=fresno_network.links, network=fresno_network)
 # ['low_inc', 'high_inc','no_incidents','no_bus_stops','no_intersections','tt_sd_adj','tt_reliability']
 
 features_list = ['median_inc', 'intersections', 'incidents', 'bus_stops', 'median_age',
@@ -127,7 +127,7 @@ fresno_network.load_features_data(linkdata)
 # =============================================================================
 
 # Read counts from csv
-counts_df = pd.read_csv(tai.dirs['input_folder'] + '/network-data/links/' \
+counts_df = pd.read_csv(isl.dirs['input_folder'] + '/network-data/links/' \
                             + str(data_reader.options['selected_date']) + '-fresno-link-counts' + '.csv',
                         converters={'link_key': ast.literal_eval})
 
@@ -140,7 +140,7 @@ fresno_network.load_traffic_counts(counts=counts)
 # e) UTILITY FUNCTION
 # =============================================================================
 
-utility_function = tai.estimation.UtilityFunction(
+utility_function = isl.estimation.UtilityFunction(
     features_Y=['tt'],
     # features_Z=['tt_cv'],
     # features_Z= ['tt_cv', 'no_incidents', 'no_intersections', 'no_bus_stops', 'low_inc'],
@@ -170,10 +170,10 @@ print('\nTotal link counts observations: ' + str(total_counts_observations))
 print('Link coverage: ' + "{:.1%}".format(round(total_counts_observations / total_links, 4)))
 
 # - Networks topology
-tai.descriptive_statistics.summary_table_networks([fresno_network])
+isl.descriptive_statistics.summary_table_networks([fresno_network])
 
 # - Selected feature data on observed links
-summary_table_observed_links_df = tai.descriptive_statistics.summary_table_links(
+summary_table_observed_links_df = isl.descriptive_statistics.summary_table_links(
     links=fresno_network.get_observed_links(),
     Z_attrs=['speed_avg', 'tt_sd', 'tt_cv', 'tt_reliability', 'incidents', 'median_inc', 'bus_stops', 'intersections'],
     Z_labels=['speed_avg [mi/hr]', 'tt_sd', 'tt_cv', 'tt_reliability', 'incidents', 'income [1K USD]', 'stops', 'ints']
@@ -192,7 +192,7 @@ estimation_reporter.write_table(df = fresno_network.Z_data, filename = 'links_da
 
 # HEURISTICS FOR SCALING OF OD MATRIX AND SEARCH OF INITIAL LOGIT ESTIMAT
 
-equilibrator = tai.equilibrium.LUE_Equilibrator(
+equilibrator = isl.equilibrium.LUE_Equilibrator(
     network=fresno_network,
     utility_function=utility_function,
     uncongested_mode=True,
@@ -206,7 +206,7 @@ if estimation_options['ttest_search_theta']:
 
     # utility_function.parameters.values = utility_function.parameters.initial_values
 
-    ttests = tai.estimation.grid_search_theta_ttest(network=fresno_network,
+    ttests = isl.estimation.grid_search_theta_ttest(network=fresno_network,
                                                     equilibrator=equilibrator,
                                                     utility_function=utility_function,
                                                     counts = fresno_network.link_data.counts_vector,
@@ -221,7 +221,7 @@ if estimation_options['ttest_search_Q']:
     # utility_function.parameters.values = dict.fromkeys(utility_function.parameters.initial_values.keys(),-1)
     # utility_function.parameters.values = utility_function.parameters.initial_values
 
-    ttests = tai.estimation.grid_search_Q_ttest(network=fresno_network,
+    ttests = isl.estimation.grid_search_Q_ttest(network=fresno_network,
                                                 equilibrator=equilibrator,
                                                 utility_function=utility_function,
                                                 counts = fresno_network.link_data.counts_vector,
@@ -233,7 +233,7 @@ if estimation_options['ttest_search_Q']:
 # 3d) ESTIMATION
 # =============================================================================
 
-equilibrator_norefined = tai.equilibrium.LUE_Equilibrator(
+equilibrator_norefined = isl.equilibrium.LUE_Equilibrator(
     network=fresno_network,
     paths_generator=paths_generator,
     utility_function=utility_function,
@@ -247,13 +247,13 @@ equilibrator_norefined = tai.equilibrium.LUE_Equilibrator(
     path_size_correction=1
 )
 
-outer_optimizer_norefined = tai.estimation.OuterOptimizer(
+outer_optimizer_norefined = isl.estimation.OuterOptimizer(
     method='ngd',
     iters=1,
     eta=5e-1,
 )
 
-learner_norefined = tai.estimation.Learner(
+learner_norefined = isl.estimation.Learner(
     equilibrator=equilibrator_norefined,
     outer_optimizer=outer_optimizer_norefined,
     utility_function=utility_function,
@@ -261,7 +261,7 @@ learner_norefined = tai.estimation.Learner(
     name = 'norefined'
 )
 
-equilibrator_refined = tai.equilibrium.LUE_Equilibrator(
+equilibrator_refined = isl.equilibrium.LUE_Equilibrator(
     network=fresno_network,
     paths_generator=paths_generator,
     utility_function=utility_function,
@@ -272,14 +272,14 @@ equilibrator_refined = tai.equilibrium.LUE_Equilibrator(
     path_size_correction=1
 )
 
-outer_optimizer_refined = tai.estimation.OuterOptimizer(
+outer_optimizer_refined = isl.estimation.OuterOptimizer(
     method='lm',
     # method='ngd',
     iters=1,
     # eta=5e-1,
 )
 
-learner_refined = tai.estimation.Learner(
+learner_refined = isl.estimation.Learner(
     network=fresno_network,
     equilibrator=equilibrator_refined,
     outer_optimizer=outer_optimizer_refined,
@@ -304,7 +304,7 @@ network_generator.write_incidence_matrices(network = fresno_network,
 print('\nStatistical Inference in refined stage')
 
 if estimation_options['link_selection']:
-    new_counts, removed_links_keys = tai.etl.get_informative_links_fresno(
+    new_counts, removed_links_keys = isl.etl.get_informative_links_fresno(
         learning_results=learning_results_norefined,
         network=fresno_network)
 
@@ -323,13 +323,13 @@ theta_refined = learning_results_refined[best_iter_refined]['theta']
 
 # Naive prediction using mean counts
 mean_counts_prediction_loss, mean_count_benchmark_model \
-    = tai.estimation.mean_count_prediction(counts=np.array(list(counts.values()))[:, np.newaxis])
+    = isl.estimation.mean_count_prediction(counts=np.array(list(counts.values()))[:, np.newaxis])
 
 print('\nObjective function under mean count prediction: ' + '{:,}'.format(round(mean_counts_prediction_loss, 1)))
 
 # Naive prediction using uncongested network
 equilikely_prediction_loss, predicted_counts_equilikely \
-    = tai.estimation.loss_counts_equilikely_choices(
+    = isl.estimation.loss_counts_equilikely_choices(
     network = fresno_network,
     equilibrator=equilibrator_refined,
     counts=fresno_network.counts_vector,
@@ -378,11 +378,11 @@ estimation_reporter.write_inference_tables(
 
 # - Convergence
 
-results_df = tai.descriptive_statistics \
+results_df = isl.descriptive_statistics \
     .get_loss_and_estimates_over_iterations(results_norefined=learning_results_norefined
                                             , results_refined=learning_results_refined)
 
-fig = tai.visualization.Artist().convergence(
+fig = isl.visualization.Artist().convergence(
     results_norefined_df=results_df[results_df['stage'] == 'norefined'],
     results_refined_df=results_df[results_df['stage'] == 'refined'],
     filename='convergence_' + fresno_network.key,
@@ -399,9 +399,9 @@ best_predicted_counts_refined = np.array(list(learning_results_refined[best_iter
 fig, axs = plt.subplots(1, 2, sharey='all', tight_layout=True, figsize=(10, 5))
 
 # We can set the number of bins with the `bins` kwarg
-axs[0].hist(tai.estimation.error_by_link(observed_counts=np.array(list(counts.values()))[:, np.newaxis],
+axs[0].hist(isl.estimation.error_by_link(observed_counts=np.array(list(counts.values()))[:, np.newaxis],
                                          predicted_counts=best_predicted_counts_norefined))
-axs[1].hist(tai.estimation.error_by_link(observed_counts=np.array(list(counts.values()))[:, np.newaxis],
+axs[1].hist(isl.estimation.error_by_link(observed_counts=np.array(list(counts.values()))[:, np.newaxis],
                                          predicted_counts=best_predicted_counts_refined))
 
 for axi in [axs[0], axs[1]]:
@@ -421,17 +421,17 @@ fig.savefig(estimation_reporter.dirs['estimation_folder'] + '/' + 'distribution_
 # fresno_network.links[34].key
 
 # Congestion shapefile using the links flows obtained in the best iteration
-tai.geographer \
+isl.geographer \
     .write_links_congestion_map_shp(
     links=fresno_network.links,
     flows=best_predicted_counts_refined,
-    folderpath=tai.dirs['output_folder'] + 'gis/Fresno/network/congestion', networkname='Fresno',
+    folderpath=isl.dirs['output_folder'] + 'gis/Fresno/network/congestion', networkname='Fresno',
 )
 
 # Congestion shapefile using the links flows obtained with a equilikely assignment
-tai.geographer \
+isl.geographer \
     .write_links_congestion_map_shp(links=fresno_network.links, flows=predicted_counts_equilikely
-                                    , folderpath=tai.dirs['output_folder'] + 'gis/Fresno/network/congestion'
+                                    , folderpath=isl.dirs['output_folder'] + 'gis/Fresno/network/congestion'
                                     , networkname='Fresno_equilikely'
                                     )
 

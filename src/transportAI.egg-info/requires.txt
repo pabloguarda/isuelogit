@@ -1,4 +1,0 @@
-pyspark
-networkx
-numpy
-pandas

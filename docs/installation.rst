@@ -8,13 +8,13 @@ Installation
 Stable release
 --------------
 
-To install transportAI, run this command in your terminal:
+To install isuelogit, run this command in your terminal:
 
 .. code-block:: console
 
-    $ pip install transportAI
+    $ pip install isuelogit
 
-This is the preferred method to install transportAI, as it will always install the most recent stable release.
+This is the preferred method to install isuelogit, as it will always install the most recent stable release.
 
 If you don't have `pip`_ installed, this `Python installation guide`_ can guide
 you through the process.
@@ -26,19 +26,19 @@ you through the process.
 From sources
 ------------
 
-The sources for transportAI can be downloaded from the `Github repo`_.
+The sources for isuelogit can be downloaded from the `Github repo`_.
 
 You can either clone the public repository:
 
 .. code-block:: console
 
-    $ git clone git://github.com/pabloguarda/transportAI
+    $ git clone git://github.com/pabloguarda/isuelogit
 
 Or download the `tarball`_:
 
 .. code-block:: console
 
-    $ curl -OJL https://github.com/pabloguarda/transportAI/tarball/master
+    $ curl -OJL https://github.com/pabloguarda/isuelogit/tarball/master
 
 Once you have a copy of the source, you can install it with:
 
@@ -47,5 +47,5 @@ Once you have a copy of the source, you can install it with:
     $ python setup.py install
 
 
-.. _Github repo: https://github.com/pabloguarda/transportAI
-.. _tarball: https://github.com/pabloguarda/transportAI/tarball/master
+.. _Github repo: https://github.com/pabloguarda/isuelogit
+.. _tarball: https://github.com/pabloguarda/isuelogit/tarball/master

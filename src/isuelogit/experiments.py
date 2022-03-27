@@ -119,7 +119,7 @@ class NetworkExperiment(Reporter):
         '''
 
         Store results into log file and store a folder with a summary of the estimation
-        Create a subfoldername to store the estimates of the current experiment
+        Create a network_name to store the estimates of the current experiment
 
         Args:
             foldername:
@@ -518,7 +518,7 @@ class PseudoconvexityExperiment(NetworkExperiment):
         self.utility_function.values = self.utility_function.true_values
 
         for feature, color in zip(features, colors):
-            # tai.printer.blockPrint()
+            # isl.printer.blockPrint()
             theta_attr_grid, f_vals, grad_f_vals, hessian_f_vals \
                 = grid_search_optimization(network=self.network,
                                            equilibrator=self.equilibrator,

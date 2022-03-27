@@ -86,7 +86,7 @@ class Reporter(ABC):
         '''
 
         Store results into log file and store a folder with a summary of the estimation
-        Create a subfoldername to store the estimates of the current experiment
+        Create a network_name to store the estimates of the current experiment
 
         Args:
             foldername:
@@ -690,7 +690,7 @@ def write_csv_to_log_folder(log_file, df, filename, float_format='%.3f'):
 
     # if 'folderpath' in log_file.keys():
 
-    # Locate subfoldername within folderpath with the network name
+    # Locate network_name within folderpath with the network name
     folderpath = log_file['folderpath']
 
     # Export tables in txt format
@@ -702,7 +702,7 @@ def write_csv_to_experiment_log_folder(log_file, df, filename, float_format='%.3
 
     # assert set(['experimentpath','replicatepath']).issubset(log_file.keys())
 
-        # Locate subfoldername within folderpath with the network name
+        # Locate network_name within folderpath with the network name
         # folderpath = log_file['folderpath']
 
         if 'replicatepath' in log_file.keys():

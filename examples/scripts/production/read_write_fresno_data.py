@@ -8,7 +8,7 @@ import sys
 import pandas as pd
 
 # Internal modules
-import transportAI as tai
+import isuelogit as isl
 
 # =============================================================================
 # 2) NETWORK FACTORY
@@ -20,12 +20,12 @@ network_name = 'Fresno'
 # =============================================================================
 
 # Reader of geospatial and spatio-temporal data
-data_reader = tai.etl.DataReader(network_key=network_name,setup_spark=True)
+data_reader = isl.etl.DataReader(network_key=network_name,setup_spark=True)
 
 # Read files
-links_df, nodes_df = tai.reader.read_fresno_network(folderpath=tai.dirs['Fresno_network'])
+links_df, nodes_df = isl.reader.read_fresno_network(folderpath=isl.dirs['Fresno_network'])
 
-nodes_df.to_csv(tai.dirs['output_folder'] + '/network-data/nodes/'  + 'fresno-nodes-data.csv',
+nodes_df.to_csv(isl.dirs['output_folder'] + '/network-data/nodes/'  + 'fresno-nodes-data.csv',
                 sep=',', encoding='utf-8', index=False, float_format='%.3f')
 
 # Add link key in dataframe
@@ -36,7 +36,7 @@ links_df['link_key'] = [(int(i), int(j), '0') for i, j in zip(links_df['init_nod
 # =============================================================================
 
 # Create Network Generator
-network_generator = tai.factory.NetworkGenerator()
+network_generator = isl.factory.NetworkGenerator()
 
 A = network_generator.generate_adjacency_matrix(links_keys=list(links_df.link_key.values))
 
@@ -51,8 +51,8 @@ fresno_network = \
 data_reader.options['od_periods'] = [1, 2, 3, 4]
 
 # Read OD from raw data
-Q = tai.reader.read_fresno_dynamic_od(network=fresno_network,
-                                  filepath=tai.dirs['Fresno_network'] + '/SR41.dmd',
+Q = isl.reader.read_fresno_dynamic_od(network=fresno_network,
+                                  filepath=isl.dirs['Fresno_network'] + '/SR41.dmd',
                                   periods=data_reader.options['od_periods'])
 
 network_generator.write_OD_matrix(network = fresno_network, sparse = True, overwrite_input=False)
@@ -62,7 +62,7 @@ network_generator.write_OD_matrix(network = fresno_network, sparse = True, overw
 # =============================================================================
 
 # Create path generator
-paths_generator = tai.factory.PathsGenerator()
+paths_generator = isl.factory.PathsGenerator()
 
 # Generate and Load paths in network
 paths_generator.load_k_shortest_paths(network = fresno_network, k=4)
@@ -138,7 +138,7 @@ for date in dates:
     # SPATIO-TEMPORAL LINK FEATURES
     # =============================================================================
 
-    filepath = tai.dirs['output_folder'] + '/network-data/links/' + str(data_reader.options['selected_date']) \
+    filepath = isl.dirs['output_folder'] + '/network-data/links/' + str(data_reader.options['selected_date']) \
                + '-fresno-spatiotemporal-link-data.csv'
 
     spatiotemporal_features_df, spatiotemporal_features_list = data_reader.read_spatiotemporal_data_fresno(
@@ -205,11 +205,11 @@ for date in dates:
 
     # a) Capacity adjustment
 
-    # counts = tai.etl.adjust_counts_by_link_capacity(network = fresno_network, counts = counts)
+    # counts = isl.etl.adjust_counts_by_link_capacity(network = fresno_network, counts = counts)
 
     # b) Outliers
 
-    # tai.etl.remove_outliers_fresno(fresno_network)
+    # isl.etl.remove_outliers_fresno(fresno_network)
 
     # =============================================================================
     # 2.2) TRAFFIC COUNTS
@@ -219,11 +219,11 @@ for date in dates:
 
     date_pathname = data_reader.options['selected_date'].replace('-', '_')
 
-    path_pems_counts = tai.dirs['input_folder'] + 'public/pems/counts/data/' + \
+    path_pems_counts = isl.dirs['input_folder'] + 'public/pems/counts/data/' + \
                        'd06_text_station_5min_' + date_pathname + '.txt.gz'
 
     # Load pems station ids in links
-    tai.etl.load_pems_stations_ids(network=fresno_network)
+    isl.etl.load_pems_stations_ids(network=fresno_network)
 
     # Read and match count data from a given period
 
@@ -235,7 +235,7 @@ for date in dates:
                          'duration': int(len(data_reader.options['od_periods']) * 15)})
 
     # Generate a masked vector that fill out count values with no observations with nan
-    counts = tai.etl.generate_fresno_pems_counts(links=fresno_network.links
+    counts = isl.etl.generate_fresno_pems_counts(links=fresno_network.links
                                                  , data=count_interval_df
                                                  # , flow_attribute='flow_total'
                                                  # , flow_attribute = 'flow_total_lane_1')
@@ -244,7 +244,7 @@ for date in dates:
                                                  )
     # Write counts in csv
 
-    filepath = tai.dirs['output_folder'] + 'network-data/links/' + str(data_reader.options['selected_date']) \
+    filepath = isl.dirs['output_folder'] + 'network-data/links/' + str(data_reader.options['selected_date']) \
                + '-fresno-link-counts.csv'
 
     counts_df = pd.DataFrame({'link_key': counts.keys(),
@@ -263,9 +263,9 @@ for date in dates:
     # =============================================================================
     # c) WRITE LINK FEATURES AND COUNTS
     # =============================================================================
-    summary_table_links_df = tai.descriptive_statistics.summary_table_links(links=fresno_network.links)
+    summary_table_links_df = isl.descriptive_statistics.summary_table_links(links=fresno_network.links)
 
-    summary_table_links_df.to_csv(tai.dirs['output_folder'] + 'network-data/links/'
+    summary_table_links_df.to_csv(isl.dirs['output_folder'] + 'network-data/links/'
                      + str(data_reader.options['selected_date'])+ '-fresno-link-data.csv',
                      sep=',', encoding='utf-8', index=False, float_format='%.3f')
 
@@ -287,7 +287,7 @@ existing_continous_features = set(summary_table_links_df.keys()).intersection(se
 summary_table_links_scatter_df = summary_table_links_df[existing_continous_features]
 
 scatter_fig1, scatter_fig2 = \
-    tai.descriptive_statistics.scatter_plots_features_vs_counts(links_df=summary_table_links_scatter_df)
+    isl.descriptive_statistics.scatter_plots_features_vs_counts(links_df=summary_table_links_scatter_df)
 
 scatter_fig1.savefig(reporter.dirs['estimation_folder'] + '/' + 'scatter_plot1.pdf',
             pad_inches=0.1, bbox_inches="tight")
@@ -303,7 +303,7 @@ scatter_fig1.savefig(reporter.dirs['estimation_folder'] + '/' + 'scatter_plot2.p
 
 # TODO: PEMS station ids are not being read from csv file but are added when the files are read on execution
 
-read_filepath_pems_counts = tai.dirs['input_folder'] + '/network-data/links/' \
+read_filepath_pems_counts = isl.dirs['input_folder'] + '/network-data/links/' \
                             + str(data_reader.options['selected_date']) + '-fresno-link-counts' + '.csv'
 
 selected_links_ids_pems_statistics = [link.pems_stations_ids[0] for link in fresno_network.get_observed_links() if
@@ -311,7 +311,7 @@ selected_links_ids_pems_statistics = [link.pems_stations_ids[0] for link in fres
 
 selected_links_ids_pems_statistics = list(np.random.choice(selected_links_ids_pems_statistics, 4, replace=False))
 
-distribution_pems_counts_figure = tai.descriptive_statistics.distribution_pems_counts(
+distribution_pems_counts_figure = isl.descriptive_statistics.distribution_pems_counts(
     filepath=read_filepath_pems_counts,
     data_reader=data_reader,
     selected_period={'year': data_reader.options['selected_year'],
@@ -323,7 +323,7 @@ distribution_pems_counts_figure = tai.descriptive_statistics.distribution_pems_c
 
 # plt.show()
 
-tai.writer.write_figure_to_log_folder(fig=distribution_pems_counts_figure, filename='distribution_pems_counts.pdf')
+isl.writer.write_figure_to_log_folder(fig=distribution_pems_counts_figure, filename='distribution_pems_counts.pdf')
 
 
 

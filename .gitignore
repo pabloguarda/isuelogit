@@ -13,16 +13,14 @@ requirements/dev.txt
 requirements/environment.yml
 
 # Pycharm internal files
-
 .idea/
+.eggs/
 
 #Python cache
-
 .pytest_cache/
 __pycache__/
 
 #Git internal files
-
 .git/
 
 #output

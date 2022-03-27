@@ -14,7 +14,7 @@ random.seed(2020)
 #==============================================================================
 
 # Internal modules
-import transportAI as tai
+import isuelogit as isl
 
 # External modules
 import sys
@@ -27,10 +27,10 @@ import matplotlib.pyplot as plt
 # 1b) CONFIGURATION
 # =============================================================================
 
-config = tai.config.Config(network_key = 'N3')
+config = isl.config.Config(network_key = 'N3')
 
 # Key internal objects for analysis and visualization
-artist = tai.visualization.Artist(folder_plots=config.plots_options['folder_plots'],
+artist = isl.visualization.Artist(folder_plots=config.plots_options['folder_plots'],
                                   dim_subplots=config.plots_options['dim_subplots'])
 
 # =============================================================================
@@ -61,7 +61,7 @@ network_name = 'N1'
 #           list(np.arange(1, n_random_networks + 1))]
 
 # Create Network Generator
-network_generator = tai.factory.NetworkGenerator()
+network_generator = isl.factory.NetworkGenerator()
 
 # Create transportation network with randomly generated adjacency matrix
 random_network = network_generator.build_random_network(network_name= network_name,
@@ -73,7 +73,7 @@ random_network = network_generator.build_random_network(network_name= network_na
 # c) BEHAVIORAL PARAMETERS AND UTILITY FUNCTIONS
 # =============================================================================
 
-utility_parameters = tai.estimation.Parameters(features_Y=['tt'],
+utility_parameters = isl.estimation.Parameters(features_Y=['tt'],
                                                features_Z= [],
                                                # features_Z= ['c'],
                                                true_values={'tt': -1, 'c': -2},
@@ -81,7 +81,7 @@ utility_parameters = tai.estimation.Parameters(features_Y=['tt'],
                                                initial_values =  {'tt': 0}
                                                )
 
-utility_function = tai.estimation.UtilityFunction(utility_parameters)
+utility_function = isl.estimation.UtilityFunction(utility_parameters)
 
 # =============================================================================
 # b) EXOGENOUS LINK ATTRIBUTES
@@ -90,7 +90,7 @@ utility_function = tai.estimation.UtilityFunction(utility_parameters)
 # Set Link Performance functions and link level attributes
 
 # Create data generator to generate synthetic link attributes
-linkdata_generator = tai.factory.LinkDataGenerator()
+linkdata_generator = isl.factory.LinkDataGenerator()
 
 # Generate synthetic link attributes
 link_features_df = linkdata_generator.simulate_features(
@@ -142,7 +142,7 @@ random_network.set_bpr_functions(bprdata = bpr_parameters_df)
 # =============================================================================
 
 # Create OD generator (for random networks only)
-od_generator = tai.factory.ODGenerator()
+od_generator = isl.factory.ODGenerator()
 
 Q = od_generator.generate_Q(network = random_network,
                             min_q = 100, #100
@@ -158,7 +158,7 @@ random_network.load_OD(Q  = Q)
 # =============================================================================
 
 # Create path generator
-paths_generator = tai.factory.PathsGenerator()
+paths_generator = isl.factory.PathsGenerator()
 
 # Generate and Load paths in network
 paths_generator.load_k_shortest_paths(network = random_network, k=3)
@@ -196,23 +196,23 @@ config.experiment_options['convergence_experiment'] = False
 if config.experiment_options['convergence_experiment']:
     # Outer level optimizer
 
-    utility_parameters = tai.estimation.Parameters(features_Y=['tt'],
+    utility_parameters = isl.estimation.Parameters(features_Y=['tt'],
                                                    features_Z=['c'],
                                                    true_values={'tt': -1e-0, 'c': -6e-0})
 
-    utility_function = tai.estimation.UtilityFunction(utility_parameters)
+    utility_function = isl.estimation.UtilityFunction(utility_parameters)
 
     n_sparse_features = 2  # 10 #20 #50
     sparse_features_labels = ['k' + str(i) for i in np.arange(0, n_sparse_features)]
 
     utility_function.add_sparse_features(Z=sparse_features_labels)
-    outer_optimizer_norefined = tai.estimation.OuterOptimizer(
+    outer_optimizer_norefined = isl.estimation.OuterOptimizer(
         method='ngd',
         iters=1,
         eta=1e-2
     )
 
-    outer_optimizer_refined = tai.estimation.OuterOptimizer(
+    outer_optimizer_refined = isl.estimation.OuterOptimizer(
         method='lm',
         # vdown_lm=9,
         # vup_lm = 10,
@@ -220,22 +220,22 @@ if config.experiment_options['convergence_experiment']:
         iters=1
     )
 
-    # outer_optimizer_refined = tai.estimation.LUE_OuterOptimizer(
+    # outer_optimizer_refined = isl.estimation.LUE_OuterOptimizer(
     #     method='ngd',
     #     eta =4e-2,
     #     iters=1
     # )
 
-    convergence_experiment = tai.experiments.ConvergenceExperiment(
+    convergence_experiment = isl.experiments.ConvergenceExperiment(
         seed=2026,
         config=config,
         name='Convergence Experiment',
         datetime=None,
         outer_optimizers=[outer_optimizer_norefined, outer_optimizer_refined],
         utility_function=utility_function,
-        linkdata_generator=tai.factory.LinkDataGenerator(
+        linkdata_generator=isl.factory.LinkDataGenerator(
             noise_params = {'mu_x': 0, 'sd_x': 0.01}),
-        equilibrator=tai.equilibrium.LUE_Equilibrator(
+        equilibrator=isl.equilibrium.LUE_Equilibrator(
             max_iters=100,
             method='fw',
             iters_fw=100,
@@ -261,30 +261,30 @@ if config.experiment_options['congestion_experiment']:
     # # OD level
     # random_network.load_OD(Q=random_network.Q)
 
-    utility_parameters = tai.estimation.Parameters(features_Y=['tt'],
+    utility_parameters = isl.estimation.Parameters(features_Y=['tt'],
                                                    features_Z=['c'],
                                                    true_values={'tt': -1, 'c': -2})
 
-    utility_function = tai.estimation.UtilityFunction(utility_parameters)
+    utility_function = isl.estimation.UtilityFunction(utility_parameters)
 
     n_sparse_features = 2  # 10 #20 #50
     sparse_features_labels = ['k' + str(i) for i in np.arange(0, n_sparse_features)]
 
     utility_function.add_sparse_features(Z=sparse_features_labels)
 
-    outer_optimizer_norefined = tai.estimation.OuterOptimizer(
+    outer_optimizer_norefined = isl.estimation.OuterOptimizer(
         method='ngd',
         iters=1,
         eta=1e-1
     )
 
-    outer_optimizer_refined = tai.estimation.OuterOptimizer(
+    outer_optimizer_refined = isl.estimation.OuterOptimizer(
         method='lm',
         # lambda_lm = 1e-1,
         iters=1,
     )
 
-    congestion_experiment = tai.experiments.ODExperiment(
+    congestion_experiment = isl.experiments.ODExperiment(
         seed=2020,
         config=config,
         name='Congestion OD Experiment',
@@ -292,9 +292,9 @@ if config.experiment_options['congestion_experiment']:
         outer_optimizers=[outer_optimizer_norefined, outer_optimizer_refined],
         # outer_optimizers=[outer_optimizer_norefined],
         utility_function=utility_function,
-        linkdata_generator=tai.factory.LinkDataGenerator(
+        linkdata_generator=isl.factory.LinkDataGenerator(
             noise_params={'mu_x': 0, 'sd_x': 0.03}),
-        equilibrator=tai.equilibrium.LUE_Equilibrator(
+        equilibrator=isl.equilibrium.LUE_Equilibrator(
             max_iters=100,
             method='fw',
             iters_fw=100,
@@ -329,24 +329,24 @@ if config.experiment_options['consistency_experiment']:
 
     # Outer level optimizer
 
-    utility_parameters = tai.estimation.Parameters(features_Y=['tt'],
+    utility_parameters = isl.estimation.Parameters(features_Y=['tt'],
                                                    features_Z=['c'],
                                                    true_values={'tt': -1e0, 'c': -2e0})
 
-    utility_function = tai.estimation.UtilityFunction(utility_parameters)
+    utility_function = isl.estimation.UtilityFunction(utility_parameters)
 
     n_sparse_features = 2 # 10 #20 #50
     sparse_features_labels = ['k' + str(i) for i in np.arange(0, n_sparse_features)]
 
     utility_function.add_sparse_features(Z=sparse_features_labels)
 
-    outer_optimizer_norefined_1 = tai.estimation.OuterOptimizer(
+    outer_optimizer_norefined_1 = isl.estimation.OuterOptimizer(
         method='ngd',
         iters=1,
         eta=1e-1
     )
 
-    outer_optimizer_norefined_2 = tai.estimation.OuterOptimizer(
+    outer_optimizer_norefined_2 = isl.estimation.OuterOptimizer(
         method='lm',
         iters=1,
         # lambda_lm = 1e4,
@@ -354,7 +354,7 @@ if config.experiment_options['consistency_experiment']:
         # vdown_lm=10e4,
     )
 
-    outer_optimizer_refined = tai.estimation.OuterOptimizer(
+    outer_optimizer_refined = isl.estimation.OuterOptimizer(
         method='lm',
         iters=1,
         # lambda_lm=1e4,
@@ -362,7 +362,7 @@ if config.experiment_options['consistency_experiment']:
         # vdown_lm=10e4,
     )
 
-    consistency_experiment = tai.experiments.ConsistencyExperiment(
+    consistency_experiment = isl.experiments.ConsistencyExperiment(
         seed=2022,
         config=config,
         name='Consistency Experiment',
@@ -371,9 +371,9 @@ if config.experiment_options['consistency_experiment']:
                           outer_optimizer_norefined_2,
                           outer_optimizer_refined],
         utility_function=utility_function,
-        linkdata_generator=tai.factory.LinkDataGenerator(
+        linkdata_generator=isl.factory.LinkDataGenerator(
             noise_params = {'mu_x': 0, 'sd_x': 0.03}),
-        equilibrator=tai.equilibrium.LUE_Equilibrator(
+        equilibrator=isl.equilibrium.LUE_Equilibrator(
             max_iters=100,
             method='fw',
             iters_fw=100,
@@ -403,24 +403,24 @@ if config.experiment_options['irrelevant_attributes_experiment']:
     # OD level
     random_network.load_OD(Q=1e-1*Q)
 
-    utility_parameters = tai.estimation.Parameters(features_Y=['tt'],
+    utility_parameters = isl.estimation.Parameters(features_Y=['tt'],
                                                    features_Z=['c'],
                                                    true_values={'tt': -1e0, 'c': -2e0})
 
-    utility_function = tai.estimation.UtilityFunction(utility_parameters)
+    utility_function = isl.estimation.UtilityFunction(utility_parameters)
 
     n_sparse_features = 2 # 10 #20 #50
     sparse_features_labels = ['k' + str(i) for i in np.arange(0, n_sparse_features)]
 
     utility_function.add_sparse_features(Z=sparse_features_labels)
 
-    outer_optimizer_no_refined = tai.estimation.OuterOptimizer(
+    outer_optimizer_no_refined = isl.estimation.OuterOptimizer(
         method='ngd',
         iters = 1,
         eta=1e-1
     )
 
-    outer_optimizer_refined_1 = tai.estimation.OuterOptimizer(
+    outer_optimizer_refined_1 = isl.estimation.OuterOptimizer(
         method='lm',
         iters=10,
         # lambda_lm=1e-1,
@@ -429,13 +429,13 @@ if config.experiment_options['irrelevant_attributes_experiment']:
         # vdown_lm=10e4,
     )
 
-    outer_optimizer_refined_2 = tai.estimation.OuterOptimizer(
+    outer_optimizer_refined_2 = isl.estimation.OuterOptimizer(
         method='ngd',
         iters=1,
         eta=1e-1,
     )
 
-    irrelevant_attributes_experiment = tai.experiments.IrrelevantAttributesExperiment(
+    irrelevant_attributes_experiment = isl.experiments.IrrelevantAttributesExperiment(
         seed=2022,
         config=config,
         name='Irrelevant Atttributes Experiment',
@@ -444,9 +444,9 @@ if config.experiment_options['irrelevant_attributes_experiment']:
                           outer_optimizer_refined_1,
                           outer_optimizer_refined_2],
         utility_function=utility_function,
-        linkdata_generator=tai.factory.LinkDataGenerator(
+        linkdata_generator=isl.factory.LinkDataGenerator(
             noise_params = {'mu_x': 0, 'sd_x': 0.03}),
-        equilibrator=tai.equilibrium.LUE_Equilibrator(
+        equilibrator=isl.equilibrium.LUE_Equilibrator(
             max_iters=100,
             method='fw',
             iters_fw=100,
@@ -476,28 +476,28 @@ if config.experiment_options['noisy_counts_experiment']:
     # OD level
     random_network.load_OD(Q=2e-1*Q)
 
-    utility_parameters = tai.estimation.Parameters(features_Y=['tt'],
+    utility_parameters = isl.estimation.Parameters(features_Y=['tt'],
                                                    features_Z=['c'],
                                                    true_values={'tt': -1, 'c': -2})
 
-    utility_function = tai.estimation.UtilityFunction(utility_parameters)
+    utility_function = isl.estimation.UtilityFunction(utility_parameters)
 
     n_sparse_features = 2  # 10 #20 #50
     sparse_features_labels = ['k' + str(i) for i in np.arange(0, n_sparse_features)]
 
     utility_function.add_sparse_features(Z=sparse_features_labels)
-    outer_optimizer_norefined = tai.estimation.OuterOptimizer(
+    outer_optimizer_norefined = isl.estimation.OuterOptimizer(
         method='ngd',
         iters=1,
         eta=1e-1
     )
 
-    outer_optimizer_refined = tai.estimation.OuterOptimizer(
+    outer_optimizer_refined = isl.estimation.OuterOptimizer(
         method='lm',
         iters=10,
     )
 
-    noisy_counts_experiment = tai.experiments.CountsExperiment(
+    noisy_counts_experiment = isl.experiments.CountsExperiment(
         seed=2021,
         config=config,
         name='Noisy Counts Experiment',
@@ -505,8 +505,8 @@ if config.experiment_options['noisy_counts_experiment']:
         outer_optimizers=[outer_optimizer_norefined, outer_optimizer_refined],
         # outer_optimizers=[outer_optimizer_norefined],
         utility_function=utility_function,
-        linkdata_generator=tai.factory.LinkDataGenerator(),
-        equilibrator=tai.equilibrium.LUE_Equilibrator(
+        linkdata_generator=isl.factory.LinkDataGenerator(),
+        equilibrator=isl.equilibrium.LUE_Equilibrator(
             max_iters=100,
             method='fw',
             iters_fw=100,
@@ -539,29 +539,29 @@ if config.experiment_options['sensor_coverage_experiment']:
     # OD level
     random_network.load_OD(Q=1e-1*random_network.Q)
 
-    utility_parameters = tai.estimation.Parameters(features_Y=['tt'],
+    utility_parameters = isl.estimation.Parameters(features_Y=['tt'],
                                                    features_Z=['c'],
                                                    true_values={'tt': -1, 'c': -2})
 
-    utility_function = tai.estimation.UtilityFunction(utility_parameters)
+    utility_function = isl.estimation.UtilityFunction(utility_parameters)
 
     n_sparse_features = 2  # 10 #20 #50
     sparse_features_labels = ['k' + str(i) for i in np.arange(0, n_sparse_features)]
 
     utility_function.add_sparse_features(Z=sparse_features_labels)
 
-    outer_optimizer_norefined = tai.estimation.OuterOptimizer(
+    outer_optimizer_norefined = isl.estimation.OuterOptimizer(
         method='ngd',
         iters=1,
         eta=1e-1
     )
 
-    outer_optimizer_refined = tai.estimation.OuterOptimizer(
+    outer_optimizer_refined = isl.estimation.OuterOptimizer(
         method='lm',
         iters=10,
     )
 
-    sensor_coverage_experiment = tai.experiments.CountsExperiment(
+    sensor_coverage_experiment = isl.experiments.CountsExperiment(
         seed=2018,
         config=config,
         name='Sensor Coverage Experiment',
@@ -569,9 +569,9 @@ if config.experiment_options['sensor_coverage_experiment']:
         outer_optimizers=[outer_optimizer_norefined, outer_optimizer_refined],
         # outer_optimizers=[outer_optimizer_norefined],
         utility_function=utility_function,
-        linkdata_generator=tai.factory.LinkDataGenerator(
+        linkdata_generator=isl.factory.LinkDataGenerator(
             noise_params={'mu_x': 0, 'sd_x': 0.03}),
-        equilibrator=tai.equilibrium.LUE_Equilibrator(
+        equilibrator=isl.equilibrium.LUE_Equilibrator(
             max_iters=100,
             method='fw',
             accuracy = 1e-10,
@@ -603,29 +603,29 @@ if config.experiment_options['noisy_od_experiment']:
     # OD level
     random_network.load_OD(Q=1e-1*random_network.Q)
 
-    utility_parameters = tai.estimation.Parameters(features_Y=['tt'],
+    utility_parameters = isl.estimation.Parameters(features_Y=['tt'],
                                                    features_Z=['c'],
                                                    true_values={'tt': -1, 'c': -2})
 
-    utility_function = tai.estimation.UtilityFunction(utility_parameters)
+    utility_function = isl.estimation.UtilityFunction(utility_parameters)
 
     n_sparse_features = 2  # 10 #20 #50
     sparse_features_labels = ['k' + str(i) for i in np.arange(0, n_sparse_features)]
 
     utility_function.add_sparse_features(Z=sparse_features_labels)
 
-    outer_optimizer_norefined = tai.estimation.OuterOptimizer(
+    outer_optimizer_norefined = isl.estimation.OuterOptimizer(
         method='ngd',
         iters=1,
         eta=1e-1
     )
 
-    outer_optimizer_refined = tai.estimation.OuterOptimizer(
+    outer_optimizer_refined = isl.estimation.OuterOptimizer(
         method='lm',
         iters=10,
     )
 
-    noisy_od_experiment = tai.experiments.ODExperiment(
+    noisy_od_experiment = isl.experiments.ODExperiment(
         seed=2021,
         config=config,
         name='Noisy OD Experiment',
@@ -633,9 +633,9 @@ if config.experiment_options['noisy_od_experiment']:
         outer_optimizers=[outer_optimizer_norefined, outer_optimizer_refined],
         # outer_optimizers=[outer_optimizer_norefined],
         utility_function=utility_function,
-        linkdata_generator=tai.factory.LinkDataGenerator(
+        linkdata_generator=isl.factory.LinkDataGenerator(
             noise_params={'mu_x': 0, 'sd_x': 0.03}),
-        equilibrator=tai.equilibrium.LUE_Equilibrator(
+        equilibrator=isl.equilibrium.LUE_Equilibrator(
             max_iters=40,
             method='fw',
             iters_fw=10,
@@ -665,29 +665,29 @@ if config.experiment_options['ill_scaled_od_experiment']:
     # OD level
     random_network.load_OD(Q=1e-1*random_network.Q)
 
-    utility_parameters = tai.estimation.Parameters(features_Y=['tt'],
+    utility_parameters = isl.estimation.Parameters(features_Y=['tt'],
                                                    features_Z=['c'],
                                                    true_values={'tt': -1, 'c': -2})
 
-    utility_function = tai.estimation.UtilityFunction(utility_parameters)
+    utility_function = isl.estimation.UtilityFunction(utility_parameters)
 
     n_sparse_features = 2  # 10 #20 #50
     sparse_features_labels = ['k' + str(i) for i in np.arange(0, n_sparse_features)]
 
     utility_function.add_sparse_features(Z=sparse_features_labels)
 
-    outer_optimizer_norefined = tai.estimation.OuterOptimizer(
+    outer_optimizer_norefined = isl.estimation.OuterOptimizer(
         method='ngd',
         iters=1,
         eta=1e-1
     )
 
-    outer_optimizer_refined = tai.estimation.OuterOptimizer(
+    outer_optimizer_refined = isl.estimation.OuterOptimizer(
         method='lm',
         iters=10,
     )
 
-    ill_scaled_od_experiment = tai.experiments.ODExperiment(
+    ill_scaled_od_experiment = isl.experiments.ODExperiment(
         seed=2021,
         config=config,
         name='Noisy OD Experiment',
@@ -695,9 +695,9 @@ if config.experiment_options['ill_scaled_od_experiment']:
         outer_optimizers=[outer_optimizer_norefined, outer_optimizer_refined],
         # outer_optimizers=[outer_optimizer_norefined],
         utility_function=utility_function,
-        linkdata_generator=tai.factory.LinkDataGenerator(
+        linkdata_generator=isl.factory.LinkDataGenerator(
             noise_params={'mu_x': 0, 'sd_x': 0.03}),
-        equilibrator=tai.equilibrium.LUE_Equilibrator(
+        equilibrator=isl.equilibrium.LUE_Equilibrator(
             max_iters=100,
             method='fw',
             iters_fw=100,
@@ -723,7 +723,7 @@ if config.experiment_options['ill_scaled_od_experiment']:
 # 6a) Summary with most relevant options, prediction error, initial parameters, etc
 # =============================================================================
 
-tai.writer.write_estimation_report(filename='summary_report'
+isl.writer.write_estimation_report(filename='summary_report'
                                    , config=config
                                    , decimals=3
                                    # , float_format = 2
@@ -749,7 +749,7 @@ for key, value in config.estimation_options.items():
 for key, value in config.gis_options.items():
     options_df = options_df.append({'group': 'gis', 'option': key, 'value': value}, ignore_index=True)
 
-tai.writer.write_csv_to_log_folder(df=options_df,
+isl.writer.write_csv_to_log_folder(df=options_df,
                                    filename='global_options'
                                    , log_file=config.log_file
                                    , float_format='%.1f'
@@ -760,25 +760,25 @@ tai.writer.write_csv_to_log_folder(df=options_df,
 # =============================================================================
 
 predicted_link_counts_over_iterations_df \
-    = tai.descriptive_statistics.get_predicted_link_counts_over_iterations_df(
+    = isl.descriptive_statistics.get_predicted_link_counts_over_iterations_df(
     results_norefined=results_norefined_bilevelopt
     , results_refined=results_refined_bilevelopt
     , network=small_networks[current_network])
 
 # print('\nSummary of model: \n', model_inference_norefined_table.to_string(index=False))
-tai.writer.write_csv_to_log_folder(df=predicted_link_counts_over_iterations_df,
+isl.writer.write_csv_to_log_folder(df=predicted_link_counts_over_iterations_df,
                                    filename='predicted_link_counts_over_iterations_df'
                                    , log_file=config.log_file
                                    , float_format='%.1f'
                                    )
 
 gap_predicted_link_counts_over_iterations_df \
-    = tai.descriptive_statistics.get_gap_predicted_link_counts_over_iterations_df(
+    = isl.descriptive_statistics.get_gap_predicted_link_counts_over_iterations_df(
     results_norefined=results_norefined_bilevelopt
     , results_refined=results_refined_bilevelopt
     , network=small_networks[current_network])
 
-tai.writer.write_csv_to_log_folder(df=gap_predicted_link_counts_over_iterations_df,
+isl.writer.write_csv_to_log_folder(df=gap_predicted_link_counts_over_iterations_df,
                                    filename='gap_predicted_link_counts_over_iterations_df'
                                    , log_file=config.log_file
                                    , float_format='%.1f'
@@ -786,13 +786,13 @@ tai.writer.write_csv_to_log_folder(df=gap_predicted_link_counts_over_iterations_
 
 # Travel times
 predicted_link_traveltime_over_iterations_df \
-    = tai.descriptive_statistics.get_predicted_traveltimes_over_iterations_df(
+    = isl.descriptive_statistics.get_predicted_traveltimes_over_iterations_df(
     results_norefined=results_norefined_bilevelopt
     , results_refined=results_refined_bilevelopt
     , network=small_networks[current_network])
 
 # print('\nSummary of model: \n', model_inference_norefined_table.to_string(index=False))
-tai.writer.write_csv_to_log_folder(df=predicted_link_traveltime_over_iterations_df,
+isl.writer.write_csv_to_log_folder(df=predicted_link_traveltime_over_iterations_df,
                                    filename='predicted_link_traveltimes_over_iterations_df'
                                    , log_file=config.log_file
                                    , float_format='%.2f'
@@ -804,24 +804,24 @@ tai.writer.write_csv_to_log_folder(df=predicted_link_traveltime_over_iterations_
 
 # Log file
 loss_and_estimates_over_iterations_df \
-    = tai.descriptive_statistics.get_loss_and_estimates_over_iterations(
+    = isl.descriptive_statistics.get_loss_and_estimates_over_iterations(
     results_norefined=results_norefined_bilevelopt
     , results_refined=results_refined_bilevelopt)
 
 # print('\nSummary of model: \n', model_inference_norefined_table.to_string(index=False))
-tai.writer.write_csv_to_log_folder(df=loss_and_estimates_over_iterations_df,
+isl.writer.write_csv_to_log_folder(df=loss_and_estimates_over_iterations_df,
                                    filename='loss_and_estimates_over_iterations_df'
                                    , log_file=config.log_file
                                    , float_format='%.3f'
                                    )
 
 gap_estimates_over_iterations_df \
-    = tai.descriptive_statistics.get_gap_estimates_over_iterations(
+    = isl.descriptive_statistics.get_gap_estimates_over_iterations(
     results_norefined=results_norefined_bilevelopt
     , results_refined=results_refined_bilevelopt
     , theta_true=theta_true[current_network])
 
-tai.writer.write_csv_to_log_folder(df=gap_estimates_over_iterations_df,
+isl.writer.write_csv_to_log_folder(df=gap_estimates_over_iterations_df,
                                    filename='gap_estimates_over_iterations_df'
                                    , log_file=config.log_file
                                    , float_format='%.3f'
@@ -837,7 +837,7 @@ parameter_inference_refined_table.insert(0, 'stage', 'refined')
 parameter_inference_table = parameter_inference_norefined_table.append(parameter_inference_refined_table)
 
 # print('\nSummary of logit parameters: \n', parameter_inference_norefined_table.to_string(index=False))
-tai.writer.write_csv_to_log_folder(df=parameter_inference_table, filename='parameter_inference_table'
+isl.writer.write_csv_to_log_folder(df=parameter_inference_table, filename='parameter_inference_table'
                                    , log_file=config.log_file)
 
 # F-test and model summary statistics
@@ -847,7 +847,7 @@ model_inference_refined_table.insert(0, 'stage', 'refined')
 model_inference_table = model_inference_norefined_table.append(model_inference_refined_table)
 
 # print('\nSummary of model: \n', model_inference_norefined_table.to_string(index=False))
-tai.writer.write_csv_to_log_folder(df=model_inference_table,
+isl.writer.write_csv_to_log_folder(df=model_inference_table,
                                    filename='model_inference_table'
                                    , log_file=config.log_file)
 

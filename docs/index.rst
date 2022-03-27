@@ -1,4 +1,4 @@
-Welcome to transportAI's documentation!
+Welcome to isuelogit's documentation!
 ======================================
 
 .. toctree::

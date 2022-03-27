@@ -12,7 +12,7 @@ np.random.seed(2021)
 #==============================================================================
 
 # Internal modules
-import transportAI as tai
+import isuelogit as isl
 
 # import isuelogit.modeller
 
@@ -48,11 +48,11 @@ import tracemalloc
 
 #Note: The strategy does not work with 'Eastern-Massachusetts' under an uncongested network. Do not why
 
-config = tai.config.Config(network_key = 'SiouxFalls')
-# config = tai.config.Config(network_key = 'Eastern-Massachusetts')
-# config = tai.config.Config(network_key = 'Berlin-Friedrichshain')
-# config = tai.config.Config(network_key = 'Berlin-Mitte-Center')
-# config = tai.config.Config(network_key = 'Barcelona')
+config = isl.config.Config(network_key = 'SiouxFalls')
+# config = isl.config.Config(network_key = 'Eastern-Massachusetts')
+# config = isl.config.Config(network_key = 'Berlin-Friedrichshain')
+# config = isl.config.Config(network_key = 'Berlin-Mitte-Center')
+# config = isl.config.Config(network_key = 'Barcelona')
 
 config.sim_options['prop_validation_sample'] = 0
 config.sim_options['regularization'] = False
@@ -143,7 +143,7 @@ config.sim_options['R_labels'] = ['k' + str(i) for i in np.arange(0, config.sim_
 # config.theta_0['tt'] = 0
 
 # Key internal objects for analysis and visualization
-artist = tai.visualization.Artist(folder_plots = config.plots_options['folder_plots'], dim_subplots=config.plots_options['dim_subplots'])
+artist = isl.visualization.Artist(folder_plots = config.plots_options['folder_plots'], dim_subplots=config.plots_options['dim_subplots'])
 
 
 
@@ -176,7 +176,7 @@ current_network = config.sim_options['current_network']
 # FROM TNTP REPO
 if config.sim_options['current_network'] in config.tntp_networks:
 
-    tntp_network = tai.modeller.build_tntp_network(folderpath=config.paths['folder_tntp_networks'], subfoldername=config.sim_options['current_network'], options=config.sim_options.copy(), config = config)
+    tntp_network = isl.modeller.build_tntp_network(folderpath=config.paths['folder_tntp_networks'], subfoldername=config.sim_options['current_network'], options=config.sim_options.copy(), config = config)
 
     N['train'].update({tntp_network.key: tntp_network})
 
@@ -189,7 +189,7 @@ if config.sim_options['current_network'] in config.tntp_networks:
 
     N_tntp = N['train'][config.sim_options['current_network']]
 
-    N_tntp = tai.modeller \
+    N_tntp = isl.modeller \
         .setup_tntp_network_matrices\
         (
             network=N_tntp
@@ -270,7 +270,7 @@ networks_table = {'nodes':[],'links':[], 'paths': [], 'ods': []}
 
 # Network description
 for i in N['train'].keys():
-    networks_table['ods'].append(len(tai.networks.denseQ(N['train'][i].Q, remove_zeros=True)))
+    networks_table['ods'].append(len(isl.networks.denseQ(N['train'][i].Q, remove_zeros=True)))
     networks_table['nodes'].append(N['train'][i].A.shape[0])
     networks_table['links'].append(len(N['train'][i].links))
     networks_table['paths'].append(len(N['train'][i].paths))
@@ -337,8 +337,8 @@ if config.sim_options['simulated_counts'] is True:
 
 
         # Generate synthetic traffic counts
-        xc_simulated, xc_withdraw = tai.estimation.generate_link_counts_equilibrium(
-            Nt=N['train'][current_network]  # tai.modeller.clone_network(N['train'][i], label = 'clone')
+        xc_simulated, xc_withdraw = isl.estimation.generate_link_counts_equilibrium(
+            Nt=N['train'][current_network]  # isl.modeller.clone_network(N['train'][i], label = 'clone')
             , theta = theta_true[current_network]
             , k_Y = k_Y, k_Z = k_Z_simulation
             , eq_params = {'iters': config.sim_options['max_sue_iters'], 'accuracy_eq': config.estimation_options['accuracy_eq'], 'method': 'line_search', 'iters_ls': 100}
@@ -371,7 +371,7 @@ if config.sim_options['simulated_counts'] is True:
 
 
         # Keep zeros in diagonal of OD matrix for visualization purposes
-        od_df['r'+str(replicate)] = tai.networks.denseQ(Q=N['train'][current_network].Q_noisy, remove_zeros=False).flatten()
+        od_df['r'+str(replicate)] = isl.networks.denseQ(Q=N['train'][current_network].Q_noisy, remove_zeros=False).flatten()
         links_flows_df['r'+str(replicate)] =  xc_simulated.values()
         path_flows_df['r'+str(replicate)] = N['train'][current_network].path_flows
 
@@ -402,7 +402,7 @@ if config.sim_options['simulated_counts'] is True:
 x_bar = np.array(list(xc.values()))[:, np.newaxis]
 
 # If no path are traversing some link observations, they are set to nan values
-xc = tai.estimation.masked_link_counts_after_path_coverage(N['train'][current_network], xct = xc)
+xc = isl.estimation.masked_link_counts_after_path_coverage(N['train'][current_network], xct = xc)
 
 N['train'][current_network].reset_link_counts()
 N['train'][current_network].load_traffic_counts(counts=xc)
@@ -443,7 +443,7 @@ if config.sim_options['simulated_counts'] is True:
 # =============================================================================
 # 3c) DESCRIPTIVE STATISTICS
 # =============================================================================
-summary_table_links_df = tai.descriptive_statistics.summary_table_links(links = N['train'][current_network].get_observed_links()
+summary_table_links_df = isl.descriptive_statistics.summary_table_links(links = N['train'][current_network].get_observed_links()
                                                                         , Z_attrs = ['wt', 'tt', 'c']
                                                                         # , Z_labels = ['incidents', 'income [1K USD]', 'high_inc', 'speed_avg [mi/hr]', 'tt_sd', 'tt_sd_adj', 'tt_var','stops', 'ints']
                                                                         )
@@ -453,5 +453,5 @@ with pd.option_context('display.float_format', '{:0.1f}'.format):
 
 
 # Write log file
-tai.writer.write_csv_to_log_folder(df = summary_table_links_df, filename = 'summary_table_links_df'
+isl.writer.write_csv_to_log_folder(df = summary_table_links_df, filename = 'summary_table_links_df'
                           , log_file = config.log_file)

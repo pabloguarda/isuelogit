@@ -1,21 +1,21 @@
 ===========
-transportAI
+isuelogit
 ===========
 
 
-.. image:: https://img.shields.io/pypi/v/transportAI.svg
-        :target: https://pypi.python.org/pypi/transportAI
+.. image:: https://img.shields.io/pypi/v/isuelogit.svg
+        :target: https://pypi.python.org/pypi/isuelogit
 
-.. image:: https://img.shields.io/travis/pabloguarda/transportAI.svg
-        :target: https://travis-ci.com/pabloguarda/transportAI
+.. image:: https://img.shields.io/travis/pabloguarda/isuelogit.svg
+        :target: https://travis-ci.com/pabloguarda/isuelogit
 
-.. image:: https://readthedocs.org/projects/transportAI/badge/?version=latest
-        :target: https://transportAI.readthedocs.io/en/latest/?badge=latest
+.. image:: https://readthedocs.org/projects/isuelogit/badge/?version=latest
+        :target: https://isuelogit.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
 
-.. image:: https://pyup.io/repos/github/pabloguarda/transportAI/shield.svg
-     :target: https://pyup.io/repos/github/pabloguarda/transportAI/
+.. image:: https://pyup.io/repos/github/pabloguarda/isuelogit/shield.svg
+     :target: https://pyup.io/repos/github/pabloguarda/isuelogit/
      :alt: Updates
 
 
@@ -24,7 +24,7 @@ Modelling transportation systems with aAI
 
 
 * Free software: MIT license
-* Documentation: https://transportAI.readthedocs.io.
+* Documentation: https://isuelogit.readthedocs.io.
 
 
 Features

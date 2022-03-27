@@ -25,12 +25,12 @@ subfolder = "/beijing-subway/"
 folder_path = os.getcwd() + "/" + subdirectory + subfolder
 
 # raw_df = tt.reader.read_beijing_data(folder_path=folder_path, filenames = ['7.csv'])
-raw_df = transportAI.extra.beijing.read_beijing_data(folder_path=folder_path)
+raw_df = isuelogit.extra.beijing.read_beijing_data(folder_path=folder_path)
 
 # =============================================================================
 # Codebook
 # =============================================================================
-df_dict = transportAI.extra.beijing.get_dictionary_beijing_data()
+df_dict = isuelogit.extra.beijing.get_dictionary_beijing_data()
 
 # =============================================================================
 # Subset of data
@@ -82,15 +82,15 @@ df = df.iloc[random.sample(range(1, len(df)), 10000)]
 # Gis data from Beijing
 # =============================================================================
 
-import transportAI as tt
+import isuelogit as tt
 
 # r = tt.beijing.request_gis_data(url = "http://map.amap.com/service/subway?_1469083453978&srhdata=1100_drw_beijing.json")
-r = transportAI.extra.beijing.request_gis_data(url ="") # Go and read json local file
+r = isuelogit.extra.beijing.request_gis_data(url ="") # Go and read json local file
 
-lines_info ,stations_info = transportAI.extra.beijing.get_lines_stations_info(r.text)
+lines_info ,stations_info = isuelogit.extra.beijing.get_lines_stations_info(r.text)
 # print(lines_info,'\n',stations_info)
 # 建立邻接表
-neighbor_info = transportAI.extra.beijing.get_neighbor_info(lines_info)
+neighbor_info = isuelogit.extra.beijing.get_neighbor_info(lines_info)
 print(neighbor_info)
 
 # # Very slow
@@ -102,8 +102,8 @@ station_names = df['ostationname'].unique()
 ostation = station_names[0]
 dstation = station_names[1]
 
-transportAI.extra.beijing.get_distance(stations_info, ostation, dstation)
-final_route = transportAI.extra.beijing.get_path_BFS(neighbor_info, lines_info, ostation, dstation)
+isuelogit.extra.beijing.get_distance(stations_info, ostation, dstation)
+final_route = isuelogit.extra.beijing.get_path_BFS(neighbor_info, lines_info, ostation, dstation)
 
 # print('共有{}种路径。'.format(len(paths)))
 # for item in paths:
@@ -112,7 +112,7 @@ final_route = transportAI.extra.beijing.get_path_BFS(neighbor_info, lines_info, 
 
 # 第二种算法：没有启发函数的简单宽度优先
 
-paths = transportAI.extra.beijing.get_path_Astar(lines_info, neighbor_info, stations_info, '回龙观', '西二旗')
+paths = isuelogit.extra.beijing.get_path_Astar(lines_info, neighbor_info, stations_info, '回龙观', '西二旗')
 if paths:
     print("路径总计{}d站。".format(len(paths) - 1))
     print("-".join(paths))
@@ -142,7 +142,7 @@ df = pd.merge(df,stations_df, how = 'left', left_on = 'dstationname', right_on =
 # x1,y1, x2, y2 = df['ostation_lat'].iloc[0],df['ostation_lon'].iloc[0],df['dstation_lat'].iloc[0],df['dstation_lon'].iloc[0]
 # tt.beijing.get_distance_metres(x1,y1, x2, y2)
 
-df['aerial_distance'] = [transportAI.extra.beijing.get_distance_metres(*row) for row in df[['ostation_lat', 'ostation_lon', 'dstation_lat', 'dstation_lon']].values]
+df['aerial_distance'] = [isuelogit.extra.beijing.get_distance_metres(*row) for row in df[['ostation_lat', 'ostation_lon', 'dstation_lat', 'dstation_lon']].values]
 
 #Sometimes the aerial distance is greater than distance
 # np.mean(df['aerial_distance'])

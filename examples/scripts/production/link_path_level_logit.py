@@ -2,7 +2,7 @@ import os
 import numpy as np
 
 # Internal modules
-import transportAI as tai
+import isuelogit as isl
 
 # =============================================================================
 # 4) LEARNING TRAVELLERS' PREFERENCES FROM LINK-LEVEL DATA
@@ -61,11 +61,11 @@ def multiday_estimation_analyses(end_params, N, n_days_seq, remove_zeros_Q, thet
         # features = list(N[i].Z_dict.keys())  #
 
         # Starting values
-        q0[i] = tai.networks.denseQ(Q=N[i].Q, remove_zeros=remove_zeros_Q)
+        q0[i] = isl.networks.denseQ(Q=N[i].Q, remove_zeros=remove_zeros_Q)
         theta0[i] = {k:theta_true[i][k] for k in [*k_Y,*k_Z]}
 
         if end_params['q']:
-            q0[i] = np.zeros(tai.networks.denseQ(Q=N[i].Q, remove_zeros=remove_zeros_Q).shape)
+            q0[i] = np.zeros(isl.networks.denseQ(Q=N[i].Q, remove_zeros=remove_zeros_Q).shape)
 
         if end_params['theta']:
             for j in [*k_Y,*k_Z]:
@@ -90,7 +90,7 @@ def multiday_estimation_analyses(end_params, N, n_days_seq, remove_zeros_Q, thet
             # No perturbance
             start_time['no_disturbance_Q'] = time.time()
 
-            results_multidays_temp['no_disturbance_Q'], N_multiday_old = tai.estimation.multiday_estimation(N = {i:copy.deepcopy(N[i])}, N_multiday_old = {i:copy.deepcopy(N_multiday_old[i])}
+            results_multidays_temp['no_disturbance_Q'], N_multiday_old = isl.estimation.multiday_estimation(N = {i:copy.deepcopy(N[i])}, N_multiday_old = {i:copy.deepcopy(N_multiday_old[i])}
                                                                                                             , end_params = end_params, n_days = n_day
                                                                                                             , k_Y = k_Y, k_Z = k_Z
                                                                                                             , theta0 = theta0[i]
@@ -109,7 +109,7 @@ def multiday_estimation_analyses(end_params, N, n_days_seq, remove_zeros_Q, thet
             # # Perturbance
             # start_time['disturbance_Q'] = time.time()
             #
-            # results_multidays_temp['disturbance_Q'] = tai.logit.multiday_estimation(N={i: copy.deepcopy(N[i])}
+            # results_multidays_temp['disturbance_Q'] = isl.logit.multiday_estimation(N={i: copy.deepcopy(N[i])}
             #                                                                    , end_params=end_params, n_days=n_day
             #                                                                    , features_Y=features_Y, features=features
             #                                                                    , theta0=theta0
@@ -171,7 +171,7 @@ nx.paths
 
 # results_multidays_analyses['no_disturbance_Q']['end_theta']['vot']
 #
-# np.linalg.norm(results_multidays_analyses['no_disturbance_Q']['end_q']['q']['SiouxFalls'][1]-{i: tai.network.denseQ(Q= N_i.Q, remove_zeros=remove_zeros_Q) for i,N_i in N['train'].items()}['SiouxFalls'],2)
+# np.linalg.norm(results_multidays_analyses['no_disturbance_Q']['end_q']['q']['SiouxFalls'][1]-{i: isl.network.denseQ(Q= N_i.Q, remove_zeros=remove_zeros_Q) for i,N_i in N['train'].items()}['SiouxFalls'],2)
 
 
 # #Experimental
@@ -181,7 +181,7 @@ nx.paths
 # theta_true['N4']
 # results_multidays_analyses['no_disturbance_Q']['end_theta']['vot']['N4']
 # results_multidays_analyses['no_disturbance_Q']['end_q']['q']['N5']
-# {i: tai.network.denseQ(Q= N_i.Q, remove_zeros=remove_zeros_Q) for i,N_i in N['train'].items()}['N5']
+# {i: isl.network.denseQ(Q= N_i.Q, remove_zeros=remove_zeros_Q) for i,N_i in N['train'].items()}['N5']
 
 # N['train']['N5'].A
 # results_multidays_analyses['no_disturbance_Q']['end_theta']['theta']['N2'][40]
@@ -191,7 +191,7 @@ nx.paths
 # print(results_multidays['train']['N4'][n_days_seq[-1]])
 # print(['N4'])
 # results_multidays['q']['N1'][n_days]
-# {i: tai.network.denseQ(Q=N_i.Q, remove_zeros=remove_zeros_Q) for i, N_i in N['train'].items()}['N5']
+# {i: isl.network.denseQ(Q=N_i.Q, remove_zeros=remove_zeros_Q) for i, N_i in N['train'].items()}['N5']
 
 # i) No disturbance in Q
 
@@ -206,7 +206,7 @@ plot.vot_multidays_consistency(theta_true = theta_true
                                )
 
 # if end_params['q']:
-plot.q_multidays_consistency(q_true = {i: tai.networks.denseQ(Q= N_i.Q, remove_zeros=remove_zeros_Q) for i, N_i in N['train'].items()}
+plot.q_multidays_consistency(q_true = {i: isl.networks.denseQ(Q= N_i.Q, remove_zeros=remove_zeros_Q) for i, N_i in N['train'].items()}
                              , labels = {'end_theta_q':r"Endogenous $\theta$ and $Q$" , 'end_q': r"Endogenous $Q$"}
                              , q_estimates = {i:results_multidays_analyses['no_disturbance_Q'][i]['q'] for i in ['end_theta_q','end_q']}
                              , N_labels = {i:N_i.key for i, N_i in N['train'].items()}
@@ -222,7 +222,7 @@ results_multidays_analyses['no_disturbance_Q']['end_q']['q']
 #                              , N_labels = {i:N_i.label for i, N_i in N['train'].items()}
 #                              , filename = 'computational_times_multidays_links'
 #                              , colors = ['b','g', 'r']
-#                              , subfoldername = 'link-level'
+#                              , network_name = 'link-level'
 #                              )
 
 # ii) Applying disturbance q
@@ -248,7 +248,7 @@ plot.vot_multidays_consistency(theta_true = theta_true
                                , colors = ['b','r']
                                , subfolder = 'link-level'
                                )
-plot.q_multidays_consistency(q_true = {i: tai.networks.denseQ(Q= N_i.Q, remove_zeros=remove_zeros_Q) for i, N_i in N['train'].items()}
+plot.q_multidays_consistency(q_true = {i: isl.networks.denseQ(Q= N_i.Q, remove_zeros=remove_zeros_Q) for i, N_i in N['train'].items()}
                              , labels = {'no_disturbance_Q':r"Endogenous $\theta$ and $Q$ ($\sigma^2_Q = 0$)", 'disturbance_Q':r"Endogenous $\theta$ and $Q$ ($\sigma^2_Q > 0$)" }
                              , q_estimates = {i:results_multidays_analyses[i]['end_theta_q']['q'] for i in ['no_disturbance_Q', 'disturbance_Q']}
                              , N_labels = {i:N_i.key for i, N_i in N['train'].items()}
@@ -266,7 +266,7 @@ plot.vot_multidays_consistency(theta_true = theta_true
                                , colors = ['b','r']
                                , subfolder = 'link-level'
                                )
-plot.q_multidays_consistency(q_true = {i: tai.networks.denseQ(Q= N_i.Q, remove_zeros=remove_zeros_Q) for i, N_i in N['train'].items()}
+plot.q_multidays_consistency(q_true = {i: isl.networks.denseQ(Q= N_i.Q, remove_zeros=remove_zeros_Q) for i, N_i in N['train'].items()}
                              , labels = {'no_disturbance_Q':r"Endogenous $Q$ ($\sigma^2_Q = 0$)", 'disturbance_Q':r"Endogenous $Q$ ($\sigma^2_Q > 0$)" }
                              , q_estimates = {i:results_multidays_analyses[i]['end_q']['q'] for i in ['no_disturbance_Q', 'disturbance_Q']}
                              , N_labels = {i:N_i.key for i, N_i in N['train'].items()}
@@ -291,7 +291,7 @@ plot.q_multidays_consistency(q_true = {i: tai.networks.denseQ(Q= N_i.Q, remove_z
 #                              , N_labels = {i:N_i.label for i, N_i in N['train'].items()}
 #                              , filename = 'computational_times_disturbance_q_multidays_links'
 #                              , colors = ['b','g', 'r']
-#                              , subfoldername = 'link-level'
+#                              , network_name = 'link-level'
 #                              )
 
 # np.random.lognormal(0,np.log(10))
@@ -349,15 +349,15 @@ for N_i in N['train'].keys():
                 if i < len(N['train'][N_i].x):
                     idx_links = random.sample(range(0, len(N['train'][N_i].x)), i)
 
-                theta_estimate = tai.estimation.solve_link_level_model(end_params={'theta': True, 'q': False},
+                theta_estimate = isl.estimation.solve_link_level_model(end_params={'theta': True, 'q': False},
                                                                        Mt={1: N['train'][N_i].M}, Ct={
-                        i: tai.estimation.choice_set_matrix_from_M(N['train'][N_i].M)}, Dt={1: N['train'][N_i].D},
+                        i: isl.estimation.choice_set_matrix_from_M(N['train'][N_i].M)}, Dt={1: N['train'][N_i].D},
                                                                        k_Y=k_Y, Yt={1: N['train'][N_i].Y_dict}, k_Z=k_Z,
                                                                        Zt={1: N['train'][N_i].Z_dict},
                                                                        xt={1: N['train'][N_i].x},
                                                                        idx_links={1: idx_links},
                                                                        scale={'mean': False, 'std': False},
-                                                                       q0=tai.networks.denseQ(Q=N['train'][N_i].Q,
+                                                                       q0=isl.networks.denseQ(Q=N['train'][N_i].Q,
                                                                                               remove_zeros=remove_zeros_Q),
                                                                        theta0=dict.fromkeys([*k_Y, *k_Z], 0),
                                                                        lambda_hp=0)
@@ -408,7 +408,7 @@ plot.consistency_nonlinear_link_logit_estimation(filename= 'vot_vs_links_trainin
 #                                      , theta_true= theta_true
 #                                      , N_labels = {i:N['train'][i].label for i in N['train'].keys()}
 #                                      , n_bootstraps = n_bootstraps
-#                                      , subfoldername= "link-level/training"
+#                                      , network_name= "link-level/training"
 #                                      )
 #
 # #Travel time
@@ -419,7 +419,7 @@ plot.consistency_nonlinear_link_logit_estimation(filename= 'vot_vs_links_trainin
 #                                      , theta_true= theta_true
 #                                      , N_labels = {i:N['train'][i].label for i in N['train'].keys()}
 #                                      , n_bootstraps = n_bootstraps
-#                                      , subfoldername= "link-level/training"
+#                                      , network_name= "link-level/training"
 #                                      )
 
 # =============================================================================
@@ -446,7 +446,7 @@ x_N = {'train': {}, 'validation': {}}
 #Create validation networks
 
 N['validation'] = \
-    tai.networks.clone_network(N=N['train'], label='Validation'
+    isl.networks.clone_network(N=N['train'], label='Validation'
                                , randomness={'Q': True, 'BPR': False, 'Z': False}
                                , Z_attrs_classes=None, bpr_classes=None)
 
@@ -456,7 +456,7 @@ valid_network = None
 #Compute SUE in clone networks
 while valid_network is None:
     try:
-        results_sue['validation'] = {i: tai.equilibrium.sue_logit_fisk(q = tai.networks.denseQ(Q = N['validation'][i].Q, remove_zeros = remove_zeros_Q)
+        results_sue['validation'] = {i: isl.equilibrium.sue_logit_fisk(q = isl.networks.denseQ(Q = N['validation'][i].Q, remove_zeros = remove_zeros_Q)
                                                                        , M = N['validation'][i].M
                                                                        , D = N['validation'][i].D
                                                                        , links = N['validation'][i].links_dict
@@ -473,7 +473,7 @@ while valid_network is None:
         for i in N['validation'].keys():
             exceptions['SUE']['validation'][i] += 1
 
-        N['validation'] = tai.networks.clone_network(N=N['train'], label='Validation'
+        N['validation'] = isl.networks.clone_network(N=N['train'], label='Validation'
                                                      , R_labels=R_labels
                                                      , randomness={'Q': True, 'BPR': False, 'Z': False}
                                                      , Z_attrs_classes=None, bpr_classes=None)
@@ -506,11 +506,11 @@ for i in N['train'].keys():
     errors_logit['validation'][i] = {}
 
     for lambda_i in lambda_vals:
-        theta_estimates['train'][i][lambda_i] = tai.estimation.solve_link_level_model(
+        theta_estimates['train'][i][lambda_i] = isl.estimation.solve_link_level_model(
             Mt= {i:N['train'][i].M}
-            , Ct={i: tai.estimation.choice_set_matrix_from_M(N['train'][i].M)}
+            , Ct={i: isl.estimation.choice_set_matrix_from_M(N['train'][i].M)}
             , Dt= {i:N['train'][i].D}
-            , q0= {i:tai.networks.denseQ(Q=N['train'][i].Q, remove_zeros=True)}
+            , q0= {i:isl.networks.denseQ(Q=N['train'][i].Q, remove_zeros=True)}
             , k_Y = ['tt'], k_Z= list(N['train'][i].Z_dict.keys())
             , Yt= {i:N['train'][i].Y_dict}
             , Zt= {i:N['train'][i].Z_dict}
@@ -527,32 +527,32 @@ for i in N['train'].keys():
         else:
             vot_estimates['train'][i][lambda_i] = np.nan
 
-        errors_logit['train'][i][lambda_i] = tai.estimation.loss_link_level_model(
+        errors_logit['train'][i][lambda_i] = isl.estimation.loss_link_level_model(
             theta=np.array(list(theta_estimates['train'][i][lambda_i].values()))
             , lambda_hp=0
             , M= {i:N['train'][i].M}
-            , C={i: tai.estimation.choice_set_matrix_from_M(N['train'][i].M)}
+            , C={i: isl.estimation.choice_set_matrix_from_M(N['train'][i].M)}
             , D= {i:N['train'][i].D}
-            , Y= {i:(tai.estimation.get_matrix_from_dict_attrs_values({k_y: N['train'][i].Y_dict[k_y] for k_y in ['tt']}).T @ N['train'][i].D).T}
-            , Z= {i:(tai.estimation.get_matrix_from_dict_attrs_values({k_y: N['train'][i].Z_dict[k_y] for k_y in list(N['train'][i].Z_dict.keys())}).T @ N['train'][i].D).T}
-            , q= {i:tai.networks.denseQ(Q=N['train'][i].Q, remove_zeros=True)}
+            , Y= {i:(isl.estimation.get_matrix_from_dict_attrs_values({k_y: N['train'][i].Y_dict[k_y] for k_y in ['tt']}).T @ N['train'][i].D).T}
+            , Z= {i:(isl.estimation.get_matrix_from_dict_attrs_values({k_y: N['train'][i].Z_dict[k_y] for k_y in list(N['train'][i].Z_dict.keys())}).T @ N['train'][i].D).T}
+            , q= {i:isl.networks.denseQ(Q=N['train'][i].Q, remove_zeros=True)}
             , x= {i:N['train'][i].x}
             , idx_links={i:train_idx_links}
             , norm_o=2, norm_r=1)
 
 
-        errors_logit['validation'][i][lambda_i] = tai.estimation.loss_link_level_model(
+        errors_logit['validation'][i][lambda_i] = isl.estimation.loss_link_level_model(
             theta = np.array(list(theta_estimates['train'][i][lambda_i].values()))
             , lambda_hp= 0
             , M = {i:N['validation'][i].M}
-            , C= {i: tai.estimation.choice_set_matrix_from_M(N['validation'][i].M)}
+            , C= {i: isl.estimation.choice_set_matrix_from_M(N['validation'][i].M)}
             , D = {i:N['validation'][i].D}
-            , Y= {i:(tai.estimation.get_matrix_from_dict_attrs_values(
+            , Y= {i:(isl.estimation.get_matrix_from_dict_attrs_values(
                 {k_y: N['validation'][i].Y_dict[k_y] for k_y in ['tt']}).T @ N['validation'][i].D).T}
-            , Z= {i:(tai.estimation.get_matrix_from_dict_attrs_values(
+            , Z= {i:(isl.estimation.get_matrix_from_dict_attrs_values(
                 {k_y: N['validation'][i].Z_dict[k_y] for k_y in list(N['validation'][i].Z_dict.keys())}).T @
                      N['validation'][i].D).T}
-            , q = {i:tai.networks.denseQ(Q=N['validation'][i].Q, remove_zeros=True)}
+            , q = {i:isl.networks.denseQ(Q=N['validation'][i].Q, remove_zeros=True)}
             , x = {i:N['validation'][i].x}
             , idx_links = {i:validation_idx_links}
             , norm_o=2, norm_r=1)
@@ -604,7 +604,7 @@ plot.regularization_joint_consistency(errors = errors_logit #errors_logit_copy
 # VOT estimates versus lambda
 
 # Regularization path
-# self = tai.Plot(folder_plots = folder_plots, dim_subplots=dim_subplots)
+# self = isl.Plot(folder_plots = folder_plots, dim_subplots=dim_subplots)
 plot.vot_regularization_path(theta_true = theta_true
                              , errors = errors_logit['validation']
                              , lambdas = lambdas_valid['validation']
@@ -644,8 +644,8 @@ for i, N_i in N['validation'].items():
     errors_SUE_logit['train'][i] = {}
     errors_SUE_logit['validation'][i] = {}
     for j in errors_logit['validation'][i].keys():
-        errors_SUE_logit['train'][i][j] = tai.estimation.loss_SUE(o = 2, x_obs = N['train'][i].x
-                                                                  , q = tai.networks.denseQ(Q = N['train'][i].Q, remove_zeros = remove_zeros_Q)
+        errors_SUE_logit['train'][i][j] = isl.estimation.loss_SUE(o = 2, x_obs = N['train'][i].x
+                                                                  , q = isl.networks.denseQ(Q = N['train'][i].Q, remove_zeros = remove_zeros_Q)
                                                                   , M = N['train'][i].M, D = N['train'][i].D
                                                                   , links = N['train'][i].links_dict
                                                                   , paths = N['train'][i].paths
@@ -653,8 +653,8 @@ for i, N_i in N['validation'].items():
                                                                   , k_Z = []
                                                                   , theta = theta_estimates['train'][i][j]
                                                                   , cp_solver = 'ECOS')
-        errors_SUE_logit['validation'][i][j] = tai.estimation.loss_SUE(o = 2, x_obs = N['validation'][i].x
-                                                                       , q = tai.networks.denseQ(Q = N['validation'][i].Q, remove_zeros = remove_zeros_Q)
+        errors_SUE_logit['validation'][i][j] = isl.estimation.loss_SUE(o = 2, x_obs = N['validation'][i].x
+                                                                       , q = isl.networks.denseQ(Q = N['validation'][i].Q, remove_zeros = remove_zeros_Q)
                                                                        , M = N['validation'][i].M, D = N['validation'][i].D
                                                                        , links = N['validation'][i].links_dict
                                                                        , paths = N['validation'][i].paths
@@ -724,7 +724,7 @@ for i in N['validation'].keys():
 
     for j in range(0,n_samples):
 
-        N['test'][i][j] = tai.networks.clone_network(N={i: N['train'][i]}, label='Test'
+        N['test'][i][j] = isl.networks.clone_network(N={i: N['train'][i]}, label='Test'
                                                      , R_labels=R_labels
                                                      , randomness={'Q': True, 'BPR': False, 'Z': False}
                                                      , q_range=(2, 10), remove_zeros_Q=remove_zeros_Q
@@ -736,8 +736,8 @@ for i in N['validation'].keys():
         while valid_network is None:
             try:
 
-                results_sue['test'] = {i: tai.equilibrium.sue_logit_fisk(
-                    q=tai.networks.denseQ(Q=N['test'][i][j].Q, remove_zeros=remove_zeros_Q)
+                results_sue['test'] = {i: isl.equilibrium.sue_logit_fisk(
+                    q=isl.networks.denseQ(Q=N['test'][i][j].Q, remove_zeros=remove_zeros_Q)
                     , M=N['test'][i][j].M
                     , D=N['test'][i][j].D
                     , links=N['test'][i][j].links_dict
@@ -751,7 +751,7 @@ for i in N['validation'].keys():
 
 
             except:
-                N['test'][i][j] = tai.networks.clone_network(N={i: N['train'][i]}, label='Test'
+                N['test'][i][j] = isl.networks.clone_network(N={i: N['train'][i]}, label='Test'
                                                              , R_labels=R_labels
                                                              , randomness={'Q': True, 'BPR': False, 'Z': False}).get(i)
             else:
@@ -763,37 +763,37 @@ for i in N['validation'].keys():
                     N['test'][i][j].f_dict = results_sue['test'][i]['f']
 
 
-        test_error['noreg'][i][j] = np.round(np.sqrt(tai.estimation.loss_link_level_model(
+        test_error['noreg'][i][j] = np.round(np.sqrt(isl.estimation.loss_link_level_model(
             theta=np.array(list(validation_thetas['noreg'][i].values()))
             , lambda_hp=0
             , M= {i:N['test'][i][j].M}
-            , C={i: tai.estimation.choice_set_matrix_from_M(N['test'][i].M)}
+            , C={i: isl.estimation.choice_set_matrix_from_M(N['test'][i].M)}
             , D= {i:N['test'][i][j].D}
-            , Y= {i:(tai.estimation.get_matrix_from_dict_attrs_values(
+            , Y= {i:(isl.estimation.get_matrix_from_dict_attrs_values(
                 {k_y: N['test'][i][j].Y_dict[k_y] for k_y in ['tt']}).T @ N['test'][i][j].D).T}
-            , Z= {i:(tai.estimation.get_matrix_from_dict_attrs_values(
+            , Z= {i:(isl.estimation.get_matrix_from_dict_attrs_values(
                 {k_z: N['test'][i][j].Z_dict[k_z] for k_z in
                  list(N['test'][i][j].Z_dict.keys())}).T @
                      N['test'][i][j].D).T}
-            , q= {i:tai.networks.denseQ(Q=N['test'][i][j].Q, remove_zeros=True)}
+            , q= {i:isl.networks.denseQ(Q=N['test'][i][j].Q, remove_zeros=True)}
             , x= {i:N['test'][i][j].x}
             , idx_links= {i:range(0, len(N['test'][i][j].x))}
             , norm_o=2, norm_r=1)), 4)
 
         test_error['reg'][i][j] \
             = np.round(np.sqrt(
-            tai.estimation.loss_link_level_model(
+            isl.estimation.loss_link_level_model(
                 theta=np.array(list(validation_thetas['reg'][i].values()))
                 , M = {i:N['test'][i][j].M}
-                , C= {i: tai.estimation.choice_set_matrix_from_M(N['test'][i].M)}
+                , C= {i: isl.estimation.choice_set_matrix_from_M(N['test'][i].M)}
                 , D = {i:N['test'][i][j].D}
-                , Y= {i:(tai.estimation.get_matrix_from_dict_attrs_values(
+                , Y= {i:(isl.estimation.get_matrix_from_dict_attrs_values(
                     {k_y: N['test'][i][j].Y_dict[k_y] for k_y in ['tt']}).T @ N['test'][i][j].D).T}
-                , Z= {i:(tai.estimation.get_matrix_from_dict_attrs_values(
+                , Z= {i:(isl.estimation.get_matrix_from_dict_attrs_values(
                     {k_z: N['test'][i][j].Z_dict[k_z] for k_z in
                      list(N['test'][i][j].Z_dict.keys())}).T @
                          N['test'][i][j].D).T}
-                , q = {i:tai.networks.denseQ(Q=N['test'][i][j].Q, remove_zeros=True)}
+                , q = {i:isl.networks.denseQ(Q=N['test'][i][j].Q, remove_zeros=True)}
                 , x = {i:N['test'][i][j].x}
                 , idx_links= {i:range(0, len(N['test'][i][j].x))}
                 , lambda_hp=0
@@ -802,7 +802,7 @@ for i in N['validation'].keys():
 
 test_error_plot = {}
 
-# self = tai.Plot(folder_plots = folder_plots, dim_subplots=dim_subplots)
+# self = isl.Plot(folder_plots = folder_plots, dim_subplots=dim_subplots)
 
 for i in N['test'].keys():
     test_error_plot[i] = {}
@@ -823,7 +823,7 @@ plot.regularization_error_nonlinear_link_logit_estimation(filename= 'regularizat
                                                           )
 
 # Only work if all thetas are negative
-#results_sue['test-estimated'] = {i: tai.equilibrium.sue_logit(q=tai.denseQ(Q=N_i.Q, remove_zeros=remove_zeros_Q)
+#results_sue['test-estimated'] = {i: isl.equilibrium.sue_logit(q=isl.denseQ(Q=N_i.Q, remove_zeros=remove_zeros_Q)
 #                                                     , M=N_i.M
 #                                                     , D=N_i.D
 #                                                     , paths=N_i.paths
@@ -853,7 +853,7 @@ plot.regularization_error_nonlinear_link_logit_estimation(filename= 'regularizat
 # i = 'N1'
 #Likelihood function
 likelihood_logit = {}
-likelihood_logit['train'] = {i: tai.estimation.likelihood_path_level_logit(f = N['train'][i].f
+likelihood_logit['train'] = {i: isl.estimation.likelihood_path_level_logit(f = N['train'][i].f
                                                                            , M = N['train'][i].M
                                                                            , D = N['train'][i].D
                                                                            , k_Z = N['train'][i].Z_dict.keys()  #['c', 'wt'] #
@@ -873,7 +873,7 @@ constraints_theta['Y'] = {'tt': np.nan}
 # Maximize likelihood to obtain solutions
 i = 'N9'
 results_logit = {}
-results_logit['train'] = {i: tai.estimation.solve_path_level_logit(cp_ll = likelihood_logit['train'][i]['cp_ll']
+results_logit['train'] = {i: isl.estimation.solve_path_level_logit(cp_ll = likelihood_logit['train'][i]['cp_ll']
                                                                    , cp_theta = likelihood_logit['train'][i]['cp_theta']
                                                                    , constraints_theta = constraints_theta
                                                                    , cp_solver = 'ECOS'  #'SCS'
@@ -965,7 +965,7 @@ lambda_vals = np.append(0,np.logspace(-12, 2, n_lasso_trials))
 # 5B) i) TRAINING NETWORKS
 # =============================================================================
 #- Estimation
-results_logit['train'] = {i: tai.estimation.solve_path_level_logit(cp_ll = likelihood_logit['train'][i]['cp_ll']
+results_logit['train'] = {i: isl.estimation.solve_path_level_logit(cp_ll = likelihood_logit['train'][i]['cp_ll']
                                                                    , cp_theta = likelihood_logit['train'][i]['cp_theta']
                                                                    , constraints_theta = constraints_theta
                                                                    , r = 1
@@ -986,7 +986,7 @@ errors_logit = {}
 lambdas_valid = {}
 
 errors_logit['train'], lambdas_valid['train'] \
-    = tai.estimation.prediction_error_logit_regularization(
+    = isl.estimation.prediction_error_logit_regularization(
     lambda_vals= {i: dict(zip(range(0,len(lambda_vals)),lambda_vals)) for i in N['train'].keys()}
     , theta_estimates = theta_estimates['train']
     , likelihood= likelihood_logit['train']
@@ -1033,7 +1033,7 @@ plot.regularization_consistency(errors = errors_logit['train']
 # N['validation']['N1'].links[0].Y_dict
 # N['validation']['N1'].Z_dict
 N['validation'] = \
-    tai.networks.clone_network(N=N['train'], label='Validation'
+    isl.networks.clone_network(N=N['train'], label='Validation'
                                , R_labels=R_labels
                                , randomness={'Q': True, 'BPR': False, 'Z': False}
                                , Z_attrs_classes=None, bpr_classes=None)
@@ -1043,8 +1043,8 @@ valid_network = None
 
 while valid_network is None:
     try:
-        results_sue['validation'] = {i: tai.equilibrium.sue_logit_fisk(
-            q = tai.networks.denseQ(Q = N['validation'][i].Q, remove_zeros = remove_zeros_Q)
+        results_sue['validation'] = {i: isl.equilibrium.sue_logit_fisk(
+            q = isl.networks.denseQ(Q = N['validation'][i].Q, remove_zeros = remove_zeros_Q)
             , M = N['validation'][i].M, D = N['validation'][i].D
             , links = N['validation'][i].links_dict
             , paths = N['validation'][i].paths
@@ -1060,7 +1060,7 @@ while valid_network is None:
         # for i in N['validation'].keys():
         # exceptions['SUE']['validation'][i] += 1
 
-        N['validation'] = tai.networks.clone_network(N=N['train'], label='Validation'
+        N['validation'] = isl.networks.clone_network(N=N['train'], label='Validation'
                                                      , R_labels=R_labels
                                                      , randomness={'Q': True, 'BPR': False, 'Z': False}
                                                      , Z_attrs_classes=None, bpr_classes=None)
@@ -1077,7 +1077,7 @@ while valid_network is None:
 
 
 # Get likelihood objects from logit model
-likelihood_logit['validation'] = {i: tai.estimation.likelihood_path_level_logit(f=results_sue['validation'][i]['f']
+likelihood_logit['validation'] = {i: isl.estimation.likelihood_path_level_logit(f=results_sue['validation'][i]['f']
                                                                                 , M=N['validation'][i].M
                                                                                 , D=N['validation'][i].D
                                                                                 , k_Z= list(N['validation'][i].Z_dict.keys())
@@ -1090,7 +1090,7 @@ likelihood_logit['validation'] = {i: tai.estimation.likelihood_path_level_logit(
 
 
 # Fit logit with regularization
-results_logit['validation'] = {i: tai.estimation.solve_path_level_logit(cp_ll=likelihood_logit['validation'][i]['cp_ll']
+results_logit['validation'] = {i: isl.estimation.solve_path_level_logit(cp_ll=likelihood_logit['validation'][i]['cp_ll']
                                                                         , cp_theta=likelihood_logit['validation'][i]['cp_theta']
                                                                         , constraints_theta=constraints_theta
                                                                         , cp_solver='ECOS'
@@ -1107,7 +1107,7 @@ for i in N['validation'].keys():
 
 # - Compute errors from theta estimates from training dataset.
 errors_logit['validation'], lambdas_valid['validation'] \
-    = tai.estimation.prediction_error_logit_regularization(theta_estimates = theta_estimates['train']
+    = isl.estimation.prediction_error_logit_regularization(theta_estimates = theta_estimates['train']
                                                            , lambda_vals = {i: dict(zip(range(0, len(lambda_vals)), lambda_vals)) for i in N['train'].keys()}
                                                            , likelihood= likelihood_logit['validation']
                                                            , f = {i: N['validation'][i].f for i in N['validation'].keys()}
@@ -1175,8 +1175,8 @@ for i, N_i in N['validation'].items():
     errors_SUE_logit['train'][i] = {}
     errors_SUE_logit['validation'][i] = {}
     for j in errors_logit['validation'][i].keys():
-        errors_SUE_logit['train'][i][j] = tai.estimation.loss_SUE(o = 2, x_obs = N['train'][i].x
-                                                                  , q = tai.networks.denseQ(Q = N['train'][i].Q, remove_zeros = remove_zeros_Q)
+        errors_SUE_logit['train'][i][j] = isl.estimation.loss_SUE(o = 2, x_obs = N['train'][i].x
+                                                                  , q = isl.networks.denseQ(Q = N['train'][i].Q, remove_zeros = remove_zeros_Q)
                                                                   , M = N['train'][i].M, D = N['train'][i].D
                                                                   , links = N['train'][i].links_dict
                                                                   , paths = N['train'][i].paths
@@ -1184,8 +1184,8 @@ for i, N_i in N['validation'].items():
                                                                   , k_Z = []
                                                                   , theta = theta_estimates['train'][i][j]
                                                                   , cp_solver = 'ECOS')
-        errors_SUE_logit['validation'][i][j] = tai.estimation.loss_SUE(o = 2, x_obs = N['validation'][i].x
-                                                                       , q = tai.networks.denseQ(Q = N['validation'][i].Q, remove_zeros = remove_zeros_Q)
+        errors_SUE_logit['validation'][i][j] = isl.estimation.loss_SUE(o = 2, x_obs = N['validation'][i].x
+                                                                       , q = isl.networks.denseQ(Q = N['validation'][i].Q, remove_zeros = remove_zeros_Q)
                                                                        , M = N['validation'][i].M, D = N['validation'][i].D
                                                                        , links = N['validation'][i].links_dict
                                                                        , paths = N['validation'][i].paths
@@ -1258,7 +1258,7 @@ for i in N['train'].keys():
 
     for theta_ti in theta_t_range:
         theta_i['tt'] = theta_ti
-        result = transportAI.extra.simulation.sue_logit_simulation_recovery(N=N['train'][i]
+        result = isuelogit.extra.simulation.sue_logit_simulation_recovery(N=N['train'][i]
                                                                             , theta=theta_i
                                                                             , constraints_theta=constraints_theta
                                                                             , k_Z = k_Z_plot
@@ -1303,7 +1303,7 @@ for i in N['train'].keys():
 
         theta_i['tt'] = theta_ti
 
-        result_sue = tai.equilibrium.sue_logit_fisk(q= tai.networks.denseQ(Q=N['train'][i].Q, remove_zeros=remove_zeros_Q)
+        result_sue = isl.equilibrium.sue_logit_fisk(q= isl.networks.denseQ(Q=N['train'][i].Q, remove_zeros=remove_zeros_Q)
                                                     , M=N['train'][i].M
                                                     , D=N['train'][i].D
                                                     , links=N['train'][i].links_dict
@@ -1369,27 +1369,27 @@ for i in N.keys():
 
 ################## Chunks to review #########
 
-# tai.writer.write_network_to_dat(root =  root_pablo
-#                                 , subfoldername = "Custom3" , prefix_filename = 'custom3', N = N['train']['N3'])
+# isl.writer.write_network_to_dat(root =  root_pablo
+#                                 , network_name = "Custom3" , prefix_filename = 'custom3', N = N['train']['N3'])
 #
-# tai.equilibrium.sue_logit_dial(root = root_pablo, subfoldername = 'Custom3', prefix_filename = 'custom3', maxIter = 100, accuracy = 0.01, theta = {'tt':1})
+# isl.equilibrium.sue_logit_dial(root = root_pablo, network_name = 'Custom3', prefix_filename = 'custom3', maxIter = 100, accuracy = 0.01, theta = {'tt':1})
 # #
-# tai.writer.write_network_to_dat(root =  root_pablo
-#                                 , subfoldername = "Custom4" , prefix_filename = 'custom4', N = N['train']['N4'])
+# isl.writer.write_network_to_dat(root =  root_pablo
+#                                 , network_name = "Custom4" , prefix_filename = 'custom4', N = N['train']['N4'])
 #
-# tai.equilibrium.sue_logit_dial(root = root_pablo, subfoldername ='Custom4', prefix_filename ='custom4', maxIter = 100, accuracy = 0.01, theta = {'tt':1})
+# isl.equilibrium.sue_logit_dial(root = root_pablo, network_name ='Custom4', prefix_filename ='custom4', maxIter = 100, accuracy = 0.01, theta = {'tt':1})
 
-# tai.writer.write_network_to_dat(root =  root_pablo
-#                                 , subfoldername = "Random5" , prefix_filename = 'random5', N = N['train']['N5'])
+# isl.writer.write_network_to_dat(root =  root_pablo
+#                                 , network_name = "Random5" , prefix_filename = 'random5', N = N['train']['N5'])
 #
-# tai.equilibrium.sue_logit_dial(root = root_pablo, subfoldername ='Random5', prefix_filename ='random5', maxIter = 100, accuracy = 0.01, Z_dict = N['train']['N5'].Z_dict, theta = theta_true['N5'], features = ['wt','c'])
+# isl.equilibrium.sue_logit_dial(root = root_pablo, network_name ='Random5', prefix_filename ='random5', maxIter = 100, accuracy = 0.01, Z_dict = N['train']['N5'].Z_dict, theta = theta_true['N5'], features = ['wt','c'])
 #
-# tai.writer.write_network_to_dat(root =  root_pablo
-#                                 , subfoldername = "Random6" , prefix_filename = 'random6', N = N['train']['N6'])
+# isl.writer.write_network_to_dat(root =  root_pablo
+#                                 , network_name = "Random6" , prefix_filename = 'random6', N = N['train']['N6'])
 #
 # results_sue_dial = {}
 #
-# results_sue_dial['x'],results_sue_dial['tt_x'] = tai.equilibrium.sue_logit_dial(root = root_pablo, subfoldername ='Random6', prefix_filename ='random6'
+# results_sue_dial['x'],results_sue_dial['tt_x'] = isl.equilibrium.sue_logit_dial(root = root_pablo, network_name ='Random6', prefix_filename ='random6'
 #                                , options = {'equilibrium': 'stochastic', 'method': 'MSA', 'maxIter': 100, 'accuracy_eq': 0.01}
 #                                , Z_dict = N['train']['N6'].Z_dict, theta = theta_true['N6'], features = ['wt','c'])
 #
@@ -1403,7 +1403,7 @@ for i in N.keys():
 #     # To get estimate of the logit parameters is necessary sometimes to increase the number of iterations so higher accuracy is achieved
 #     # 200 works great for networks with less than 1000 links but more iterations are needed for larger networks and this increase computing time significantly
 #     t0 = time.time()
-#     results_sue_msa[i] = tai.equilibrium.sue_logit_msa_k_paths(N = N['train'][i], maxIter = maxIter, accuracy = 0.01, theta = theta_true[i])
+#     results_sue_msa[i] = isl.equilibrium.sue_logit_msa_k_paths(N = N['train'][i], maxIter = maxIter, accuracy = 0.01, theta = theta_true[i])
 #     print('time: ' + str(np.round(time.time()-t0,1)) + '[s]')
 #     print('time per iteration: ' + str(np.round((time.time()-t0)/maxIter,1))+ '[s]')
 #
@@ -1422,7 +1422,7 @@ for i in N.keys():
 # t0 = time.time()
 # theta_test = theta_true[i].copy()
 # # theta_test['tt'] = theta_test['tt']*0.01
-# results_sue_msa[i] = tai.equilibrium.sue_logit_msa_k_paths(N=N['train'][i], theta=theta_true[i], features_Y=features_Y, features=features,
+# results_sue_msa[i] = isl.equilibrium.sue_logit_msa_k_paths(N=N['train'][i], theta=theta_true[i], features_Y=features_Y, features=features,
 #                                                            params= {'maxIter': maxIter, 'accuracy_eq': 0.01})
 # # x_current = np.array(list(results_sue_msa[i]['x'].values()))
 # # x_current = -10*x_current/x_current
@@ -1453,10 +1453,10 @@ for i in N.keys():
 
 # #Prescaling
 #
-# theta_myalg, grad_myalg = tai.estimation.single_level_odtheta_estimation(M = {1: N['train'][i].M}
-#                     , C={1: tai.estimation.choice_set_matrix_from_M(N['train'][i].M)}
+# theta_myalg, grad_myalg = isl.estimation.single_level_odtheta_estimation(M = {1: N['train'][i].M}
+#                     , C={1: isl.estimation.choice_set_matrix_from_M(N['train'][i].M)}
 #                     , D = {1: N['train'][i].D}
-#                     , q0= tai.network.denseQ(Q=N['train'][i].Q, remove_zeros=remove_zeros_Q)
+#                     , q0= isl.network.denseQ(Q=N['train'][i].Q, remove_zeros=remove_zeros_Q)
 #                     , features_Y = features_Y, features = config.estimation_options['features']
 #                     , Y = {1:N['train'][i].Y_dict}, Z = {1:N['train'][i].Z_dict}
 #                     , x = {1:N['train'][i].x} #x_N
@@ -1477,13 +1477,13 @@ for i in N.keys():
 
 # i = 'SiouxFalls'
 # i = 'N3'
-# tai.estimation.
+# isl.estimation.
 
 # features.append('k0')
 
-theta_myalg, grad_myalg, final_objective = tai.estimation.solve_outerlevel_lue(k_Y=k_Y, Yt={1: N['train'][i].Y_dict},
+theta_myalg, grad_myalg, final_objective = isl.estimation.solve_outerlevel_lue(k_Y=k_Y, Yt={1: N['train'][i].Y_dict},
                                                                                k_Z=k_Z, Zt={1: N['train'][i].Z_dict},
-                                                                               q0=tai.networks.denseQ(Q=N['train'][i].Q,
+                                                                               q0=isl.networks.denseQ(Q=N['train'][i].Q,
                                                                                                                   remove_zeros=N['train'][i].setup_options['remove_zeros_Q']),
                                                                                xct={1: N['train'][i].x},
                                                                                Mt={1: N['train'][i].M},
@@ -1505,12 +1505,12 @@ print(final_objective)
 
 # Gradient descent or gauss newthon fine scale optimization
 
-# tai.estimation.
-theta_myalg_adjusted, grad_myalg, final_objective = tai.estimation.solve_outerlevel_lue(k_Y=k_Y,
+# isl.estimation.
+theta_myalg_adjusted, grad_myalg, final_objective = isl.estimation.solve_outerlevel_lue(k_Y=k_Y,
                                                                                         Yt={1: N['train'][i].Y_dict},
                                                                                         k_Z=k_Z,
                                                                                         Zt={1: N['train'][i].Z_dict},
-                                                                                        q0=tai.networks.denseQ(
+                                                                                        q0=isl.networks.denseQ(
                                                                                                         Q=N['train'][i].Q,
                                                                                                         remove_zeros=remove_zeros_Q),
                                                                                         xct={1: N['train'][i].x},
@@ -1541,28 +1541,28 @@ day = 1
 theta_h0 =-6
 alpha = 0.05
 
-ttest, criticalval, pval = tai.estimation.ttest_theta(theta_h0=0, theta=np.array(list(theta_myalg.values()))[:,np.newaxis],
-                                                      YZ_x=tai.estimation.get_design_matrix(Y=N['train'][i].Y_dict,
+ttest, criticalval, pval = isl.estimation.ttest_theta(theta_h0=0, theta=np.array(list(theta_myalg.values()))[:,np.newaxis],
+                                                      YZ_x=isl.estimation.get_design_matrix(Y=N['train'][i].Y_dict,
                                                                                             Z=N['train'][i].Z_dict,
                                                                                             features_Z=k_Z,
                                                                                             features_Y=k_Y),
                                                       xc=N['train'][i].x[:, np.newaxis],
-                                                      q=tai.networks.denseQ(Q=N['train'][i].Q,
+                                                      q=isl.networks.denseQ(Q=N['train'][i].Q,
                                                                             remove_zeros=remove_zeros_Q),
                                                       Ix=N['train'][i].D, Iq=N['train'][i].M,
-                                                      C=tai.estimation.choice_set_matrix_from_M(N['train'][i].M),
+                                                      C=isl.estimation.choice_set_matrix_from_M(N['train'][i].M),
                                                       alpha=0.05)
 
 print(ttest)
 print('pvals :' +  str(pval))
 
-# ttest1, criticalval, pval = tai.estimation.ttest_theta(theta_h0 =1*np.ones(len(theta_myalg))[:,np.newaxis], alpha = 0.05
+# ttest1, criticalval, pval = isl.estimation.ttest_theta(theta_h0 =1*np.ones(len(theta_myalg))[:,np.newaxis], alpha = 0.05
 #                                                       # , theta = np.array(list({k: 1*theta_true[i][k] for k in [*features_Y,*features]}.values()))[:,np.newaxis]
 #                                                       , theta = theta_myalg
-#                                                       ,YZ_x = tai.estimation.get_design_matrix(Y = N['train'][i].Y_dict, Z = N['train'][i].Z_dict, features_Y = features_Y, features = features)
+#                                                       ,YZ_x = isl.estimation.get_design_matrix(Y = N['train'][i].Y_dict, Z = N['train'][i].Z_dict, features_Y = features_Y, features = features)
 #                                                       , x_bar = N['train'][i].x[:, np.newaxis]
-#                                                       ,q =tai.network.denseQ(Q=N['train'][i].Q,remove_zeros=remove_zeros_Q)
-#                                                       , Ix = N['train'][i].D, Iq=N['train'][i].M, C = tai.estimation.choice_set_matrix_from_M(N['train'][i].M) )
+#                                                       ,q =isl.network.denseQ(Q=N['train'][i].Q,remove_zeros=remove_zeros_Q)
+#                                                       , Ix = N['train'][i].D, Iq=N['train'][i].M, C = isl.estimation.choice_set_matrix_from_M(N['train'][i].M) )
 #
 # print(ttest1)
 
@@ -1570,12 +1570,12 @@ print('pvals :' +  str(pval))
 # ttest1
 # criticalval
 
-confint_theta, width_confint_theta = tai.estimation.confint_theta(
+confint_theta, width_confint_theta = isl.estimation.confint_theta(
     theta=np.array(list(theta_myalg.values()))[:, np.newaxis],
-    YZ_x=tai.estimation.get_design_matrix(Y=N['train'][i].Y_dict, Z=N['train'][i].Z_dict, features_Z=k_Z,
+    YZ_x=isl.estimation.get_design_matrix(Y=N['train'][i].Y_dict, Z=N['train'][i].Z_dict, features_Z=k_Z,
                                           features_Y=k_Y),
-    xc=N['train'][i].x[:, np.newaxis], q=tai.networks.denseQ(Q=N['train'][i].Q, remove_zeros=remove_zeros_Q),
-    Ix=N['train'][i].D, Iq=N['train'][i].M, C=tai.estimation.choice_set_matrix_from_M(N['train'][i].M), alpha=0.05)
+    xc=N['train'][i].x[:, np.newaxis], q=isl.networks.denseQ(Q=N['train'][i].Q, remove_zeros=remove_zeros_Q),
+    Ix=N['train'][i].D, Iq=N['train'][i].M, C=isl.estimation.choice_set_matrix_from_M(N['train'][i].M), alpha=0.05)
 
 print(confint_theta)
 print(width_confint_theta)
@@ -1583,13 +1583,13 @@ print(width_confint_theta)
 # confint_theta.shape
 
 # Post-scaling
-# tai.estimation.
+# isl.estimation.
 # # i = 'N3'
-theta_myalg_adjusted, grad_myalg = tai.estimation.solve_outerlevel_lue(k_Y=k_Y,
+theta_myalg_adjusted, grad_myalg = isl.estimation.solve_outerlevel_lue(k_Y=k_Y,
                                                                        Yt={1: N['train'][i].Y_dict},
                                                                        k_Z=k_Z,
                                                                        Zt={1: N['train'][i].Z_dict},
-                                                                       q0=tai.networks.denseQ(
+                                                                       q0=isl.networks.denseQ(
                                                                                        Q=N['train'][i].Q,
                                                                                        remove_zeros=remove_zeros_Q),
                                                                        xct={1: N['train'][i].x},
@@ -1628,7 +1628,7 @@ print(theta_myalg['tt'] / theta_myalg['c'])
 # # GOF with true theta
 # x_bar = N['train'][i].x[:, np.newaxis]
 #
-# l1 = np.sum((tai.estimation.prediction_x(3 * theta_true_array) - x_bar) ** 2)
+# l1 = np.sum((isl.estimation.prediction_x(3 * theta_true_array) - x_bar) ** 2)
 #
 # prediction_x(0.5 * theta_true_array,YZ_x,Ix,C,Iq)
 #
@@ -1645,13 +1645,13 @@ print(theta_myalg['tt'] / theta_myalg['c'])
 ################ Solving for uncongested network with black box scipy minimize outer_optimizer ############
 
 t0 = time.time()
-theta_estimate = tai.estimation.solve_link_level_model(end_params={'theta': True, 'q': False}, Mt={1: N['train'][i].M},
-                                                       Ct={1: tai.estimation.choice_set_matrix_from_M(N['train'][i].M)},
+theta_estimate = isl.estimation.solve_link_level_model(end_params={'theta': True, 'q': False}, Mt={1: N['train'][i].M},
+                                                       Ct={1: isl.estimation.choice_set_matrix_from_M(N['train'][i].M)},
                                                        Dt={1: N['train'][i].D}, k_Y=k_Y, Yt={1: N['train'][i].Y_dict},
                                                        k_Z=k_Z, Zt={1: N['train'][i].Z_dict}, xt={1: N['train'][i].x},
                                                        idx_links={1: range(0, len(N['train'][i].x))},
                                                        scale={'mean': False, 'std': False},
-                                                       q0=tai.networks.denseQ(Q=N['train'][i].Q,
+                                                       q0=isl.networks.denseQ(Q=N['train'][i].Q,
                                                                               remove_zeros=remove_zeros_Q),
                                                        theta0=dict.fromkeys([*k_Y, *k_Z], -1)
                                                        , lambda_hp=0)
@@ -1670,7 +1670,7 @@ theta_estimate_congestion = theta_estimate['theta']
 theta_estimate_congestion['speed'] = 0
 theta_estimate_congestion['length'] = 0
 theta_estimate_congestion['toll'] = 0
-results_sue_msa_postcongestion = tai.equilibrium.sue_logit_iterative(Nt=N['train'][i], theta=theta_estimate_congestion,
+results_sue_msa_postcongestion = isl.equilibrium.sue_logit_iterative(Nt=N['train'][i], theta=theta_estimate_congestion,
                                                                      k_Y=k_Y, k_Z=k_Z, params={'maxIter': maxIter, 'accuracy_eq': config.estimation_options['accuracy_eq']})
 
 
@@ -1681,7 +1681,7 @@ theta_estimate_initial = dict.fromkeys([*k_Y,*k_Z],0)
 theta_estimate_initial['speed'] = 0
 theta_estimate_initial['length'] = 0
 theta_estimate_initial['toll'] = 0
-x_initial = tai.equilibrium.sue_logit_iterative(Nt=N['train'][i], theta=theta_estimate_initial, k_Y=k_Y, k_Z=k_Z,
+x_initial = isl.equilibrium.sue_logit_iterative(Nt=N['train'][i], theta=theta_estimate_initial, k_Y=k_Y, k_Z=k_Z,
                                                 params={'maxIter': maxIter, 'accuracy_eq': config.estimation_options['accuracy_eq']})['x']
 
 gap_initial = np.sqrt(np.sum((np.array(list(results_sue_msa[i]['x'].values()))-np.array(list(x_initial.values())))**2)/len(np.array(list(results_sue_msa[i]['x']))))
@@ -1689,7 +1689,7 @@ gap_initial = np.sqrt(np.sum((np.array(list(results_sue_msa[i]['x'].values()))-n
 
 
 i = 'N5'
-results_sue_fiske = tai.equilibrium.sue_logit_fisk(q = tai.networks.denseQ(Q = N['train'][i].Q, remove_zeros = remove_zeros_Q)
+results_sue_fiske = isl.equilibrium.sue_logit_fisk(q = isl.networks.denseQ(Q = N['train'][i].Q, remove_zeros = remove_zeros_Q)
                                                    , M = N['train'][i].M
                                                    , D = N['train'][i].D
                                                    , links = N['train'][i].links_dict
@@ -1727,11 +1727,11 @@ print(np.round(list(results_sue_msa['tt_x'].values()),2))
 
 # Sioux Falls
 
-tai.writer.write_network_to_dat(root =  root_github
+isl.writer.write_network_to_dat(root =  root_github
                                 , subfolder = 'SiouxFalls/' , prefix_filename = 'SiouxFalls', N = N['train']['SiouxFalls'])
 
 
-x,tt_x = tai.equilibrium.sue_logit_dial(root = root_github, subfolder ='SiouxFalls', prefix_filename ='SiouxFalls'
+x,tt_x = isl.equilibrium.sue_logit_dial(root = root_github, subfolder ='SiouxFalls', prefix_filename ='SiouxFalls'
                                         , options = {'equilibrium': 'stochastic', 'method': 'MSA', 'maxIter': 100, 'accuracy_eq': config.estimation_options['accuracy_eq']} , Z_dict = N['train']['SiouxFalls'].Z_dict, theta = theta_true['SiouxFalls'], k_Z = k_Z)
 
 N['train']['SiouxFalls'].x_dict = x
@@ -1745,15 +1745,15 @@ tt_x.values()
 #
 # N['train']['SiouxFalls'].set_Y_attr_links(y=dict(zip(list(N['train']['SiouxFalls'].links_dict.keys()),[link.traveltime for link in N_i.links])), label='tt')
 
-theta_estimate = tai.estimation.solve_link_level_model(end_params={'theta': True, 'q': False},
+theta_estimate = isl.estimation.solve_link_level_model(end_params={'theta': True, 'q': False},
                                                        Mt={1: N['train']['SiouxFalls'].M}, Ct={
-        1: tai.estimation.choice_set_matrix_from_M(N['train']['SiouxFalls'].M)}, Dt={1: N['train']['SiouxFalls'].D},
+        1: isl.estimation.choice_set_matrix_from_M(N['train']['SiouxFalls'].M)}, Dt={1: N['train']['SiouxFalls'].D},
                                                        k_Y=k_Y, Yt={1: N['train']['SiouxFalls'].Y_dict}, k_Z=k_Z,
                                                        Zt={1: N['train']['SiouxFalls'].Z_dict},
                                                        xt={1: N['train']['SiouxFalls'].x},
                                                        idx_links={1: range(0, len(N['train']['SiouxFalls'].x))},
                                                        scale={'mean': False, 'std': False},
-                                                       q0=tai.networks.denseQ(Q=N['train']['SiouxFalls'].Q,
+                                                       q0=isl.networks.denseQ(Q=N['train']['SiouxFalls'].Q,
                                                                               remove_zeros=remove_zeros_Q),
                                                        theta0=dict.fromkeys([*k_Y, *k_Z], 0), lambda_hp=0)
 
@@ -1767,23 +1767,23 @@ print(theta_true['SiouxFalls']['tt']/theta_true['SiouxFalls']['c'])
 
 #EMA
 
-tai.writer.write_network_to_dat(root =  root_github
+isl.writer.write_network_to_dat(root =  root_github
                                 , subfolder = 'Eastern-Massachusetts' , prefix_filename = 'EMA', N = N['train']['Eastern-Massachusetts'])
 
-x,tt_x = tai.equilibrium.sue_logit_dial(root = root_github, subfolder ='Eastern-Massachusetts', prefix_filename ='EMA', maxIter = 100, accuracy = config.estimation_options['accuracy_eq'], Z_dict = N['train']['Eastern-Massachusetts'].Z_dict, theta = theta_true['Eastern-Massachusetts'], k_Z = k_Z)
+x,tt_x = isl.equilibrium.sue_logit_dial(root = root_github, subfolder ='Eastern-Massachusetts', prefix_filename ='EMA', maxIter = 100, accuracy = config.estimation_options['accuracy_eq'], Z_dict = N['train']['Eastern-Massachusetts'].Z_dict, theta = theta_true['Eastern-Massachusetts'], k_Z = k_Z)
 
 N['train']['Eastern-Massachusetts'].x_dict = x
 N['train']['Eastern-Massachusetts'].set_Y_attr_links(y=tt_x, feature='tt')
 
-theta_estimate = tai.estimation.solve_link_level_model(end_params={'theta': True, 'q': False},
+theta_estimate = isl.estimation.solve_link_level_model(end_params={'theta': True, 'q': False},
                                                        Mt={1: N['train']['Eastern-Massachusetts'].M}, Ct={
-        i: tai.estimation.choice_set_matrix_from_M(N['train']['Eastern-Massachusetts'].M)},
+        i: isl.estimation.choice_set_matrix_from_M(N['train']['Eastern-Massachusetts'].M)},
                                                        Dt={1: N['train']['Eastern-Massachusetts'].D}, k_Y=k_Y,
                                                        Yt={1: N['train']['Eastern-Massachusetts'].Y_dict}, k_Z=k_Z,
                                                        Zt={1: N['train']['Eastern-Massachusetts'].Z_dict},
                                                        xt={1: N['train']['Eastern-Massachusetts'].x}, idx_links={
         1: range(0, len(N['train']['Eastern-Massachusetts'].x))}, scale={'mean': False, 'std': False},
-                                                       q0=tai.networks.denseQ(Q=N['train']['Eastern-Massachusetts'].Q,
+                                                       q0=isl.networks.denseQ(Q=N['train']['Eastern-Massachusetts'].Q,
                                                                               remove_zeros=remove_zeros_Q),
                                                        theta0=dict.fromkeys([*k_Y, *k_Z], 0), lambda_hp=0)
 
@@ -1798,23 +1798,23 @@ theta_true['Eastern-Massachusetts']['tt']/theta_true['Eastern-Massachusetts']['c
 # berlin-tiergarten_net.tntp
 
 
-tai.writer.write_network_to_dat(root =  root_github
+isl.writer.write_network_to_dat(root =  root_github
                                 , subfolder = 'Eastern-Massachusetts' , prefix_filename = 'EMA', N = N['train']['Eastern-Massachusetts'])
 
-x,tt_x = tai.equilibrium.sue_logit_dial(root = root_github, subfolder ='Eastern-Massachusetts', prefix_filename ='EMA', maxIter = 100, accuracy = config.estimation_options['accuracy_eq'], Z_dict = N['train']['Eastern-Massachusetts'].Z_dict, theta = theta_true['Eastern-Massachusetts'], k_Z = k_Z)
+x,tt_x = isl.equilibrium.sue_logit_dial(root = root_github, subfolder ='Eastern-Massachusetts', prefix_filename ='EMA', maxIter = 100, accuracy = config.estimation_options['accuracy_eq'], Z_dict = N['train']['Eastern-Massachusetts'].Z_dict, theta = theta_true['Eastern-Massachusetts'], k_Z = k_Z)
 
 N['train']['Eastern-Massachusetts'].x_dict = x
 N['train']['Eastern-Massachusetts'].set_Y_attr_links(y=tt_x, feature='tt')
 
-theta_estimate = tai.estimation.solve_link_level_model(end_params={'theta': True, 'q': False},
+theta_estimate = isl.estimation.solve_link_level_model(end_params={'theta': True, 'q': False},
                                                        Mt={1: N['train']['Eastern-Massachusetts'].M}, Ct={
-        i: tai.estimation.choice_set_matrix_from_M(N['train']['Eastern-Massachusetts'].M)},
+        i: isl.estimation.choice_set_matrix_from_M(N['train']['Eastern-Massachusetts'].M)},
                                                        Dt={1: N['train']['Eastern-Massachusetts'].D}, k_Y=k_Y,
                                                        Yt={1: N['train']['Eastern-Massachusetts'].Y_dict}, k_Z=k_Z,
                                                        Zt={1: N['train']['Eastern-Massachusetts'].Z_dict},
                                                        xt={1: N['train']['Eastern-Massachusetts'].x}, idx_links={
         1: range(0, len(N['train']['Eastern-Massachusetts'].x))}, scale={'mean': False, 'std': False},
-                                                       q0=tai.networks.denseQ(Q=N['train']['Eastern-Massachusetts'].Q,
+                                                       q0=isl.networks.denseQ(Q=N['train']['Eastern-Massachusetts'].Q,
                                                                               remove_zeros=remove_zeros_Q),
                                                        theta0=dict.fromkeys([*k_Y, *k_Z], 0), lambda_hp=0)
 
@@ -1823,7 +1823,7 @@ theta_estimate = tai.estimation.solve_link_level_model(end_params={'theta': True
 od_filename = [_ for _ in os.listdir(os.path.join(root_github, subfolder_github)) if 'trips' in _ and _.endswith('tntp')]
 prefix_filename = od_filename[0].partition('_')[0]
 
-tai.equilibrium.sue_logit_dial(root = root_github, subfolder = subfolder_github, prefix_filename = prefix_filename, maxIter = 100, accuracy = config.estimation_options['accuracy_eq'], theta = {'tt':1})
+isl.equilibrium.sue_logit_dial(root = root_github, subfolder = subfolder_github, prefix_filename = prefix_filename, maxIter = 100, accuracy = config.estimation_options['accuracy_eq'], theta = {'tt':1})
 
 
 i = 'N5'
@@ -1835,7 +1835,7 @@ N['train']['N6'].Z_dict
 
 while valid_network is None:
     try:
-        results_sue['train'] = {i: tai.equilibrium.sue_logit_fisk(q = tai.networks.denseQ(Q = N['train'][i].Q, remove_zeros = remove_zeros_Q)
+        results_sue['train'] = {i: isl.equilibrium.sue_logit_fisk(q = isl.networks.denseQ(Q = N['train'][i].Q, remove_zeros = remove_zeros_Q)
                                                                   , M = N['train'][i].M
                                                                   , D = N['train'][i].D
                                                                   , links = N['train'][i].links_dict
@@ -1854,10 +1854,10 @@ while valid_network is None:
             exceptions['SUE']['train'][i] += 1
 
         N['train'] = \
-            tai.networks.clone_network(N=N['train'][i], label='Train', randomness = {'Q':True, 'BPR':True, 'Z': False, 'var_Q':0}
+            isl.networks.clone_network(N=N['train'][i], label='Train', randomness = {'Q':True, 'BPR':True, 'Z': False, 'var_Q':0}
                                        )
 
-        # tai.network.clone_networks(N=N['train'], label='Train'
+        # isl.network.clone_networks(N=N['train'], label='Train'
         #                            , R_labels=R_labels
         #                            , randomness={'Q': True, 'BPR': True, 'Z': False, 'var_Q': 0}
         #                            , q_range=q_range, remove_zeros_Q=remove_zeros_Q, Z_attrs_classes=Z_attrs_classes,

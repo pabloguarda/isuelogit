@@ -7,6 +7,11 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .mytypes import Nodes, Paths, Matrix,TNetwork, DiTNetwork, MultiDiTNetwork
 
+from bs4 import BeautifulSoup
+import requests
+import re
+import urllib
+
 import os
 import openmatrix as omx
 import time
@@ -389,28 +394,69 @@ def read_internal_network_files(network: TNetwork,
         Q = read_internal_Q(network=network, sparse_format=sparse_format)
         network.load_OD(Q = Q)
 
+def get_files_tntp_repo(network_name):
 
-def read_tntp_linkdata(folderpath: str,
-                    subfoldername: str):
-    od_filename = [_ for _ in os.listdir(os.path.join(folderpath, subfoldername)) if
-                   'trips' in _ and _.endswith('tntp')]
+    supported_networks = ['Anaheim', 'Austin', 'Barcelona', 'Berlin-Center', 'Berlin-Friedrichshain',
+                          'Berlin-Mitte-Center', 'Berlin-Mitte-Prenzlauerberg-Friedrichshain-Center',
+                          'Berlin-Prenzlauerberg-Center', 'Berlin-Tiergarten', 'Birmingham-England', 'Braess-Example',
+                          'chicago-regional', 'Chicago-Sketch', 'Eastern-Massachusetts', 'GoldCoast, Australia',
+                          'Hessen-Asymmetric', 'Philadelphia', 'SiouxFalls', 'Sydney, Australia', 'Terrassa-Asymmetric',
+                          'Winnipeg', 'Winnipeg-Asymmetric']
 
-    prefix_filenames = od_filename[0].partition('_')[0]
+    assert network_name in supported_networks, 'network is not supported'
 
-    # nets = {i: pd.read_csv(j, skiprows=8, sep='\t') for i, j in net_files.items()}
+    # https://stackoverflow.com/questions/60924860/python-get-list-of-csv-files-in-public-github-repository
 
-    # links_df = links_dfs['Berlin-Center']
-    links_df = pd.read_csv(folderpath + subfoldername + '/' + prefix_filenames + '_net.tntp', skiprows=8,
-                              sep='\t')  # links_dfs['SiouxFalls']
-    # links_df = links_dfs['Austin']
+    url = "https://github.com/bstabler/TransportationNetworks/tree/master/" + network_name
+    r = requests.get(url)
+
+    # Extract text: html_doc => str
+    html_doc = r.text
+
+    # Parse the HTML: soup => bs4.BeautifulSoup
+    soup = BeautifulSoup(html_doc, "html.parser")
+
+    # Find all 'a' tags (which define hyperlinks): a_tags => bs4.element.ResultSet
+    a_tags = soup.find_all('a')
+
+    # Store a list of urls ending in .csv: urls => list
+    urls = ['https://raw.githubusercontent.com' + re.sub('/blob', '', link.get('href'))
+            for link in a_tags if '.tntp' in link.get('href')]
+
+    # Store a list of Data Frame names to be assigned to the list: df_list_names => list
+    # files_list = [url.split('/')[url.count('/')] for url in urls]
+
+    # # Store an empty list of dataframes: df_list => list
+    # df_list = [pd.read_csv(url, sep=',') for url in urls]
+    #
+    # # Name the dataframes in the list, coerce to a dictionary: df_dict => dict
+    # df_dict = dict(zip(df_list_names, df_list))
+
+    return urls
+
+
+def read_tntp_linkdata(network_name: str,
+                       folderpath: str = None,
+                       local_files = False):
+
+    if local_files is False:
+
+        urls = get_files_tntp_repo(network_name)
+
+        links_filename = [_ for _ in  urls if '_net' in _][0]
+
+
+    if local_files is True:
+        links_filename = folderpath + network_name + '/' + network_name + '_net.tntp'
+
+
+    links_df = pd.read_csv(links_filename, skiprows=8, sep='\t')
 
     trimmed = [s.strip().lower() for s in links_df.columns]
     links_df.columns = trimmed
 
     # And drop the silly first andlast columns
     links_df.drop(['~', ';'], axis=1, inplace=True)
-
-    import matplotlib.pyplot as plt
 
     # Reduce the number of the node by 1 for internal consistency
     links_df['init_node'] -= 1
@@ -502,7 +548,7 @@ def read_colombus_network(folderpath: str) -> (Matrix, pd.DataFrame, pd.DataFram
 
     #TODO: read new files upload by Bin
 
-    # folder = tai.Config().paths['Colombus_network']
+    # folder = isl.Config().paths['Colombus_network']
 
     # # ===================================================================
     # # SHAPE FILE COLOMBUS NETWORK
@@ -668,8 +714,8 @@ def read_fresno_network(folderpath: str) -> (Matrix, pd.DataFrame, pd.DataFrame)
     # ===================================================================
     # NETWORK SUMMARY (SR41.net)
     # ===================================================================
-    # import isuelogit as tai
-    # folder = tai.Config().paths['Fresno_network']
+    # import isuelogit as isl
+    # folder = isl.Config().paths['Fresno_network']
     # filepath = folder + '/SR41.net'
     #
     # n_nodes, n_links, n_origins, n_destination, n_ods = 0, 0, 0, 0, 0
@@ -774,8 +820,8 @@ def read_sacramento_network(folderpath: str) -> (Matrix, pd.DataFrame, pd.DataFr
     # ===================================================================
     # NETWORK SUMMARY (pfe.net)
     # ===================================================================
-    # import isuelogit as tai
-    # folder = tai.Config().paths['Sacramento_network']
+    # import isuelogit as isl
+    # folder = isl.Config().paths['Sacramento_network']
     # filepath = folder + '/pfe.net'
     #
     # n_nodes, n_links, n_origins, n_destination, n_ods = 0, 0, 0, 0, 0
@@ -881,10 +927,9 @@ def read_sacramento_network(folderpath: str) -> (Matrix, pd.DataFrame, pd.DataFr
     return A, links_df, nodes_df
 
 
-
-
-def read_tntp_od(folderpath: str,
-                 subfoldername: str) -> Matrix:
+def read_tntp_od(network_name: str,
+                 folderpath: str = None,
+                 local_files = False) -> Matrix:
     """
 
     This method return an adjacency matrix, od matrix and link level information based on the ".omx" and "_net.tntp" files
@@ -898,9 +943,14 @@ def read_tntp_od(folderpath: str,
     t0 = time.time()
 
     # Function to import OMX matrices
-    def import_matrix(matfile, subfolder_path, filename):
-        f = open(subfolder_path + matfile, 'r')
-        all_rows = f.read()
+    def import_matrix(filepath, network_name):
+        if local_files:
+            f = open(filepath, 'r')
+            all_rows = f.read()
+        else:
+            f = urllib.request.urlopen(filepath)
+            all_rows = f.read().decode(f.headers.get_content_charset())
+
         blocks = all_rows.split('Origin')[1:]
         matrix = {}
         for k in range(len(blocks)):
@@ -923,7 +973,8 @@ def read_tntp_od(folderpath: str,
 
         index = np.arange(zones) + 1
 
-        myfile = omx.open_file(subfolder_path + filename + '_demand' + '.omx', 'w')
+        write_filepath = config.dirs['output_folder'] + 'network-data/Q/' + network_name + '_demand' + '.omx'
+        myfile = omx.open_file(write_filepath, 'w')
         myfile['matrix'] = mat
         myfile.create_mapping('taz', index)
 
@@ -931,14 +982,21 @@ def read_tntp_od(folderpath: str,
 
         myfile.close()
 
+        os.remove(write_filepath)
+
         return numpy_matrix
 
-    od_filename = [_ for _ in os.listdir(os.path.join(folderpath, subfoldername)) if 'trips' in _ and _.endswith('tntp')]
+    if local_files is False:
+        urls = get_files_tntp_repo(network_name)
+        filepath = [_ for _ in urls if '_trips' in _][0]
 
-    prefix_filenames = od_filename[0].partition('_')[0]
+    else:
+        file_list = os.listdir(os.path.join(folderpath, network_name))
+        filepath = folderpath + network_name + '/' + [_ for _ in file_list if 'trips' in _ and _.endswith('tntp')][0]
 
-    Q = import_matrix(matfile=od_filename[0]
-                      , subfolder_path=folderpath + subfoldername + '/', filename=prefix_filenames)
+    # prefix_filenames = od_filename[0].partition('_')[0]
+
+    Q = import_matrix(filepath=filepath, network_name=network_name)
 
     assert Q.shape[0] > 0, 'Matrix Q was not succesfully read'
     print('Matrix Q ' + str(Q.shape) + ' read in ' + str(round(time.time() - t0, 1)) + '[s]')
@@ -1248,7 +1306,7 @@ def read_sacramento_od(folder, A, nodes) -> Matrix:
        """
 
     t0 = time.time()
-    # folder = tai.Config().paths['Fresno_Sac_networks']
+    # folder = isl.Config().paths['Fresno_Sac_networks']
 
     # ===================================================================
     # Reading OD demand
