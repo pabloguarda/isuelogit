@@ -973,7 +973,13 @@ def read_tntp_od(network_name: str,
 
         index = np.arange(zones) + 1
 
-        write_filepath = config.dirs['output_folder'] + 'network-data/Q/' + network_name + '_demand' + '.omx'
+        write_folderpath = config.dirs['output_folder'] + 'network-data/Q/'
+
+        if not os.path.exists(write_folderpath):
+            os.makedirs(write_folderpath)
+
+        write_filepath = write_folderpath + network_name + '_demand' + '.omx'
+
         myfile = omx.open_file(write_filepath, 'w')
         myfile['matrix'] = mat
         myfile.create_mapping('taz', index)

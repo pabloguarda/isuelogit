@@ -1228,9 +1228,9 @@ class NetworkGenerator(Generator):
 
     def build_tntp_network(self, subfoldername, folderpath, options, config, **kwargs):
 
-        subfoldersnames = config.tntp_networks
-
-        assert subfoldername in subfoldersnames, 'Invalid network name'
+        # subfoldersnames = config.tntp_networks
+        #
+        # assert subfoldername in subfoldersnames, 'Invalid network name'
 
         # for key, value in kwargs.items():
         #     options[key] = value
@@ -1243,16 +1243,12 @@ class NetworkGenerator(Generator):
         write_tntp_github_to_dat(folderpath, subfoldername)
 
         # Read input dat file
-        A_real, links_attrs = read_tntp_network(folderpath=folderpath,
-                                                       subfoldername=subfoldername)
+        A_real, links_attrs = read_tntp_network(folderpath=folderpath, subfoldername=subfoldername)
 
         # Create network object
         Nt_label = subfoldername
 
-        Nt = self.build_network(factory_options=options,
-                                A=A_real,
-                                network_name=Nt_label
-                                )
+        Nt = self.build_network(factory_options=options, A=A_real, network_name=Nt_label)
 
         links = Nt.links_dict
         # Set BPR functions and attributes values associated each link
