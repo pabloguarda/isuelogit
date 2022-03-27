@@ -1,7 +1,16 @@
 #Virtual environment
 venv/
-venv-transportAI/
-env/
+venv-isuelogit/
+
+# Examples
+examples/
+
+# Local packages
+local-packages
+
+# requirements
+requirements/dev.txt
+requirements/environment.yml
 
 # Pycharm internal files
 
@@ -16,13 +25,14 @@ __pycache__/
 
 .git/
 
-#Data 
-data/
-examples/notebooks/
-/data/
-
+#output
 output/
+plots/
+
+# Input
 input/private
 input/public
 
-cache/
+#extra
+src/extra
+src/isuelogit.egg-info/
