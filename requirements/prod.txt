@@ -26,4 +26,4 @@ shapely == 1.8.1.post1
 
 sortedcontainers==2.4.0
 requests==2.27.1
-bs4
+bs4 == 0.0.1
