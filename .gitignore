@@ -15,6 +15,7 @@ requirements/environment.yml
 # Pycharm internal files
 .idea/
 .eggs/
+cache/
 
 #Python cache
 .pytest_cache/
@@ -34,3 +35,4 @@ input/public
 #extra
 src/extra
 src/isuelogit.egg-info/
+
