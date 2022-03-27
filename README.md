@@ -12,7 +12,7 @@ A key limitation of sue-logit is that it requires to know the parameters of the 
 2. Create virtual environment: `python3 -m venv myvenv`
 3. Activate virtual environment: `source myvenv/bin/activate`
 4. Install the package: `pip install -e .`
-5. Install the development dependencies: `pip install -r requirements/prod.txt`
+5. Install the development dependencies: `pip install -r requirements/dev.txt`
 6. Run the tests: `pytest`
 
 ## Jupyter notebooks
