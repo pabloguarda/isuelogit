@@ -9,7 +9,6 @@ examples/
 local-packages/
 
 # requirements
-requirements/dev.txt
 requirements/environment.yml
 
 # Pycharm internal files
