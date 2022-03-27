@@ -1,8 +1,13 @@
-import sys
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from mytypes import Union, Dict
+
 
 import matplotlib
 import pylab
-from transportAI.mytypes import Node, LogitFeatures, Options
 from matplotlib import rc
 
 matplotlib.rcParams['text.usetex'] = True
@@ -24,16 +29,11 @@ import seaborn as sns
 import networkx as nx
 from networkx.utils import is_string_like
 
-from scipy.ndimage.filters import gaussian_filter1d
-
-
 import pandas as pd
+pd.options.mode.chained_assignment = None  # default='warn'
 
 import numpy as np
-import random
-import os
 
-import transportAI.simulation
 
 
 #To write with scienfic notation in y axis
@@ -41,7 +41,6 @@ class ScalarFormatterForceFormat(ScalarFormatter):
     def _set_format(self):  # Override function that finds format to use.
         self.format = "%1.1f"  # Give format here
 
-# import matplotlib.ticker as mtick
 
 # https://stackoverflow.com/questions/42656139/set-scientific-notation-with-fixed-exponent-and-significant-digits-for-multiple
 class OOMFormatter(matplotlib.ticker.ScalarFormatter):
@@ -57,7 +56,10 @@ class OOMFormatter(matplotlib.ticker.ScalarFormatter):
             self.format = r'$\mathdefault{%s}$' % self.format
 
 class Artist:
-    def __init__(self, folder_plots, dim_subplots = None):
+    def __init__(self,
+                 folder_plots = None,
+                 dim_subplots = None):
+
         self._folder = folder_plots
         self._dim_subplots = dim_subplots
 
@@ -78,8 +80,11 @@ class Artist:
     def dim_subplots(self, value):
         self._dim_subplots = value
 
-    def save_fig(self, fig, subfolder, filename):
-        fig.savefig(self.folder + '/' + subfolder + '/'+ filename + '.pdf', pad_inches=0.1, bbox_inches="tight") #
+    def save_fig(self, fig, folder, filename):
+        if folder is None:
+            folder = self.folder
+
+        fig.savefig(folder + '/' + filename + '.pdf', pad_inches=0.1, bbox_inches="tight") #
 
     def show_network(self, G):
         '''Visualization of network.
@@ -185,7 +190,7 @@ class Artist:
 
         plt.show()
 
-        self.save_fig(fig=fig, subfolder = subfolder, filename= filename)
+        self.save_fig(fig=fig, folder= subfolder, filename= filename)
 
     def plot_all_networks(self, N, show_edge_labels, subfolder, filename):
 
@@ -200,7 +205,7 @@ class Artist:
 
         plt.show()
 
-        self.save_fig(fig=fig, subfolder=subfolder, filename=filename)
+        self.save_fig(fig=fig, folder=subfolder, filename=filename)
 
     def regularization_error(self, filename, subfolder, errors: {}, lambdas: {},  N_labels: {}, color):
 
@@ -240,7 +245,7 @@ class Artist:
 
         plt.tight_layout()
         plt.show()
-        self.save_fig(fig = fig, filename = filename, subfolder = subfolder)
+        self.save_fig(fig = fig, filename = filename, folder= subfolder)
 
     def regularization_joint_error(self, filename, subfolder, lambdas: {}, errors: {}, N_labels, colors):
 
@@ -288,7 +293,7 @@ class Artist:
 
         plt.tight_layout()
         plt.show()
-        self.save_fig(fig = fig, filename = filename, subfolder = subfolder)
+        self.save_fig(fig = fig, filename = filename, folder= subfolder)
 
     def regularization_path(self, filename, subfolder, lambdas, theta_estimate,errors, N_labels, key_attrs, color):
         # self = plot
@@ -344,7 +349,7 @@ class Artist:
         fig.tight_layout()
         # fig.subplots_adjust(top=0.9, bottom=0.2)
         plt.show()
-        self.save_fig(fig=fig, filename=filename, subfolder = subfolder)
+        self.save_fig(fig=fig, filename=filename, folder= subfolder)
 
     def regularization_consistency(self, filename, subfolder, errors: np.array, theta_true:{}, theta_estimate: {} , N_labels: {}, color):
 
@@ -382,7 +387,7 @@ class Artist:
                    , bbox_to_anchor=[0.52, -0.45]
                    , bbox_transform=BlendedGenericTransform(fig.transFigure, ax.flatten()[-2].transAxes))
         plt.show()
-        self.save_fig(fig=fig, filename=filename, subfolder = subfolder)
+        self.save_fig(fig=fig, filename=filename, folder= subfolder)
 
     def regularization_joint_consistency(self, filename, subfolder, errors: np.array, theta_true:{}, theta_estimate: {} , N_labels: {}, colors):
 
@@ -423,7 +428,7 @@ class Artist:
                    , bbox_to_anchor=[0.52, -0.45]
                    , bbox_transform=BlendedGenericTransform(fig.transFigure, ax.flatten()[-2].transAxes))
         plt.show()
-        self.save_fig(fig=fig, filename=filename, subfolder = subfolder)
+        self.save_fig(fig=fig, filename=filename, folder= subfolder)
 
     def estimated_vs_true_theta(self, filename, subfolder, theta_est_t:{}, theta_c:{}, theta_true_t:{}, constraints_theta, N_labels: {}, color):
 
@@ -461,7 +466,7 @@ class Artist:
                    , bbox_transform=BlendedGenericTransform(fig.transFigure, ax.flatten()[-2].transAxes))
 
         plt.show()
-        self.save_fig(fig=fig, filename=filename, subfolder = subfolder)
+        self.save_fig(fig=fig, filename=filename, folder= subfolder)
 
         # fig, ax = plt.subplots()
         # ax.scatter(learned_parameter_t, true_parameter_t)
@@ -502,7 +507,7 @@ class Artist:
 
             plt.tight_layout()
             plt.show()
-            self.save_fig(fig=fig, filename=filename, subfolder = subfolder + '_vot')
+            self.save_fig(fig=fig, filename=filename, folder=subfolder + '_vot')
 
             # fig, ax = plt.subplots()
             # ax.scatter(learned_parameter_vot, true_parameter_vot)
@@ -535,7 +540,7 @@ class Artist:
 
         # plt.tight_layout()
         plt.show()
-        self.save_fig(fig=fig, filename=filename, subfolder = subfolder)
+        self.save_fig(fig=fig, filename=filename, folder= subfolder)
 
         # Plot
         # plt.plot(sdX_vs_theta_N, label='link flows')
@@ -617,7 +622,7 @@ class Artist:
 
         # Axis labels
         plt.show()
-        self.save_fig(fig=fig, filename=filename, subfolder = subfolder)
+        self.save_fig(fig=fig, filename=filename, folder= subfolder)
 
     def regularization_error_nonlinear_link_logit_estimation(self, filename, subfolder, errors: {}, N_labels: {}, n_samples: int):
 
@@ -665,10 +670,10 @@ class Artist:
 
         # Axis labels
         plt.show()
-        self.save_fig(fig=fig, filename=filename, subfolder=subfolder)
+        self.save_fig(fig=fig, filename=filename, folder=subfolder)
 
 
-    # def consistency_nonlinear_link_logit_estimation(self, filename, subfolder, theta_est:{}, vot_est:{}, theta_true:{}, N_label, n_bootstraps: int):
+    # def consistency_nonlinear_link_logit_estimation(self, filename, subfoldername, theta_est:{}, vot_est:{}, theta_true:{}, N_label, n_bootstraps: int):
     #
     #     fig, ax = plt.subplots(ncols=2, nrows=2)
     #
@@ -685,7 +690,7 @@ class Artist:
     #         n_bootstraps)
     #     ax[(0, 0)].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
     #     ax[(0, 0)].errorbar(x, y, e, linestyle='None', fmt='o',  markersize=3, mfc='blue', label=r'$\hat{\theta}$', color = 'blue')
-    #     ax[(0, 0)].plot([min(x), max(x)], [theta_true['tt'], theta_true['tt']], label=r'$\theta$', color = 'black')
+    #     ax[(0, 0)].plot([min(x), max(x)], [float(theta_true['tt']), float(theta_true['tt'])], label=r'$\theta$', color = 'black')
     #     plt.setp(ax[(0, 0)], ylabel=r'$\hat{\theta_t}$')
     #
     #     # Cost
@@ -696,7 +701,7 @@ class Artist:
     #         n_bootstraps)
     #     ax[(0, 1)].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
     #     ax[(0, 1)].errorbar(x, y, e, linestyle='None', fmt='o',  markersize=3, mfc='blue', label=r'$\hat{\theta}$', color = 'blue')
-    #     ax[(0, 1)].plot([min(x), max(x)], [theta_true['c'], theta_true['c']], label=r'$\theta$', color = 'black')
+    #     ax[(0, 1)].plot([min(x), max(x)], [float(theta_true['c']), float(theta_true['c'])], label=r'$\theta$', color = 'black')
     #     plt.setp(ax[(0, 1)], ylabel=r"$\hat{\theta_c}$")
     #
     #     # VOT
@@ -706,7 +711,7 @@ class Artist:
     #         n_bootstraps)
     #     ax[(1, 0)].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
     #     ax[(1, 0)].errorbar(x, y, e, linestyle='None', fmt='o',  markersize=3, mfc='blue', label=r'$\hat{\theta}$', color = 'blue')
-    #     ax[(1, 0)].plot([min(x), max(x)], [theta_true['tt'] / theta_true['c'], theta_true['tt'] / theta_true['c']],
+    #     ax[(1, 0)].plot([min(x), max(x)], [float(theta_true['tt']) / float(theta_true['c']), float(theta_true['tt']) / float(theta_true['c'])],
     #                     label=r'$\theta$', color = 'black')
     #     plt.setp(ax[(1, 0)], ylabel=r'$\hat{\theta_t}/\hat{\theta_c}$')
     #
@@ -725,7 +730,7 @@ class Artist:
     #
     #     # Axis labels
     #     plt.show()
-    #     self.save_fig(fig=fig, filename=filename, subfolder = subfolder)
+    #     self.save_fig(fig=fig, filename=filename, subfoldername = subfoldername)
 
     def error_nonlinear_link_logit_estimation(self, filename, subfolder, theta_est:{}, vot_est:{}, theta_true:{}, N_label, n_samples: int):
 
@@ -744,7 +749,7 @@ class Artist:
             n_samples)
         ax[(0, 0)].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
         ax[(0, 0)].errorbar(x, y, e, linestyle='None', fmt='o',  markersize=3, mfc='blue', label=r'$\hat{\theta}$', color = 'blue')
-        ax[(0, 0)].plot([min(x), max(x)], [theta_true['tt'], theta_true['tt']], label=r'$\theta$', color = 'black')
+        ax[(0, 0)].plot([min(x), max(x)], [float(theta_true['tt']), float(theta_true['tt'])], label=r'$\theta$', color = 'black')
         plt.setp(ax[(0, 0)], ylabel=r'$\hat{\theta_t}$')
 
         # Cost
@@ -755,7 +760,7 @@ class Artist:
             n_samples)
         ax[(0, 1)].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
         ax[(0, 1)].errorbar(x, y, e, linestyle='None', fmt='o',  markersize=3, mfc='blue', label=r'$\hat{\theta}$', color = 'blue')
-        ax[(0, 1)].plot([min(x), max(x)], [theta_true['c'], theta_true['c']], label=r'$\theta$', color = 'black')
+        ax[(0, 1)].plot([min(x), max(x)], [float(theta_true['c']), float(theta_true['c'])], label=r'$\theta$', color = 'black')
         plt.setp(ax[(0, 1)], ylabel=r"$\hat{\theta_c}$")
 
         # VOT
@@ -765,7 +770,7 @@ class Artist:
             n_samples)
         ax[(1, 0)].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
         ax[(1, 0)].errorbar(x, y, e, linestyle='None', fmt='o',  markersize=3, mfc='blue', label=r'$\hat{\theta}$', color = 'blue')
-        ax[(1, 0)].plot([min(x), max(x)], [theta_true['tt'] / theta_true['c'], theta_true['tt'] / theta_true['c']],
+        ax[(1, 0)].plot([min(x), max(x)], [float(theta_true['tt']) / float(theta_true['c']), float(theta_true['tt']) / float(theta_true['c'])],
                         label=r'$\theta$', color = 'black')
         plt.setp(ax[(1, 0)], ylabel=r'$\hat{\theta_t}/\hat{\theta_c}$')
 
@@ -784,7 +789,7 @@ class Artist:
 
         # Axis labels
         plt.show()
-        self.save_fig(fig=fig, filename=filename, subfolder = subfolder)
+        self.save_fig(fig=fig, filename=filename, folder= subfolder)
 
 
     def vot_regularization_path(self, filename, subfolder, lambdas, vot_estimate, theta_true, errors, N_labels, color) -> None:
@@ -808,7 +813,7 @@ class Artist:
                                  , label=r'$\lambda^{\star}$')
 
             ax[pos_plot].plot([min(np.array(list(vot_estimate[i].keys()))), max(np.array(list(vot_estimate[i].keys())))]
-                              , [theta_true['tt'] / theta_true['c'], theta_true['tt'] / theta_true['c']],
+                              , [float(theta_true['tt']) / float(theta_true['c']), float(theta_true['tt']) / float(theta_true['c'])],
                               label=r'$\theta_t/\theta_c$', color='black')
 
         # Remove empty subplots
@@ -830,7 +835,7 @@ class Artist:
         fig.tight_layout()
         # fig.subplots_adjust(top=0.9, bottom=0.2)
         plt.show()
-        self.save_fig(fig=fig, filename=filename, subfolder = subfolder)
+        self.save_fig(fig=fig, filename=filename, folder= subfolder)
 
     def vot_multidays_consistency(self, filename, subfolder, labels, vot_estimates, theta_true, N_labels, colors) -> None:
         # self = plot
@@ -887,7 +892,7 @@ class Artist:
         fig.tight_layout()
         # fig.subplots_adjust(top=0.9, bottom=0.2)
         plt.show()
-        self.save_fig(fig=fig, filename=filename, subfolder = subfolder)
+        self.save_fig(fig=fig, filename=filename, folder= subfolder)
 
     def q_multidays_consistency(self, filename, subfolder, labels, q_estimates, q_true, N_labels, colors) -> None:
         # self = plot
@@ -927,7 +932,7 @@ class Artist:
             #                      , label=r'$\lambda^{\star}$')
 
             # ax[pos_plot].plot([min(np.array(list(vot_estimates[i].keys()))), max(np.array(list(vot_estimates[i].keys())))]
-            #                   , [theta_true['tt'] / theta_true['c'], theta_true['tt'] / theta_true['c']],
+            #                   , [float(theta_true['tt']) / float(theta_true['c']), float(theta_true['tt']) / float(theta_true['c'])],
             #                   label=r'$\theta_t/\theta_c$', color='black')
 
         # Remove empty subplots
@@ -949,7 +954,7 @@ class Artist:
         fig.tight_layout()
         # fig.subplots_adjust(top=0.9, bottom=0.2)
         plt.show()
-        self.save_fig(fig=fig, filename=filename, subfolder = subfolder)
+        self.save_fig(fig=fig, filename=filename, folder= subfolder)
 
     def computational_time_multidays_consistency(self, filename: str, subfolder: str, computational_times: np.array, N_labels: {}, colors: []) -> None:
         # self = plot
@@ -981,7 +986,7 @@ class Artist:
             #                      , label=r'$\lambda^{\star}$')
 
             # ax[pos_plot].plot([min(np.array(list(computational_times[i].keys()))), max(np.array(list(computational_times[i].keys())))]
-            #                   , [theta_true['tt'] / theta_true['c'], theta_true['tt'] / theta_true['c']],
+            #                   , [float(theta_true['tt']) / float(theta_true['c']), float(theta_true['tt']) / float(theta_true['c'])],
             #                   label=r'$\theta_t/\theta_c$', color='black')
 
         # Remove empty subplots
@@ -1003,7 +1008,7 @@ class Artist:
         fig.tight_layout()
         # fig.subplots_adjust(top=0.9, bottom=0.2)
         plt.show()
-        self.save_fig(fig=fig, filename=filename, subfolder = subfolder)
+        self.save_fig(fig=fig, filename=filename, folder= subfolder)
 
 
     def q_estimation_convergence(self, filename, subfolder, results_norefined_df, results_refined_df, methods):
@@ -1055,7 +1060,7 @@ class Artist:
 
         fig.tight_layout()
 
-        # fig.savefig(self.folder + '/' + subfolder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
+        # fig.savefig(self.folder + '/' + subfoldername + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
 
         plt.show()
 
@@ -1129,7 +1134,14 @@ class Artist:
 
         return fig_loss, fig_vot, fig_legend
 
-    def bilevel_optimization_convergence(self, results_refined_df: pd.DataFrame, results_norefined_df: pd.DataFrame, simulated_data: bool, filename: str, subfolder: str, methods: [str], theta_true = None):
+    def convergence(self,
+                    results_refined_df: pd.DataFrame,
+                    results_norefined_df: pd.DataFrame,
+                    filename: str,
+                    methods: [str],
+                    simulated_data: bool = False,
+                    folder: str = None,
+                    theta_true = None):
 
      '''
      Plot convergence to the true ratio of theta and the reduction of the objective function over iterations
@@ -1138,16 +1150,20 @@ class Artist:
 
      '''
 
-     # Plotting
+     if folder is None:
+         folder = self.folder
 
-     fig = plt.figure()
+     fig = plt.figure(figsize=(7,6) )
      # ax = fig.subplots(nrows=self.dim_subplots[0], ncols=self.dim_subplots[1])
-     ax = {}
-     ax[(0, 0)] = plt.subplot(self.dim_subplots[0], self.dim_subplots[1], 1)
-     ax[(0, 1)] = plt.subplot(self.dim_subplots[0], self.dim_subplots[1], 2, sharey=ax[(0, 0)])
 
-     ax[(1, 0)] = plt.subplot(self.dim_subplots[0], self.dim_subplots[1], 3)
-     ax[(1, 1)] = plt.subplot(self.dim_subplots[0], self.dim_subplots[1], 4, sharey=ax[(1, 0)])
+     dim_subplots = (2, 2)
+
+     ax = {}
+     ax[(0, 0)] = plt.subplot(dim_subplots[0], dim_subplots[1], 1)
+     ax[(0, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 2, sharey=ax[(0, 0)])
+
+     ax[(1, 0)] = plt.subplot(dim_subplots[0], dim_subplots[1], 3)
+     ax[(1, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 4, sharey=ax[(1, 0)])
 
 
      # To write with scienfic notation in y axis
@@ -1203,7 +1219,7 @@ class Artist:
             ax[(0,1)].plot(results_refined_df['iter'], results_refined_df['vot'])
 
          # ax[(0,1)].set_yticks(np.arange(results_refined_df['vot'].min(), results_refined_df['vot'].max(), 0.2))
-         ax[(0,1)].axhline(theta_true['tt']/theta_true['c'], linestyle='dashed')
+         ax[(0,1)].axhline(float(theta_true['tt'])/float(theta_true['c']), linestyle='dashed')
          # ax[(0, 1)].yaxis.set_major_formatter(yfmt2)
          ax[(0, 1)].tick_params(labelbottom=False)
          # ax[(0,1)].yaxis.major.formatter._useMathText = True
@@ -1263,13 +1279,14 @@ class Artist:
         ax[(0, 1)].tick_params(labelbottom=False)
         # ax[(0,1)].yaxis.set_major_formatter(yfmt2)
 
-        if theta_true is None:
+        if theta_true is None or 'tt' not in theta_true.keys():
             #Fresno case
             ax[(0, 0)].axhline(0, linestyle='dashed')
             ax[(0, 1)].axhline(0, linestyle='dashed')
 
         else:
-            ax[(0, 0)].axhline(theta_true['tt'], linestyle='dashed')
+            ax[(0, 0)].axhline(float(theta_true['tt']), linestyle='dashed')
+            ax[(0, 1)].axhline(float(theta_true['tt']), linestyle='dashed')
 
      ax[(0,0)].set_xticks(np.arange(results_norefined_df['iter'].min(), results_norefined_df['iter'].max()+1, int(np.ceil((results_norefined_df['iter'].max()-results_norefined_df['iter'].min())/10))))
 
@@ -1316,17 +1333,32 @@ class Artist:
      ax[(1, 1)].set_xlabel("iterations (" + methods[1] + ")")
      # ax[(1, 1)].yaxis.set_major_formatter(yfmt4)
 
+     for axi in fig.get_axes():
+         axi.tick_params(axis='y', labelsize=14)
+         axi.tick_params(axis='x', labelsize=14)
+         axi.xaxis.label.set_size(14)
+         axi.yaxis.label.set_size(14)
 
+     for axi in [ax[(1,0)],ax[(1,1)]]:
+         yfmt = ScalarFormatterForceFormat()
+         yfmt.set_powerlimits((0, 0))
+         axi.yaxis.set_major_formatter(yfmt)
 
      fig.tight_layout()
 
-     fig.savefig(self.folder + '/' + subfolder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
-
-     plt.show()
+     if folder is not None:
+        fig.savefig(folder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
 
      return fig
     
-    def bilevel_optimization_convergence_small_networks(self, results_df: pd.DataFrame, filename: str, subfolder: str, methods: [str], colors, labels, theta_true = None):
+    def convergence_networks_experiment(self,
+                                        results: Union[Dict,pd.DataFrame],
+                                        filename: str,
+                                        methods: [str],
+                                        colors,
+                                        labels,
+                                        folder: str = None,
+                                        theta_true = None):
 
      '''
      Plot convergence to the true ratio of theta and the reduction of the objective function over iterations
@@ -1335,46 +1367,47 @@ class Artist:
 
      '''
 
-     # Plotting
+     if folder is None:
+         folder = self.folder
 
-     fig = plt.figure()
+     dim_subplots = (2, 2)
+
+     fig = plt.figure(figsize=(7,6))
      # ax = fig.subplots(nrows=self.dim_subplots[0], ncols=self.dim_subplots[1])
      ax = {}
-     ax[(0, 0)] = plt.subplot(self.dim_subplots[0], self.dim_subplots[1], 1)
-     # ax[(0, 1)] = plt.subplot(self.dim_subplots[0], self.dim_subplots[1], 2, sharey=ax[(0, 0)])
-     ax[(0, 1)] = plt.subplot(self.dim_subplots[0], self.dim_subplots[1], 2)
+     ax[(0, 0)] = plt.subplot(dim_subplots[0], dim_subplots[1], 1)
+     ax[(0, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 2, sharey=ax[(0, 0)])
+     # ax[(0, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 2)
 
-     ax[(1, 0)] = plt.subplot(self.dim_subplots[0], self.dim_subplots[1], 3)
-     # ax[(1, 1)] = plt.subplot(self.dim_subplots[0], self.dim_subplots[1], 4, sharey=ax[(1, 0)])
-     ax[(1, 1)] = plt.subplot(self.dim_subplots[0], self.dim_subplots[1], 4)
+     ax[(1, 0)] = plt.subplot(dim_subplots[0],dim_subplots[1], 3)
+     ax[(1, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 4, sharey=ax[(1, 0)])
+     # ax[(1, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 4)
 
      matplotlib.rcParams['text.usetex'] = True
-
-
 
      # i) Theta estimates in the two plots in the top
 
     # - No refined
 
-     for network, color, label in zip(results_df.keys(),colors, labels):
+     for network, color, label in zip(results.keys(), colors, labels):
 
-        results_norefined_df = results_df[network][results_df[network]['stage'] == 'norefined']
+        results_norefined_df = results[network][results[network]['stage'] == 'norefined']
 
         ax[(0,0)].plot(results_norefined_df['iter'], results_norefined_df['theta_tt'], color = color, label = label)
 
-     ax[(0,0)].axhline(theta_true['tt'], linestyle='dashed')
+     ax[(0,0)].axhline(float(theta_true['tt']), linestyle='dashed')
      ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}$')
      # ax[(0, 0)].set_ticklabels([])
 
      ax[(0, 0)].tick_params(labelbottom=False)
 
      # - Refined
-     for network, color, label in zip(results_df.keys(), colors, labels):
+     for network, color, label in zip(results.keys(), colors, labels):
 
-        results_refined_df = results_df[network][results_df[network]['stage'] == 'refined']
+        results_refined_df = results[network][results[network]['stage'] == 'refined']
         ax[(0, 1)].plot(results_refined_df['iter'], results_refined_df['theta_tt'], color = color)
 
-     ax[(0, 1)].axhline(theta_true['tt'], linestyle='dashed')
+     ax[(0, 1)].axhline(float(theta_true['tt']), linestyle='dashed')
      ax[(0, 1)].tick_params(labelbottom=False)
      # ax[(0, 1)].yaxis.set_ticklabels([])
      # plt.setp(ax[(0, 1)].get_yticklabels(), visible=False)
@@ -1388,9 +1421,9 @@ class Artist:
      # ii) Objective function values
 
      # - No refined
-     for network, color, label in zip(results_df.keys(), colors, labels):
+     for network, color, label in zip(results.keys(), colors, labels):
 
-        results_norefined_df = results_df[network][results_df[network]['stage'] == 'norefined']
+        results_norefined_df = results[network][results[network]['stage'] == 'norefined']
 
         ax[(1,0)].plot(results_norefined_df['iter'], results_norefined_df['objective'], color = color, label = label)
 
@@ -1405,8 +1438,8 @@ class Artist:
 
 
      # - Refined
-     for network, color, label in zip(results_df.keys(),colors, labels):
-         results_refined_df = results_df[network][results_df[network]['stage'] == 'refined']
+     for network, color, label in zip(results.keys(), colors, labels):
+         results_refined_df = results[network][results[network]['stage'] == 'refined']
 
          ax[(1,1)].plot(results_refined_df['iter'], results_refined_df['objective'], color = color, label = label)
 
@@ -1426,23 +1459,36 @@ class Artist:
      # ax[(1, 1)].yaxis.set_ticklabels([])
      # ax[(1, 1)].yaxis.set_major_formatter(yfmt4)
 
+     # Change color style to white and black in box plots
+     for axi in [ax[(0, 0)], ax[(0, 1)], ax[(1, 0)], ax[(1, 1)]]:
+         axi.tick_params(axis='y', labelsize=12)
+         axi.tick_params(axis='x', labelsize=12)
+         axi.xaxis.label.set_size(12)
+         axi.yaxis.label.set_size(12)
+
      # Legend
      lines, labels = ax[(1, 1)].get_legend_handles_labels()
      # g.fig.legend(handles=handles, labels=labels, loc='lower center', ncol=4)
-     fig.legend(lines, labels, loc='upper center', ncol=4
+     fig.legend(lines, labels, loc='upper center', ncol=4, prop={'size': 12}
                 , bbox_to_anchor=[0.52, -0.25]
                 , bbox_transform=BlendedGenericTransform(fig.transFigure,  ax[(1, 1)].transAxes))
 
      fig.tight_layout()
 
-     fig.savefig(self.folder + '/' + subfolder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
+     fig.savefig(folder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
 
      plt.show()
 
      return fig
 
-    def bilevel_optimization_convergence_sioux_falls(self, results_df: pd.DataFrame, colors, labels, filename: str,
-                                                     subfolder: str, methods: [str], theta_true=None):
+    def convergence_network_experiment(self,
+                                       results_df: Dict,
+                                       colors,
+                                       labels,
+                                       filename: str,
+                                       methods: [str],
+                                       folder: str = None,
+                                       theta_true=None):
 
         '''
         Plot convergence to the true ratio of theta and the reduction of the objective function over iterations
@@ -1451,16 +1497,19 @@ class Artist:
 
         '''
 
-        # Plotting
+        if folder is None:
+            folder = self.folder
 
-        fig = plt.figure()
-        # ax = fig.subplots(nrows=self.dim_subplots[0], ncols=self.dim_subplots[1])
+        fig = plt.figure(figsize=(7,6))
+
+        dim_subplots = (2, 2)
+
         ax = {}
-        ax[(0, 0)] = plt.subplot(self.dim_subplots[0], self.dim_subplots[1], 1)
-        ax[(0, 1)] = plt.subplot(self.dim_subplots[0], self.dim_subplots[1], 2, sharey=ax[(0, 0)])
+        ax[(0, 0)] = plt.subplot(dim_subplots[0], dim_subplots[1], 1)
+        ax[(0, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 2, sharey=ax[(0, 0)])
 
-        ax[(1, 0)] = plt.subplot(self.dim_subplots[0], self.dim_subplots[1], 3)
-        ax[(1, 1)] = plt.subplot(self.dim_subplots[0], self.dim_subplots[1], 4, sharey=ax[(1, 0)])
+        ax[(1, 0)] = plt.subplot(dim_subplots[0], dim_subplots[1], 3)
+        ax[(1, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 4, sharey=ax[(1, 0)])
 
         matplotlib.rcParams['text.usetex'] = True
 
@@ -1475,7 +1524,11 @@ class Artist:
                             results_norefined_df['theta_tt'] / results_norefined_df['theta_c'], color=color,
                             label=label)
 
-        ax[(0, 0)].axhline(theta_true['tt'] / theta_true['c'], linestyle='dashed', color='black')
+            ax[(0, 0)].axvline(results_norefined_df['objective'].argmin()+1, linestyle='dotted', color=color)
+            ax[(1, 0)].axvline(results_norefined_df['objective'].argmin() + 1, linestyle='dotted', color=color)
+
+        ax[(0, 0)].axhline(float(theta_true['tt']) / float(theta_true['c']), linestyle='dashed', color = 'black')
+
         ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}/\hat{\theta_c}$')
         # ax[(0, 0)].set_ticklabels([])
 
@@ -1484,9 +1537,15 @@ class Artist:
         # - Refined
         for scenario, color, label in zip(results_df.keys(), colors, labels):
             results_refined_df = results_df[scenario][results_df[scenario]['stage'] == 'refined']
-            ax[(0, 1)].plot(results_refined_df['iter'], results_refined_df['theta_tt'], color=color, label=label)
+            # ax[(0, 1)].plot(results_refined_df['iter'], results_refined_df['theta_tt'], color=color, label=label)
+            ax[(0, 1)].plot(results_refined_df['iter'],
+                            results_refined_df['theta_tt'] / results_refined_df['theta_c'], color=color,
+                            label=label)
+            ax[(0, 1)].axvline(results_refined_df['objective'].argmin() + len(results_refined_df)+1, linestyle='dotted', color=color)
+            ax[(1, 1)].axvline(results_refined_df['objective'].argmin() + len(results_refined_df) + 1,
+                               linestyle='dotted', color=color)
 
-        ax[(0, 1)].axhline(theta_true['tt'], linestyle='dashed', color='black')
+        ax[(0, 1)].axhline(float(theta_true['tt'])/float(theta_true['c']), linestyle='dashed', color='black')
         ax[(0, 1)].tick_params(labelbottom=False)
         # ax[(0, 1)].yaxis.set_ticklabels([])
         plt.setp(ax[(0, 1)].get_yticklabels(), visible=False)
@@ -1533,22 +1592,40 @@ class Artist:
         # ax[(1, 1)].yaxis.set_ticklabels([])
         # ax[(1, 1)].yaxis.set_major_formatter(yfmt4)
 
+        for axi in [ax[(0, 0)], ax[(0, 1)], ax[(1, 0)], ax[(1, 1)]]:
+            axi.tick_params(axis='y', labelsize=12)
+            axi.tick_params(axis='x', labelsize=12)
+            axi.xaxis.label.set_size(12)
+            axi.yaxis.label.set_size(12)
+
+        for axi in [ax[(1, 0)], ax[(1, 1)]]:
+            yfmt = ScalarFormatterForceFormat()
+            yfmt.set_powerlimits((0, 0))
+            axi.yaxis.set_major_formatter(yfmt)
+
         # Legend
         lines, labels = ax[(1, 1)].get_legend_handles_labels()
         # g.fig.legend(handles=handles, labels=labels, loc='lower center', ncol=4)
-        fig.legend(lines, labels, loc='upper center', ncol=2
+        fig.legend(lines, labels, loc='upper center', ncol=2, prop={'size': 12}
                    , bbox_to_anchor=[0.52, -0.25]
                    , bbox_transform=BlendedGenericTransform(fig.transFigure, ax[(1, 1)].transAxes))
 
         fig.tight_layout()
 
-        fig.savefig(self.folder + '/' + subfolder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
+        fig.savefig(folder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
 
         plt.show()
 
         return fig
 
-    def bilevel_optimization_convergence_yang(self, results_df: pd.DataFrame, colors, labels, filename: str, subfolder: str, methods: [str], theta_true = None):
+    def convergence_experiment_yang(self,
+                                    results_df: Union[Dict,pd.DataFrame],
+                                    colors,
+                                    labels,
+                                    filename: str,
+                                    methods: [str],
+                                    folder: str = None,
+                                    theta_true = None):
 
      '''
      Plot convergence to the true ratio of theta and the reduction of the objective function over iterations
@@ -1557,18 +1634,21 @@ class Artist:
 
      '''
 
-     # Plotting
+     if folder is None:
+         folder = self.folder
 
-     fig = plt.figure()
+     fig = plt.figure(figsize=(7,6))
      # ax = fig.subplots(nrows=self.dim_subplots[0], ncols=self.dim_subplots[1])
      ax = {}
-     ax[(0, 0)] = plt.subplot(self.dim_subplots[0], self.dim_subplots[1], 1)
-     ax[(0, 1)] = plt.subplot(self.dim_subplots[0], self.dim_subplots[1], 2, sharey=ax[(0, 0)])
+     dim_subplots = (2, 2)
 
-     ax[(1, 0)] = plt.subplot(self.dim_subplots[0], self.dim_subplots[1], 3)
-     ax[(1, 1)] = plt.subplot(self.dim_subplots[0], self.dim_subplots[1], 4, sharey=ax[(1, 0)])
+     ax[(0, 0)] = plt.subplot(dim_subplots[0], dim_subplots[1], 1)
+     ax[(0, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 2, sharey=ax[(0, 0)])
 
-     matplotlib.rcParams['text.usetex'] = True
+     ax[(1, 0)] = plt.subplot(dim_subplots[0], dim_subplots[1], 3)
+     ax[(1, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 4, sharey=ax[(1, 0)])
+
+     # matplotlib.rcParams['text.usetex'] = True
 
 
 
@@ -1582,7 +1662,7 @@ class Artist:
 
         ax[(0,0)].plot(results_norefined_df['iter'], results_norefined_df['theta_tt'], color = color, label = label)
 
-     ax[(0,0)].axhline(theta_true['tt'], linestyle='dashed', color = 'black')
+     ax[(0,0)].axhline(float(theta_true['tt']), linestyle='dashed', color = 'black')
      ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}$')
      # ax[(0, 0)].set_ticklabels([])
 
@@ -1590,7 +1670,7 @@ class Artist:
 
      trans = transforms.blended_transform_factory(
          ax[(0,0)].get_yticklabels()[0].get_transform(), ax[(0,0)].transData)
-     # ax[(0,0)].text(0, theta_true['tt'], "{:.0f}".format(theta_true['tt']), transform=trans,ha="right", va="center", fontdict=None)
+     # ax[(0,0)].text(0, float(theta_true['tt']), "{:.0f}".format(float(theta_true['tt'])), transform=trans,ha="right", va="center", fontdict=None)
 
      # - Refined
      for scenario,color, label in zip(results_df.keys(),colors, labels):
@@ -1598,10 +1678,10 @@ class Artist:
         results_refined_df = results_df[scenario][results_df[scenario]['stage'] == 'refined']
         ax[(0, 1)].plot(results_refined_df['iter'], results_refined_df['theta_tt'], color = color, label = label)
 
-     ax[(0, 1)].axhline(theta_true['tt'], linestyle='dashed', color = 'black')
+     ax[(0, 1)].axhline(float(theta_true['tt']), linestyle='dashed', color = 'black')
      ax[(0, 1)].tick_params(labelbottom=False)
      # ax[(0, 1)].yaxis.set_ticklabels([])
-     plt.setp(ax[(0, 1)].get_yticklabels(), visible=False)
+     # plt.setp(ax[(0, 1)].get_yticklabels(), visible=False)
 
 
      # ax[(0,1)].yaxis.set_major_formatter(yfmt2)
@@ -1613,7 +1693,7 @@ class Artist:
      ax[(0, 1)].set_xticks(np.arange(results_refined_df['iter'].min(), results_refined_df['iter'].max() + 1, int(
          np.ceil((results_refined_df['iter'].max() - results_refined_df['iter'].min()) / 10))))
 
-     ax[(0, 0)].set_yticks([-15, -10, -5, -1])
+     # ax[(0, 0)].set_yticks([-15, -10, -5, -1])
 
 
      # ii) Objective function values
@@ -1650,31 +1730,47 @@ class Artist:
          np.ceil((results_refined_df['iter'].max() - results_refined_df['iter'].min()) / 10))))
 
      ax[(1, 1)].set_xlabel("iterations (" + methods[1] + ")")
-     plt.setp(ax[(1, 1)].get_yticklabels(), visible=False)
+     #plt.setp(ax[(1, 1)].get_yticklabels(), visible=False)
      # ax[(1, 1)].yaxis.set_ticklabels([])
      # ax[(1, 1)].yaxis.set_major_formatter(yfmt4)
+
+     # Change color style to white and black in box plots
+     for axi in [ax[(0, 0)], ax[(0, 1)], ax[(1, 0)], ax[(1, 1)]]:
+         axi.tick_params(axis='y', labelsize=12)
+         axi.tick_params(axis='x', labelsize=12)
+         axi.xaxis.label.set_size(12)
+         axi.yaxis.label.set_size(12)
+
+     for axi in [ax[(1,0)],ax[(1,1)]]:
+         yfmt = ScalarFormatterForceFormat()
+         yfmt.set_powerlimits((0, 0))
+         axi.yaxis.set_major_formatter(yfmt)
 
      # Legend
      lines, labels = ax[(1, 1)].get_legend_handles_labels()
      # g.fig.legend(handles=handles, labels=labels, loc='lower center', ncol=4)
-     fig.legend(lines, labels, loc='upper center', ncol=2
+     fig.legend(lines, labels, loc='upper center', ncol=2, prop={'size': 12}
                 , bbox_to_anchor=[0.52, -0.25]
                 , bbox_transform=BlendedGenericTransform(fig.transFigure, ax[(1, 1)].transAxes))
 
      fig.tight_layout()
 
-     fig.savefig(self.folder + '/' + subfolder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
-
-     plt.show()
+     fig.savefig(folder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
 
      return fig
 
 
-    def monotonocity_traffic_count_functions(self, filename, subfolder, x_bar, traffic_count_links_df: pd.DataFrame):
+    def monotonocity_traffic_count_functions(self,
+                                             filename,
+                                             traffic_count_links_df: pd.DataFrame,
+                                             folder: str = None):
+
+        if folder is None:
+            folder = self.folder
 
         matplotlib.rcParams['text.usetex'] = True
 
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(5, 4))
 
         # Plot
 
@@ -1697,13 +1793,15 @@ class Artist:
         # Set font sizes
         for axi in reversed(fig.get_axes()):
 
-            axi.xaxis.get_label().set_fontsize(18)
-            axi.yaxis.get_label().set_fontsize(18)
+            axi.tick_params(axis='y', labelsize=12)
+            axi.tick_params(axis='x', labelsize=12)
+            axi.xaxis.label.set_size(12)
+            axi.yaxis.label.set_size(12)
             # axi.legend(prop=dict(size=18))
 
-            for label in (axi.get_xticklabels() + axi.get_yticklabels()):
-                # label.set_fontname('Arial')
-                label.set_fontsize(16)
+            # for label in (axi.get_xticklabels() + axi.get_yticklabels()):
+            #     # label.set_fontname('Arial')
+            #     label.set_fontsize(16)
 
         # Legend
         lines, labels = ax.get_legend_handles_labels()
@@ -1716,19 +1814,27 @@ class Artist:
         # plt.legend()
         fig.tight_layout()
 
-        plt.show()
 
-        fig.savefig(self.folder + '/' + subfolder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
+        fig.savefig(folder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
 
         return fig
 
-    def pseudoconvexity_loss_function_small_networks_lite(self, filename, subfolder, f_vals: {}, x_range, theta_true, colors, labels):
+    def pseudoconvexity_loss_function_small_networks_lite(self,
+                                                          filename,
+                                                          f_vals: {},
+                                                          x_range,
+                                                          theta_true,
+                                                          colors,
+                                                          labels,                                             folder: str = None):
 
-        # TODO: Interpolate curves so they are smoother
+        if folder is None:
+            folder = self.folder
 
         matplotlib.rcParams['text.usetex'] = True
 
-        fig, ax = plt.subplots(nrows=2, ncols=2)
+        dim_subplots = (2, 2)
+
+        fig, ax = plt.subplots(nrows=dim_subplots[0], ncols=dim_subplots[1], figsize=(7,6))
         # fig.suptitle("Analysis of  (strict) quasiconvexity of L2 norm"
         #              "\n(theta_true = " + str(theta_true) + ")")
 
@@ -1739,7 +1845,7 @@ class Artist:
 
 
         for i, j, k, color, label in zip(f_vals.keys(), f_vals.values(), range(0, len(f_vals)), colors, labels):
-            pos_plot = int(np.floor(k / self.dim_subplots[0])), int(k % self.dim_subplots[1])
+            pos_plot = int(np.floor(k / dim_subplots[0])), int(k % dim_subplots[1])
             ax[pos_plot].plot(x_range, j, color=color, label=label)
             ax[pos_plot].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
             ax[pos_plot].axhline(y=0, color=color, linestyle='dashed', linewidth=0.5)
@@ -1768,145 +1874,34 @@ class Artist:
             linei, labeli = axi.get_legend_handles_labels()
             lines = linei + lines
             labels = labeli + labels
+            axi.tick_params(axis='y', labelsize=12)
+            axi.tick_params(axis='x', labelsize=12)
+            axi.xaxis.label.set_size(12)
+            axi.yaxis.label.set_size(12)
 
-
-        fig.legend(lines, labels, loc='upper center', ncol=4
+        fig.legend(lines, labels, loc='upper center', ncol=4, prop={'size': 12}
                    , bbox_to_anchor=[0.52, -0.25]
                    , bbox_transform=BlendedGenericTransform(fig.transFigure, ax.flatten()[-2].transAxes))
 
         fig.tight_layout()
 
-        plt.show()
+        fig.savefig(folder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
 
-        fig.savefig(self.folder + '/' + subfolder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
+    def pseudoconvexity_loss_function_small_networks(self,
+                                                     filename,
+                                                     f_vals,
+                                                     grad_f_vals,
+                                                     hessian_f_vals,
+                                                     x_range,
+                                                     theta_true,
+                                                     alpha_bh = 0,                                             folder: str = None):
 
-    def pseudoconvexity_loss_function_small_networks(self, filename, subfolder, f_vals: {}, grad_f_vals: {}, hessian_f_vals: {}, x_range, theta_true, colors):
-
-        # TODO: Interpolate curves so they are smoother
-
-        matplotlib.rcParams['text.usetex'] = True
-
-        fig, ax = plt.subplots(nrows=2, ncols=2)
-        # fig.suptitle("Analysis of  (strict) quasiconvexity of L2 norm"
-        #              "\n(theta_true = " + str(theta_true) + ")")
-
-        # Plot objective function over an interval
-        # ax[(0, 0)].set_title("\n\nObj. function (L2)")
-        ax[(0, 0)].set_title("\n\n")
-        y_vals = f_vals
-        ax[(0, 0)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
-        ax[(0, 0)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
-        ax[(0, 0)].set_ylabel(r"$n^{-1} \  ||x(\hat{\theta})-\bar{x}||_2^2$")
-        ax[(0, 0)].set_xticklabels([])
-
-        for color, scenario in zip(colors, f_vals.keys()):
-            ax[(0, 0)].plot(x_range, f_vals[scenario], color=color, label = scenario)
-
-        # r"$\hat{\theta}$"
-
-        # ax[(0, 1)].set_title("Gradient L2-norm")
-        # y_vals = [np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1)) for x_val in x_range]
-        y_vals = grad_f_vals
-        ax[(0, 1)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
-        ax[(0, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
-        ax[(0, 1)].set_ylabel(r"$n^{-1} \ \nabla_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)$")
-        ax[(0, 1)].set_xticklabels([])
-
-        for color, scenario in zip(colors, f_vals.keys()):
-            ax[(0, 1)].plot(x_range, y_vals[scenario], color=color, label = scenario)
-
-
-        # ax[(0, 2)].set_title("Sign Gradient L2-norm")
-        # y_vals = [np.sign(np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1))) for x_val in x_range]
-
-
-        ax[(1, 0)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
-        ax[(1, 0)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
-        ax[(1, 0)].set_ylabel(r"$n^{-1} \ \textmd{sign} (\nabla_{\theta} ||x(\hat{\theta})-\bar{x}||_2^2 )$")
-
-        for color, scenario in zip(colors, y_vals.keys()):
-            y_vals[scenario] = np.sign(y_vals[scenario])
-            ax[(1, 0)].plot(x_range, y_vals[scenario], color=color, label = scenario)
-
-        # ax[(1, 0)].set_xticklabels([])
-
-        # Hessian L2-norm
-        # ax[(1, 3)].set_title("Hessian L2 norm")
-
-        # J = gradients_l2norm(theta, deltatt, q, linkflow)
-        # H = np.sum(q * hessian_sigmoid(theta=theta, deltatt=deltatt), axis=1)
-        # R = np.sum(objective_function_sigmoids_system(theta, q, deltatt), axis=1) - linkflow.T
-
-        # [np.sum(q * hessian_sigmoid(theta=x_val, deltatt=deltatt), axis=1) for x_val in x_range]
-
-        # y_vals = hessian_f_vals
-        # # y_vals = np.sign(y_vals)
-        # ax[(1, 1)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
-        # ax[(1, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
-        # ax[(1, 1)].plot(x_range, y_vals, color='red', )
-        # ax[(1, 1)].set_ylabel(r"$n^{-1} \ \nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2) $")
-
-        # Sign Hessian L2-norm
-
-        # y_vals = hessian_f_vals
-        # y_vals = np.sign(y_vals)
-        ax[(1, 1)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
-        ax[(1, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
-        ax[(1, 1)].set_ylabel(r"$n^{-1} \  \textmd{sign} (\nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)) $")
-
-        for color, scenario in zip(colors, f_vals.keys()):
-            y_vals[scenario] = np.sign(hessian_f_vals[scenario])
-            ax[(1, 1)].plot(x_range, y_vals[scenario], color=color, label = scenario)
-
-
-        # ax[(0, 2)].set_title("Hessian L2-norm")
-        # y_vals = [np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1)) for x_val in x_range]
-        # ax[(0,1)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
-        # ax[(0,1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
-        # ax[(0,1)].plot(x_range, y_vals,color='red')
-
-        # #Plot sigmoid system
-        # ax[(1,0)].set_title("L1 norm")
-        # y_vals = [np.mean(np.abs(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)) for x_val in x_range]
-        # ax[(1,0)].plot(x_range, y_vals,color = 'red')
-        # ax[(1,0)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
-        # ax[(1,0)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
-        # ax[(1,0)].set_title("Sigmoid system")
-        # ax[(0, 0)].ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
-        # ax[(0, 1)].ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
-        # ax[(1, 0)].ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
-        # ax[(1, 1)].ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
-
-
-        # set labels
-        plt.setp(ax[-1, :], xlabel=r"$\hat{\theta}$")
-        # plt.setp(ax[:, 0], ylabel=r"$\theta_i$")
-
-
-
-
-
-        # Legend
-        lines, labels = fig.axes.get_legend_handles_labels()
-        fig.legend(lines, labels, loc='upper center', ncol=4
-                   , bbox_to_anchor=[0.52, -0.25]
-                   , bbox_transform=BlendedGenericTransform(fig.transFigure, ax.flatten()[-2].transAxes))
-
-        fig.tight_layout()
-
-        plt.show()
-
-
-
-        fig.savefig(self.folder + '/' + subfolder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
-
-    def pseudoconvexity_loss_function_small_networks(self, filename, subfolder, f_vals, grad_f_vals, hessian_f_vals, x_range, theta_true, alpha_bh = 0):
-
-        # TODO: Interpolate curves so they are smoother
+        if folder is None:
+            folder = self.folder
 
         matplotlib.rcParams['text.usetex'] = True
 
-        fig, ax = plt.subplots(nrows=2, ncols=2)
+        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(7,6))
         # fig.suptitle("Analysis of  (strict) quasiconvexity of L2 norm"
         #              "\n(theta_true = " + str(theta_true) + ")")
 
@@ -1918,7 +1913,7 @@ class Artist:
         ax[(0, 0)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
         ax[(0, 0)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
         ax[(0, 0)].set_ylabel(r"$n^{-1} \  ||x(\hat{\theta})-\bar{x}||_2^2$")
-        ax[(0, 0)].set_xticklabels([])
+        ax[(0, 0)].set_xticklabels([], fontsize=12)
 
         # r"$\hat{\theta}$"
 
@@ -1929,7 +1924,7 @@ class Artist:
         ax[(0, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
         ax[(0, 1)].plot(x_range, y_vals, color='red')
         ax[(0, 1)].set_ylabel(r"$n^{-1} \ \nabla_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)$")
-        ax[(0, 1)].set_xticklabels([])
+        ax[(0, 1)].set_xticklabels([], fontsize=12)
 
 
 
@@ -1940,7 +1935,7 @@ class Artist:
         ax[(1, 0)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
         ax[(1, 0)].plot(x_range, y_vals, color='red')
         ax[(1, 0)].set_ylabel(r"$n^{-1} \ \textmd{sign} (\nabla_{\theta} ||x(\hat{\theta})-\bar{x}||_2^2 )$")
-        ax[(1, 0)].set_xticks(np.arange(int(round(min(x_range))), int(round(max(x_range)))+0.1, 5))
+        ax[(1, 0)].set_xticks(np.arange(int(round(min(x_range))), int(round(max(x_range)))+0.1, 5), fontsize=12)
         # ax[(1, 0)].set_xticklabels([])
 
         # Hessian L2-norm
@@ -1968,7 +1963,7 @@ class Artist:
         ax[(1, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
         ax[(1, 1)].plot(x_range, y_vals, color='red', )
         ax[(1, 1)].set_ylabel(r"$n^{-1} \  \textmd{sign} (\nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)) $")
-        ax[(1, 1)].set_xticks(np.arange(int(round(min(x_range))), int(round(max(x_range)))+0.1, 5))
+        ax[(1, 1)].set_xticks(np.arange(int(round(min(x_range))), int(round(max(x_range)))+0.1, 5), fontsize=12)
 
 
         # ax[(0, 2)].set_title("Hessian L2-norm")
@@ -1998,6 +1993,11 @@ class Artist:
             linei, labeli = axi.get_legend_handles_labels()
             lines = linei + lines
             labels = labeli + labels
+            axi.tick_params(axis='y', labelsize=12)
+            axi.tick_params(axis='x', labelsize=12)
+            axi.xaxis.label.set_size(12)
+            axi.yaxis.label.set_size(12)
+
 
         # set labels
         plt.setp(ax[-1, :], xlabel=r"$\hat{\theta}$")
@@ -2009,18 +2009,24 @@ class Artist:
 
         fig.tight_layout()
 
-        plt.show()
+        fig.savefig(folder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
 
-        fig.savefig(self.folder + '/' + subfolder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
+    def coordinatewise_pseudoconvexity_loss_function(self,
+                                                     filename,
+                                                     results_df,
+                                                     x_range,
+                                                     theta_true,
+                                                     colors,
+                                                     labels,
+                                                     folder: str = None,
+                                                     xticks = None):
 
-
-    def coordinatewise_pseudoconvexity_loss_function(self, filename, subfolder, results_df, x_range, theta_true, colors, labels):
-
-        # TODO: Interpolate curves so they are smoother
+        if folder is None:
+            folder = self.folder
 
         matplotlib.rcParams['text.usetex'] = True
 
-        fig, ax = plt.subplots(nrows=2, ncols=2)
+        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(7,6) )
         # fig.suptitle("Analysis of  (strict) quasiconvexity of L2 norm"
         #              "\n(theta_true = " + str(theta_true) + ")")
 
@@ -2123,9 +2129,15 @@ class Artist:
             yfmt = ScalarFormatterForceFormat()
             yfmt.set_powerlimits((0, 0))
             axi.yaxis.set_major_formatter(yfmt)
+            if xticks is not None:
+                axi.set_xticks(xticks)
             linei, labeli = axi.get_legend_handles_labels()
             lines = linei + lines
             labels = labeli + labels
+            axi.tick_params(axis='y', labelsize=12)
+            axi.tick_params(axis='x', labelsize=12)
+            axi.xaxis.label.set_size(12)
+            axi.yaxis.label.set_size(12)
 
         # # Set font sizes
         # for axi in fig.get_axes():
@@ -2140,16 +2152,13 @@ class Artist:
 
         # set labels
         plt.setp(ax[-1, :], xlabel=r"$\hat{\theta}$")
-        ax[(0, 0)].set_xticks([-15, -10, -5, 0, 5, 10,15])
-        ax[(0, 1)].set_xticks([-15, -10, -5, 0, 5, 10,15])
-        ax[(1, 0)].set_xticks([-15, -10, -5, 0, 5, 10,15])
-        ax[(1, 1)].set_xticks([-15, -10, -5, 0, 5, 10,15])
+
         # plt.setp(ax[:, 0], ylabel=r"$\theta_i$")
 
         # Legend
         lines, labels = ax[(1, 1)].get_legend_handles_labels()
         # g.fig.legend(handles=handles, labels=labels, loc='lower center', ncol=4)
-        fig.legend(lines, labels, loc='upper center', ncol=2
+        fig.legend(lines, labels, loc='upper center', ncol=2, prop={'size': 12}
                    , bbox_to_anchor=[0.52, -0.25]
                    , bbox_transform=BlendedGenericTransform(fig.transFigure, ax[(1, 1)].transAxes))
 
@@ -2157,18 +2166,28 @@ class Artist:
 
         plt.show()
 
-        fig.savefig(self.folder + '/' + subfolder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
+        fig.savefig(folder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
 
-    def pseudoconvexity_loss_function(self, filename, subfolder, f_vals, grad_f_vals, hessian_f_vals, x_range, theta_true, color = None):
+    def pseudoconvexity_loss_function(self,
+                                      filename,
+                                      f_vals,
+                                      x_range,
+                                      xticks,
+                                      theta_true=0,
+                                      folder: str = None,
+                                      grad_f_vals=None,
+                                      hessian_f_vals=None,
+                                      color = None):
 
-        # TODO: Interpolate curves so they are smoother
+        if folder is None:
+            folder = self.folder
 
         matplotlib.rcParams['text.usetex'] = True
 
         if color is None:
             color = 'red'
 
-        fig, ax = plt.subplots(nrows=2, ncols=2)
+        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(7,6))
         # fig.suptitle("Analysis of  (strict) quasiconvexity of L2 norm"
         #              "\n(theta_true = " + str(theta_true) + ")")
 
@@ -2184,52 +2203,53 @@ class Artist:
 
         # r"$\hat{\theta}$"
 
-        # ax[(0, 1)].set_title("Gradient L2-norm")
-        # y_vals = [np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1)) for x_val in x_range]
-        y_vals = grad_f_vals
-        ax[(0, 1)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
-        ax[(0, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
-        ax[(0, 1)].plot(x_range, y_vals, color=color)
-        ax[(0, 1)].set_ylabel(r"$n^{-1} \ \nabla_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)$")
-        ax[(0, 1)].set_xticklabels([])
+        if grad_f_vals is not None:
 
+            # ax[(0, 1)].set_title("Gradient L2-norm")
+            # y_vals = [np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1)) for x_val in x_range]
+            y_vals = grad_f_vals
+            ax[(0, 1)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
+            ax[(0, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
+            ax[(0, 1)].plot(x_range, y_vals, color=color)
+            ax[(0, 1)].set_ylabel(r"$n^{-1} \ \nabla_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)$")
+            ax[(0, 1)].set_xticklabels([])
 
+            # ax[(0, 2)].set_title("Sign Gradient L2-norm")
+            # y_vals = [np.sign(np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1))) for x_val in x_range]
+            y_vals = np.sign(y_vals)
+            ax[(1, 0)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
+            ax[(1, 0)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
+            ax[(1, 0)].plot(x_range, y_vals, color=color)
+            ax[(1, 0)].set_ylabel(r"$n^{-1} \ \textmd{sign} (\nabla_{\theta} ||x(\hat{\theta})-\bar{x}||_2^2 )$")
+            # ax[(1, 0)].set_xticks(np.arange(int(min(x_range)), int(max(x_range)), 3))
+            # ax[(1, 0)].set_xticklabels([])
 
-        # ax[(0, 2)].set_title("Sign Gradient L2-norm")
-        # y_vals = [np.sign(np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1))) for x_val in x_range]
-        y_vals = np.sign(y_vals)
-        ax[(1, 0)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
-        ax[(1, 0)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
-        ax[(1, 0)].plot(x_range, y_vals, color=color)
-        ax[(1, 0)].set_ylabel(r"$n^{-1} \ \textmd{sign} (\nabla_{\theta} ||x(\hat{\theta})-\bar{x}||_2^2 )$")
-        # ax[(1, 0)].set_xticks(np.arange(int(min(x_range)), int(max(x_range)), 3))
-        # ax[(1, 0)].set_xticklabels([])
+            # Hessian L2-norm
+            # ax[(1, 3)].set_title("Hessian L2 norm")
 
-        # Hessian L2-norm
-        # ax[(1, 3)].set_title("Hessian L2 norm")
+            # J = gradients_l2norm(theta, deltatt, q, linkflow)
+            # H = np.sum(q * hessian_sigmoid(theta=theta, deltatt=deltatt), axis=1)
+            # R = np.sum(objective_function_sigmoids_system(theta, q, deltatt), axis=1) - linkflow.T
 
-        # J = gradients_l2norm(theta, deltatt, q, linkflow)
-        # H = np.sum(q * hessian_sigmoid(theta=theta, deltatt=deltatt), axis=1)
-        # R = np.sum(objective_function_sigmoids_system(theta, q, deltatt), axis=1) - linkflow.T
+            # [np.sum(q * hessian_sigmoid(theta=x_val, deltatt=deltatt), axis=1) for x_val in x_range]
 
-        # [np.sum(q * hessian_sigmoid(theta=x_val, deltatt=deltatt), axis=1) for x_val in x_range]
+            # y_vals = hessian_f_vals
+            # # y_vals = np.sign(y_vals)
+            # ax[(1, 1)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
+            # ax[(1, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
+            # ax[(1, 1)].plot(x_range, y_vals, color='red', )
+            # ax[(1, 1)].set_ylabel(r"$n^{-1} \ \nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2) $")
 
-        # y_vals = hessian_f_vals
-        # # y_vals = np.sign(y_vals)
-        # ax[(1, 1)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
-        # ax[(1, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
-        # ax[(1, 1)].plot(x_range, y_vals, color='red', )
-        # ax[(1, 1)].set_ylabel(r"$n^{-1} \ \nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2) $")
+            # Sign Hessian L2-norm
 
-        # Sign Hessian L2-norm
-
-        y_vals =  np.sign(hessian_f_vals)
-        # y_vals = hessian_f_vals
-        # y_vals = np.sign(y_vals)
-        ax[(1, 1)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
-        ax[(1, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
-        ax[(1, 1)].plot(x_range, y_vals, color=color, )
-        ax[(1, 1)].set_ylabel(r"$n^{-1} \  \textmd{sign} (\nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)) $")
+        if hessian_f_vals is not None:
+            y_vals =  np.sign(hessian_f_vals)
+            # y_vals = hessian_f_vals
+            # y_vals = np.sign(y_vals)
+            ax[(1, 1)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
+            ax[(1, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
+            ax[(1, 1)].plot(x_range, y_vals, color=color, )
+            ax[(1, 1)].set_ylabel(r"$n^{-1} \  \textmd{sign} (\nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)) $")
 
 
         # ax[(0, 2)].set_title("Hessian L2-norm")
@@ -2251,462 +2271,191 @@ class Artist:
         # ax[(1, 1)].ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
 
         lines, labels = [], []
-        for axi in fig.get_axes():
-            # axi.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
-            yfmt = ScalarFormatterForceFormat()
-            yfmt.set_powerlimits((0, 0))
-            axi.yaxis.set_major_formatter(yfmt)
-            linei, labeli = axi.get_legend_handles_labels()
-            lines = linei + lines
-            labels = labeli + labels
-
         # set labels
         plt.setp(ax[-1, :], xlabel=r"$\hat{\theta}$")
         # plt.setp(ax[:, 0], ylabel=r"$\theta_i$")
 
-
-
-
+        for axi in fig.get_axes():
+            # axi.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
+            yfmt = ScalarFormatterForceFormat()
+            yfmt.set_powerlimits((0, 0))
+            axi.set_xlim(min(x_range), max(x_range))
+            axi.set_xticks(xticks)
+            axi.set_xticklabels(xticks)
+            axi.yaxis.set_major_formatter(yfmt)
+            linei, labeli = axi.get_legend_handles_labels()
+            lines = linei + lines
+            labels = labeli + labels
+            axi.tick_params(axis='y', labelsize=12)
+            axi.tick_params(axis='x', labelsize=12)
+            axi.xaxis.label.set_size(12)
+            axi.yaxis.label.set_size(12)
 
         fig.tight_layout()
 
         plt.show()
 
-        fig.savefig(self.folder + '/' + subfolder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
+        fig.savefig(folder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
 
-    def inference_irrelevant_attributes_experiment(self,  results_experiment, theta_true, subfolder, methods, silent_mode = True):
+    def consistency_experiment(self,
+                               results_experiment,
+                               alpha,
+                               sd_x = None,
+                               folder = None,
+                               range_initial_values = None,
+                               summary_only = True,
+                               silent_mode = True):
 
-        # true_values = {i: theta_true[current_network][i] for i in k_Y + k_Z}
-        theta_true['vot'] = theta_true['tt'] / theta_true['c']
+        assert 'method' in results_experiment.keys()
 
-        # Rename optimizaion stages
-        results_experiment.loc[results_experiment['stage'] == 'norefined', 'stage'] = methods[0]
-        results_experiment.loc[results_experiment['stage'] == 'refined', 'stage'] = methods[1]
-        results_experiment.loc[results_experiment['stage'] == 'combined', 'stage'] = methods[2]
+        theta_true = pd.Series(
+            data = results_experiment['theta_true'].values,
+            index = results_experiment['attr']).drop_duplicates()
 
-        results_experiment['method'] = results_experiment['stage']
+        methods = results_experiment[['method']].drop_duplicates().values.flatten().tolist()
 
-        # stats_list = ['ttest','theta','pvalue','stage']
-        # stats_list = ['ttest','theta','stage']
+        if folder is None:
+            folder = self.folder
 
-        # (i) Facet of box plots for distribution of  parameter estimates and among estimation methods
-
-        g = sns.catplot(
-            data=results_experiment[results_experiment.attr != 'vot'], x='method', y='theta', palette="Set1",
-            col='attr', kind='box', col_wrap=2, sharey=False, sharex=False, showfliers=False, height=2, color= '#abc9ea',
-        )
-
-        def horizontal_theta_true_line(x, **kwargs):
-            plt.axhline(theta_true[str(list(x)[0])], linestyle='--', color='gray')
-
-        g.map(horizontal_theta_true_line, 'attr')
-
-        titles = ['travel time', 'waiting time', 'cost', 'null parameter']
-        for axi, title in zip(g.axes, titles):
-            # plt.setp(axi.xaxis.get_majorticklabels(), rotation=90)
-            axi.set_title(title)
-            # axi.tick_params(labelbottom=False)
-
-        list(map(lambda x: x.tick_params(labelbottom=False), g.axes[0:len(g.axes) - 2]))
-
-        g.set_axis_labels('', "estimate")
-
-        g.fig.tight_layout()
-
-        self.save_fig(g.fig, subfolder, 'parameter_estimates')
-
-        if not silent_mode:
-            plt.show()
-        else:
-            plt.clf()
-            plt.cla()
-            plt.close()
-
-        # fig.savefig(self.folder + '/' + subfolder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
-
-
-
-        # (ii) Facet of box plots for distribution of bias in parameter estimates and estimation methods.
-
-        # bias computation
-        results_experiment['theta_true'] = 0
-
-        attr_list = list(set(results_experiment.attr))
-
-        for attr in attr_list:
-            results_experiment['theta_true'].loc[results_experiment.attr == attr] = theta_true[attr]
-
-        results_experiment['bias'] = results_experiment['theta'] - results_experiment['theta_true']
-
-        g = sns.catplot(
-            data=results_experiment[results_experiment.attr != 'vot'], x='attr', y='bias', palette="Set1",
-            col='method', kind='box', col_wrap=2, sharey=True, sharex=False, showfliers=False, height=2, color= '#abc9ea'
-        )
-
-        def horizontal_theta_true_line(x, **kwargs):
-            plt.axhline(0, linestyle='--', color='gray')
-
-        g.map(horizontal_theta_true_line, 'attr')
-
-        g.set_axis_labels("attribute", "bias")
-
-        # titles = ['no refined opt', 'refined opt', 'combined opt']
-        # titles = ['ngd', 'gn', 'ngd+gn']
-        titles = methods
-        for ax, title in zip(g.axes.flatten(), titles):
-            ax.set_title(title)
-            # ax.tick_params(labelbottom=True)
-        # plt.ylabel()
-
-        g.fig.tight_layout()
-
-        self.save_fig(g.fig, subfolder, 'parameter_bias')
-
-        if not silent_mode:
-            plt.show()
-        else:
-            plt.clf()
-            plt.cla()
-            plt.close()
-
-        # (iii) VOT distribution only
-
-        # sns.boxplot(x="method", y="ttest", data = results_experiment_plot[results_experiment_plot.cols == 'ttest-norefined']
-        #             , showfliers=False )
-        # plt.show()
-
-        fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(4, 2.5))
-
-        sns.boxplot(x="method", y="theta", data=results_experiment[results_experiment.attr == 'vot'], showfliers=False,
-                    ax=ax[(0)])
-        ax[0].set_ylabel('value of time')
-        ax[0].axhline(theta_true['vot'], linestyle='--', color='gray')
-
-        sns.boxplot(x="method", y="bias", data=results_experiment[results_experiment.attr == 'vot'], showfliers=False,
-                    ax=ax[(1)])
-        ax[1].set_ylabel('bias')
-        ax[1].axhline(0, linestyle='--', color='gray')
-
-        for axi in fig.get_axes():
-            # plt.setp(axi.xaxis.get_majorticklabels(), rotation=90)
-            axi.set_xlabel('')
-
-        fig.tight_layout()
-
-        # g.set_axis_labels("state", "value of time")
-
-        self.save_fig(fig, subfolder, 'vot_estimate_bias')
-
-        if not silent_mode:
-            plt.show()
-        else:
-            plt.clf()
-            plt.cla()
-            plt.close()
-
-        # iv) Distribution plot of t-tests
-
-        # fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(4, 2.5))
-
-        stats_list = ['ttest', 'method']
-        results_experiment_plot = pd.DataFrame(
-            data=np.c_[results_experiment[['ttest', 'method']], results_experiment['attr']]
-            , columns=stats_list + ['attr'])
-
-        # reference: https://stackoverflow.com/questions/46045750/python-distplot-with-multiple-distributions
-
-        # recast into long format
-        results_experiment_plot = results_experiment_plot.melt(['attr', 'method'], var_name='cols', value_name='vals')
-        results_experiment_plot['cols'] = results_experiment_plot['method']
-
-        g = sns.FacetGrid(results_experiment_plot, col='cols', hue="attr", palette="Set1"
-                          , height=2, col_wrap=2, sharey=False, sharex=True, legend_out=True)
-        g = (g.map(sns.distplot, "vals", hist=False))
-
-        def vertical_ttest_line(x, **kwargs):
-            # TODO: replace 1.96 by t critical value
-            plt.axvline(1.96 * np.sign(theta_true[str(list(x)[0])] + 1e-7), linestyle='--', color='gray')
-
-        g.map(vertical_ttest_line, 'attr')
-
-        # https://stackoverflow.com/questions/37815774/seaborn-pairplot-legend-how-to-control-position
-
-        handles = g._legend_data.values()
-        labels = g._legend_data.keys()
-        # g.fig.legend(handles=handles, labels=labels, loc='lower right', ncol=1)
-        g.fig.legend(handles=handles, labels=labels, loc='lower center', ncol=4)
-
-        g.set_axis_labels("t-value", "freq")
-
-        # titles = ['no refined opt', 'refined opt', 'combined opt']
-        titles = methods # ['ngd', 'gn', 'ngd+gn']
-        for ax, title in zip(g.axes.flatten(), titles):
-            ax.set_title(title)
-            # ax.tick_params(labelbottom=True)
-        # plt.ylabel()
-
-        g.fig.tight_layout()
-
-        # https://stackoverflow.com/questions/30490740/move-legend-outside-figure-in-seaborn-tsplot
-        self.save_fig(g.fig, subfolder, 'distribution_ttest')
-
-        if not silent_mode:
-            plt.show()
-        else:
-            plt.clf()
-            plt.cla()
-            plt.close()
-
-        # (v) Facet of box plots for distribution of t-test for each attribute and among estimation methods
-
-        g = sns.catplot(
-            data=results_experiment[results_experiment.attr != 'vot'], x='method', y='ttest', palette="Set1",
-            col='attr', kind='box', col_wrap=2, height=2, sharey=False, sharex=False, showfliers=False
-        )
-
-        def horizontal_ttest_line(x, **kwargs):
-            # TODO: replace 1.96 by t critical value
-            plt.axhline(1.96 * np.sign(theta_true[str(list(x)[0])] + 1e-7), linestyle='--', color='gray')
-
-        g.map(horizontal_ttest_line, 'attr')
-
-        titles = ['travel time', 'waiting time', 'cost', 'null parameter']
-        for axi, title in zip(g.axes, titles):
-            # plt.setp(axi.xaxis.get_majorticklabels(), rotation=90)
-            axi.set_title(title)
-
-        list(map(lambda x: x.tick_params(labelbottom=False), g.axes[0:len(g.axes) - 2]))
-
-        g.set_axis_labels('', "t-test")
-
-        g.fig.tight_layout()
-
-        self.save_fig(g.fig, subfolder, 'distribution_ttest')
-
-        if not silent_mode:
-            plt.show()
-        else:
-            plt.clf()
-            plt.cla()
-            plt.close()
-
-
-
-        # (vi) Distribution of pvalues
-
-        g = sns.catplot(
-            data=results_experiment[results_experiment.attr != 'vot'], x='attr', y='pvalue', palette="Set1",
-            col='method', kind='box', col_wrap=2, sharey=True, sharex=False, showfliers=False, height=2
-        )
-
-        def horizontal_theta_true_line(x, **kwargs):
-            plt.axhline(0.05, linestyle='--', color='gray')
-
-        g.map(horizontal_theta_true_line, 'attr')
-
-        g.set_axis_labels("attribute", "p-value")
-
-        # titles = ['no refined opt', 'refined opt', 'combined opt']
-        # for ax,title in zip(g.axes.flatten(), titles ):
-        #     ax.set_title(title)
-        # ax.tick_params(labelbottom=True)
-        # plt.ylabel()
-
-        g.fig.tight_layout()
-
-        self.save_fig(g.fig, subfolder, 'distribution_pvalues')
-
-        if not silent_mode:
-            plt.show()
-        else:
-            plt.clf()
-            plt.cla()
-            plt.close()
-
-
-
-        # vii) False positives and negatives
-
-        h0 = 0
-        alpha = 0.05
-
-        results_experiment['fn'] = 0
-        results_experiment['fp'] = 0
-        results_experiment['f_type'] = ''
-
-        for i in results_experiment.index:
-
-            if results_experiment.at[i, 'theta_true'] == h0:
-
-                results_experiment.at[i, 'f_type'] = 'fp'
-
-                if results_experiment.at[i, 'pvalue'] < alpha:
-                    results_experiment.at[i, 'fp'] = 1
-
-                    # print(row['fn'])
-
-            else:
-
-                results_experiment.at[i, 'f_type'] = 'fn'
-
-                if results_experiment.at[i, 'pvalue'] > alpha:
-                    results_experiment.at[i, 'fn'] = 1
-
-        fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(4, 2.5))
+        # Computation of False positives and negatives
 
         false_negatives, false_positives = False, False
 
         if 'fp' in list(set(results_experiment.f_type.values)):
-
-            sns.barplot(x="method", y="fp",
-                        data=results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fp')]
-                        , ax=ax[(1)])
-
             false_positives = True
 
         if 'fn' in list(set(results_experiment.f_type.values)):
-
-            sns.barplot(x="method", y="fn",
-                        data=results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fn')]
-                        , ax=ax[(0)])
-
             false_negatives = True
 
-        for axi in fig.get_axes():
-            # plt.setp(axi.xaxis.get_majorticklabels(), rotation=90)
-            axi.set_xlabel('')
-
-        ax[1].set_ylabel('false positives')
-        ax[0].set_ylabel('false negatives')
-
-        ax[0].axhline(0, linestyle='--', color='gray')
-        ax[1].axhline(0, linestyle='--', color='gray')
-
-        ax[0].set(ylim=(-0.05, 1.05))
-        ax[1].set(ylim=(-0.05, 1.05))
-
-        fig.tight_layout()
-
-        self.save_fig(fig, subfolder, 'falseposneg')
-
-        if not silent_mode:
-            plt.show()
-        else:
-            plt.clf()
-            plt.cla()
-            plt.close()
-
-
-
-        # (viii) Confidence intervals
-
-        # Issue with underscores https://github.com/lmfit/lmfit-py/issues/373
-        matplotlib.rcParams['text.usetex'] = False
-        # fig, ax = plt.subplots(figsize=(4, 4))
-        #
-        # sns.barplot(x="method", y="width_confint", data=results_experiment)
-        # # sns.barplot(x="method", y="time", data= results_experiment, ax=ax[(1)])
-        # ax.axhline(0, linestyle='--', color='gray')
-
-        g = sns.catplot(
-            data=results_experiment[results_experiment.attr != 'vot'], x='attr', y='width_confint', palette="Set1",
-            col='method', kind='bar', col_wrap=2, sharey=True, sharex=False, height=2
-        )
-
-        g.set_axis_labels("attribute", "CI width")
-
-        g.fig.tight_layout()
-
-        self.save_fig(g.fig, subfolder, 'width_ci')
-
-        if not silent_mode:
-            plt.show()
-        else:
-            plt.clf()
-            plt.cla()
-            plt.close()
-
-
-
-        # matplotlib.rcParams['text.usetex'] = True
-
         # x) Summary plot (computation time, ci_width, average bias and proportion of false positives/negatives
-
-        #clear previous figures
-        # plt.clf()
-
-
         matplotlib.rcParams['text.usetex'] = False
 
-        fig, ax = plt.subplots(nrows=2, ncols=2)
+        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(7,6))
 
         # 1) bias in estimates
         sns.boxplot(x="method", y="bias", data=results_experiment[results_experiment.attr != 'vot'], ax=ax[(0, 0)],
                     showfliers=False, color='white')
-        ax[(0, 0)].axhline(0, linestyle='--', color='gray')
         ax[(0, 0)].set_ylabel('bias' + r"$(\hat{\theta})$")
-        # ax[(1, 0)].set_ylabel('bias ' + r"$(\hat{\theta} - \theta)$")
+        if range_initial_values is not None:
+            ax[(0, 0)].set(ylim=range_initial_values)
 
         # 2) Bias in value of time
-        sns.boxplot(x="method", y="bias", data=results_experiment[results_experiment.attr == 'vot'], showfliers=False,ax=ax[(0, 1)], color='white')
-        ax[(0, 1)].axhline(0, linestyle='--', color='gray')
+        sns.boxplot(x="method", y="bias",
+                    data=results_experiment[results_experiment.attr == 'vot'],
+                    showfliers=False,ax=ax[(0, 1)], color='white')
         ax[(0, 1)].set_ylabel('bias' + r"$(\hat{\theta}_t/\hat{\theta}_c)$")
-        # ax[(0, 1)].set_ylabel('bias in VOT')
+        # if range_initial_values is not None:
+        #     ax[(0, 1)].set(ylim=range_initial_values)
+        ax[(0, 1)].set(ylim=(-0.2,0.2))
 
-        # 3) False negatives
-        sns.barplot(x="method", y="fn", data=results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fn')], ax=ax[(1, 0)], color = 'white',errcolor="black", edgecolor="black",linewidth=1.5, errwidth=1.5)
+        if false_negatives:
 
-        # sns.catplot(x="level", y="fn", hue = 'kind', kind = 'point'
-        #             , data=results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fn')], ax=ax[(1, 1)], color = 'white',errcolor="black", edgecolor="black",linewidth=1.5, errwidth=1.5)
+            # 3) False negatives
+            sns.barplot(x="method", y="fn",
+                        data=results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fn')],
+                        ax=ax[(1, 0)], color = 'white',errcolor="black", edgecolor="black",linewidth=1.5, errwidth=1.5)
 
-        ax[(1, 0)].axhline(0, linestyle='--', color='gray')
-        ax[(1, 0)].set(ylim=(0, 1.05))
-        ax[(1, 0)].set_ylabel('false negatives')
+            ax[(1, 0)].set_yticks(np.arange(0, 1+0.1, 0.2))
+            ax[(1, 0)].axhline(0, linestyle='--', color='gray')
+            ax[(1, 0)].set(ylim=(0, 1.05))
+            ax[(1, 0)].set_ylabel('false negatives [%]')
 
-        # 4) False positives
-        sns.barplot(x="method", y="fp", data= results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fp')], ax=ax[(1, 1)], color = 'white',errcolor="black", edgecolor="black",linewidth=1.5, errwidth=1.5)
-        # sns.catplot(x="level", y="fn", hue = 'kind', kind = 'point'
-        #     , data=results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fp')], ax=ax[(1, 1)], color = 'white',errcolor="black", edgecolor="black",linewidth=1.5, errwidth=1.5)
-        ax[(1, 1)].axhline(0, linestyle='--', color='gray')
-        ax[(1, 1)].set(ylim=(0, 1.05))
-        ax[(1, 1)].set_ylabel('false positives')
+        if false_positives:
+
+            # 4) False positives
+            sns.barplot(x="method", y="fp",
+                        data= results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fp')],
+                        ax=ax[(1, 1)], color = 'white',errcolor="black", edgecolor="black",linewidth=1.5, errwidth=1.5)
+            # sns.catplot(x="level", y="fn", hue = 'kind', kind = 'point'
+            #     , data=results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fp')], ax=ax[(1, 1)], color = 'white',errcolor="black", edgecolor="black",linewidth=1.5, errwidth=1.5)
+            ax[(1, 1)].set_yticks(np.arange(0, 1+0.1, 0.2))
+            ax[(1, 1)].set(ylim=(0, 1.05))
+            ax[(1, 1)].set_ylabel('false positives [%]')
+
+        elif sd_x is not None:
+
+            # NRMSE
+            sns.barplot(x="method", y="nrmse", data=results_experiment, color="white",
+                        errcolor = "black", edgecolor = "black", linewidth = 1.5, errwidth = 1.5, ax=ax[(1, 1)])
+            ax[(1, 1)].set_yticks(np.arange(0, 1 + 0.1, 0.2))
+            ax[(1, 1)].set(ylim=(0, 1 ))
+            ax[(1, 1)].set_ylabel("nrmse")
 
 
+        else:
 
+            # computation time
+            sns.barplot(x="method", y="time", data=results_experiment, ax=ax[(1, 1)]
+                        , color='white', errcolor="black", edgecolor="black", linewidth=1.5, errwidth=1.5)
+            ax[(1, 1)].set_ylabel('comp. time [s/rep.]')
+            ax[(1, 1)].axhline(0, linestyle='--', color='gray')
 
         # Change color style to white and black in box plots
         for axi in [ax[(0, 0)],ax[(0, 1)]]:
-            for i, box in enumerate(axi.artists):
+            for i, box in enumerate(axi.patches):
                 box.set_edgecolor('black')
                 box.set_facecolor('white')
 
-            plt.setp(axi.artists, edgecolor='k', facecolor='w')
+            plt.setp(axi.patches, edgecolor='k', facecolor='w')
             plt.setp(axi.lines, color='k')
 
+        ax[(0, 0)].axhline(0, linestyle='--', color='gray')
+        ax[(0, 1)].axhline(0, linestyle='--', color='gray')
+
+        if false_positives:
+            ax[(1, 1)].axhline(alpha, linestyle='--', color='gray')
+        elif sd_x is not None:
+            ax[(1, 1)].axhline(sd_x, linestyle='--', color='gray')
+
         fig.tight_layout()
-        plt.show()
+        # plt.show()
 
-        self.save_fig(fig, subfolder, 'inference_summary')
+        self.save_fig(fig, folder, 'inference_summary')
 
-        # matplotlib.rcParams['text.usetex'] = True
+        if summary_only:
+            return
+
+        # Plot of false positives and negatives
+
+        fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(4, 2.5))
+
+        if 'fp' in list(set(results_experiment.f_type.values)):
+            sns.barplot(x="method", y="fp",
+                        data=results_experiment[
+                            (results_experiment.attr != 'vot') & (results_experiment.f_type == 'fp')]
+                        , ax=ax[(1)])
+
+        if 'fn' in list(set(results_experiment.f_type.values)):
+            sns.barplot(x="method", y="fn",
+                        data=results_experiment[
+                            (results_experiment.attr != 'vot') & (results_experiment.f_type == 'fn')]
+                        , ax=ax[(0)])
+
+        for axi in fig.get_axes():
+            # plt.setp(axi.xaxis.get_majorticklabels(), rotation=90)
+            axi.set_xlabel('')
+
+        ax[0].set_ylabel('false negatives')
+        ax[1].set_ylabel('false positives')
+
+        ax[0].axhline(0, linestyle='--', color='gray')
+        ax[1].axhline(0, linestyle='--', color='gray')
+
+        ax[0].set(ylim=(-0.05, 1.05))
+        ax[1].set(ylim=(-0.05, 1.05))
+
+        fig.tight_layout()
+
+        self.save_fig(fig, folder, 'falseposneg')
+
+        if not silent_mode:
+            plt.show()
+        else:
+            plt.clf()
+            plt.cla()
+            plt.close()
 
 
-    def inference_experiments(self,  results_experiment, theta_true, subfolder, methods, silent_mode = True):
-
-
-
-        # true_values = {i: theta_true[current_network][i] for i in k_Y + k_Z}
-        theta_true['vot'] = theta_true['tt'] / theta_true['c']
-
-        # Rename optimizaion stages
-        results_experiment.loc[results_experiment['stage'] == 'norefined', 'stage'] = methods[0]
-        results_experiment.loc[results_experiment['stage'] == 'refined', 'stage'] = methods[1]
-        results_experiment.loc[results_experiment['stage'] == 'combined', 'stage'] = methods[2]
-
-        results_experiment['method'] = results_experiment['stage']
-
-        # stats_list = ['ttest','theta','pvalue','stage']
-        # stats_list = ['ttest','theta','stage']
 
         # (i) Facet of box plots for distribution of  parameter estimates and among estimation methods
 
@@ -2732,9 +2481,7 @@ class Artist:
 
         g.fig.tight_layout()
 
-        # fig.savefig(self.folder + '/' + subfolder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
-
-        self.save_fig(g.fig, subfolder, 'parameter_estimates')
+        self.save_fig(g.fig, folder, 'parameter_estimates')
 
         if not silent_mode:
             plt.show()
@@ -2743,17 +2490,15 @@ class Artist:
             plt.cla()
             plt.close()
 
+        # fig.savefig(self.folder + '/' + subfoldername + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
+
+
+
         # (ii) Facet of box plots for distribution of bias in parameter estimates and estimation methods.
 
         # bias computation
-        results_experiment['theta_true'] = 0
+        # results_experiment['theta_true'] = 0
 
-        attr_list = list(set(results_experiment.attr))
-
-        for attr in attr_list:
-            results_experiment['theta_true'].loc[results_experiment.attr == attr] = theta_true[attr]
-
-        results_experiment['bias'] = results_experiment['theta'] - results_experiment['theta_true']
 
         g = sns.catplot(
             data=results_experiment[results_experiment.attr != 'vot'], x='attr', y='bias', palette="Set1",
@@ -2769,15 +2514,15 @@ class Artist:
 
         # titles = ['no refined opt', 'refined opt', 'combined opt']
         # titles = ['ngd', 'gn', 'ngd+gn']
-        titles = methods
-        for ax, title in zip(g.axes.flatten(), titles):
-            ax.set_title(title)
+        # titles = methods
+        # for ax, title in zip(g.axes.flatten(), titles):
+        #     ax.set_title(title)
             # ax.tick_params(labelbottom=True)
         # plt.ylabel()
 
         g.fig.tight_layout()
 
-        self.save_fig(g.fig, subfolder, 'parameter_bias')
+        self.save_fig(g.fig, folder, 'parameter_bias')
 
         if not silent_mode:
             plt.show()
@@ -2812,7 +2557,7 @@ class Artist:
 
         # g.set_axis_labels("state", "value of time")
 
-        self.save_fig(fig, subfolder, 'vot_estimate_bias')
+        self.save_fig(fig, folder, 'vot_estimate_bias')
 
         if not silent_mode:
             plt.show()
@@ -2830,15 +2575,18 @@ class Artist:
             data=np.c_[results_experiment[['ttest', 'method']], results_experiment['attr']]
             , columns=stats_list + ['attr'])
 
+        results_experiment_plot = results_experiment_plot[results_experiment_plot.attr != 'vot']
+
         # reference: https://stackoverflow.com/questions/46045750/python-distplot-with-multiple-distributions
 
         # recast into long format
         results_experiment_plot = results_experiment_plot.melt(['attr', 'method'], var_name='cols', value_name='vals')
         results_experiment_plot['cols'] = results_experiment_plot['method']
 
-        g = sns.FacetGrid(results_experiment_plot, col='cols', hue="attr", palette="Set1"
-                          , height=2, col_wrap=2, sharey=False, sharex=True, legend_out=True)
-        g = (g.map(sns.distplot, "vals", hist=False))
+        g = sns.displot(results_experiment_plot, col='cols', hue="attr", x="vals", palette="Set1", kde = True, legend = True
+                          , height=2, col_wrap=2, facet_kws={'sharey': False, 'sharex': False})
+
+        # plt.show()
 
         def vertical_ttest_line(x, **kwargs):
             # TODO: replace 1.96 by t critical value
@@ -2848,10 +2596,11 @@ class Artist:
 
         # https://stackoverflow.com/questions/37815774/seaborn-pairplot-legend-how-to-control-position
 
-        handles = g._legend_data.values()
-        labels = g._legend_data.keys()
+        # handles = g.legend.legendHandles()
+        # labels = g.legend.get_label()
         # g.fig.legend(handles=handles, labels=labels, loc='lower right', ncol=1)
-        g.fig.legend(handles=handles, labels=labels, loc='lower center', ncol=4)
+        # g.fig.legend(labels=labels, loc='lower center', ncol=4)
+        # g.fig.legend(labels=results_experiment_plot.attr.unique(), loc='lower center', ncol=4)
 
         g.set_axis_labels("t-value", "freq")
 
@@ -2864,9 +2613,10 @@ class Artist:
 
         g.fig.tight_layout()
 
-        # https://stackoverflow.com/questions/30490740/move-legend-outside-figure-in-seaborn-tsplot
+        plt.show()
 
-        self.save_fig(g.fig, subfolder, 'distribution_ttest')
+        # https://stackoverflow.com/questions/30490740/move-legend-outside-figure-in-seaborn-tsplot
+        self.save_fig(g.fig, folder, 'distribution_ttest')
 
         if not silent_mode:
             plt.show()
@@ -2879,7 +2629,7 @@ class Artist:
 
         g = sns.catplot(
             data=results_experiment[results_experiment.attr != 'vot'], x='method', y='ttest', palette="Set1",
-            col='attr', kind='box', col_wrap=2, height=2, sharey=False, sharex=False, showfliers=False
+            col='attr', kind='box', col_wrap=2, height=2, sharey=False, sharex=True, showfliers=False
         )
 
         def horizontal_ttest_line(x, **kwargs):
@@ -2899,7 +2649,7 @@ class Artist:
 
         g.fig.tight_layout()
 
-        self.save_fig(g.fig, subfolder, 'distribution_ttest')
+        self.save_fig(g.fig, folder, 'distribution_ttest')
 
         if not silent_mode:
             plt.show()
@@ -2908,11 +2658,13 @@ class Artist:
             plt.cla()
             plt.close()
 
+
+
         # (vi) Distribution of pvalues
 
         g = sns.catplot(
             data=results_experiment[results_experiment.attr != 'vot'], x='attr', y='pvalue', palette="Set1",
-            col='method', kind='box', col_wrap=2, sharey=True, sharex=False, showfliers=False, height=2
+            col='method', kind='box', col_wrap=2, sharey=True, sharex=True, showfliers=False, height=2
         )
 
         def horizontal_theta_true_line(x, **kwargs):
@@ -2930,7 +2682,7 @@ class Artist:
 
         g.fig.tight_layout()
 
-        self.save_fig(g.fig, subfolder, 'distribution_pvalues')
+        self.save_fig(g.fig, folder, 'distribution_pvalues')
 
         if not silent_mode:
             plt.show()
@@ -2938,6 +2690,8 @@ class Artist:
             plt.clf()
             plt.cla()
             plt.close()
+
+
 
         # vii) False positives and negatives
 
@@ -2968,15 +2722,12 @@ class Artist:
 
         fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(4, 2.5))
 
-        false_negatives, false_positives = False, False
-
         if 'fp' in list(set(results_experiment.f_type.values)):
 
             sns.barplot(x="method", y="fp",
                         data=results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fp')]
                         , ax=ax[(1)])
 
-            false_positives = True
 
         if 'fn' in list(set(results_experiment.f_type.values)):
 
@@ -2984,14 +2735,12 @@ class Artist:
                         data=results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fn')]
                         , ax=ax[(0)])
 
-            false_negatives = True
-
         for axi in fig.get_axes():
             # plt.setp(axi.xaxis.get_majorticklabels(), rotation=90)
             axi.set_xlabel('')
 
-        ax[0].set_ylabel('false negatives')
         ax[1].set_ylabel('false positives')
+        ax[0].set_ylabel('false negatives')
 
         ax[0].axhline(0, linestyle='--', color='gray')
         ax[1].axhline(0, linestyle='--', color='gray')
@@ -3001,7 +2750,7 @@ class Artist:
 
         fig.tight_layout()
 
-        self.save_fig(fig, subfolder, 'falseposneg')
+        self.save_fig(fig, folder, 'falseposneg')
 
         if not silent_mode:
             plt.show()
@@ -3009,6 +2758,8 @@ class Artist:
             plt.clf()
             plt.cla()
             plt.close()
+
+
 
         # (viii) Confidence intervals
 
@@ -3022,14 +2773,14 @@ class Artist:
 
         g = sns.catplot(
             data=results_experiment[results_experiment.attr != 'vot'], x='attr', y='width_confint', palette="Set1",
-            col='method', kind='bar', col_wrap=2, sharey=True, sharex=False, height=2
+            col='method', kind='bar', col_wrap=2, sharey=True, sharex=True, height=2
         )
 
         g.set_axis_labels("attribute", "CI width")
 
         g.fig.tight_layout()
 
-        self.save_fig(g.fig, subfolder, 'width_ci')
+        self.save_fig(g.fig, folder, 'width_ci')
 
         if not silent_mode:
             plt.show()
@@ -3038,92 +2789,117 @@ class Artist:
             plt.cla()
             plt.close()
 
+
+
         # matplotlib.rcParams['text.usetex'] = True
+
+
+
+        # matplotlib.rcParams['text.usetex'] = True
+
+    def levels_experiment(self,
+                          results_experiment,
+                          alpha,
+                          sd_x,
+                          folder: str = None,
+                          range_initial_values=None,
+                          summary_only=True,
+                          silent_mode = True):
+
+        assert 'level' in results_experiment.keys()
+
+        theta_true = pd.Series(
+            data = results_experiment['theta_true'].values,
+            index = results_experiment['attr']).drop_duplicates()
+
+        levels = results_experiment[['level']].drop_duplicates().values.flatten().tolist()
+
+        if folder is None:
+            folder = self.folder
 
         # x) Summary plot (computation time, ci_width, average bias and proportion of false positives/negatives
 
         matplotlib.rcParams['text.usetex'] = False
 
-        fig, ax = plt.subplots(nrows=2, ncols=2)
+        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(7,6))
 
-        # 1) bias
-        sns.boxplot(x="method", y="bias", data=results_experiment[results_experiment.attr != 'vot'], ax=ax[(0, 0)],showfliers=False, color = 'white')
-        ax[(0, 0)].axhline(0, linestyle='--', color='gray')
+        # 1) bias in estimates
+        sns.boxplot(x="level", y="bias", data=results_experiment[results_experiment.attr != 'vot'], color="white",ax=ax[(0, 0)],showfliers=False)
         ax[(0, 0)].set_ylabel('bias' + r"$(\hat{\theta})$")
+        if range_initial_values is not None:
+            ax[(0, 0)].set(ylim=range_initial_values)
         # ax[(1, 0)].set_ylabel('bias ' + r"$(\hat{\theta} - \theta)$")
 
-        # ci width
-        # sns.boxplot(x="method", y="width_confint", data=results_experiment[results_experiment.attr != 'vot'],
-        #             ax=ax[(0, 1)],
-        #             showfliers=False)
+        # # 2) Bias in value of time
+        # if 'vot' in results_experiment.attr.values:
+        #     sns.boxplot(x="level", y="bias", data=results_experiment[results_experiment.attr == 'vot'], showfliers=False,
+        #                 ax=ax[(0, 1)])
+        #     ax[(0, 1)].axhline(0, linestyle='--', color='gray')
+        #     ax[(0, 1)].set_ylabel('bias' + r"$(\hat{\theta}_t/\hat{\theta}_c)$")
+        #
+        #     if range_initial_values is not None:
+        #         # ax[(0, 1)].set(ylim=(-5e-1,5e-1))
+        #         ax[(0, 1)].set(ylim=range_initial_values)
+
+        # # Objective function
+        #
+        # sns.boxplot(x="level", y="objective", data=results_experiment, showfliers=False,
+        #             ax=ax[(0, 1)])
         # ax[(0, 1)].axhline(0, linestyle='--', color='gray')
-        # ax[(0, 1)].set_ylabel('CI width')
+        # ax[(0, 1)].set_ylabel("Objective function")
 
-        # Bias in value of time
-        sns.boxplot(x="method", y="bias", data=results_experiment[results_experiment.attr == 'vot'], showfliers=False,ax=ax[(0, 1)], color = 'white')
-        ax[(0, 1)].axhline(0, linestyle='--', color='gray')
-        ax[(0, 1)].set_ylabel('bias' + r"$(\hat{\theta}_t/\hat{\theta}_c)$")
-        # ax[(0, 1)].set_ylabel('bias in VOT')
+        # 2) NRMSE
+
+        sns.barplot(x="level", y="nrmse", data=results_experiment, color="white",
+                    errcolor = "black", edgecolor = "black", linewidth = 1.5, errwidth = 1.5, ax=ax[(0, 1)])
+        ax[(0, 1)].set_yticks(np.arange(0, 1 + 0.1, 0.2))
+        ax[(0, 1)].set(ylim=(0, 1))
+        ax[(0, 1)].set_ylabel("nrmse")
 
 
+        # 3) False negatives
+        sns.pointplot(x="level", y="fn",
+                      data=results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fn')],
+                      ax=ax[(1, 0)], color='black', errcolor="black", edgecolor="black", linewidth=1, errwidth=1.5,
+                      scale=0.7, capsize=.2)
 
-        # False positives/negatives
-        results_experiment['fnfp'] = results_experiment['fn'] + results_experiment['fp']
-        sns.barplot(x="method", y="fnfp", data=results_experiment[results_experiment.attr != 'vot'], ax=ax[(1, 0)]
-                    , color = 'white',errcolor="black", edgecolor="black",linewidth=1.5, errwidth=1.5)
         ax[(1, 0)].axhline(0, linestyle='--', color='gray')
-        # ax[(1, 0)].set(ylim=(-0.05, 1.05))
-        ax[(1, 0)].set(ylim=(0, 1.05))
+        ax[(1, 0)].set_yticks(np.arange(0, 1+0.1, 0.2))
+        ax[(1, 0)].set(ylim=(-0.05, 1.05))
+        ax[(1, 0)].set_ylabel('false negatives [%]')
 
-        if false_positives and false_negatives:
-            ax[(1, 0)].set_ylabel('false positives/negatives')
+        if 'fp' in list(set(results_experiment.f_type.values)):
+            # 4) False positives
+            sns.pointplot(x="level", y="fp",
+                          data=results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fp')],
+                          ax=ax[(1, 1)], color='black', errcolor="black", edgecolor="black", linewidth=1.5, errwidth=1.5,
+                          scale=0.7, capsize=.2)
 
-        elif false_negatives and not false_positives:
-            ax[(1, 0)].set_ylabel('false negatives')
-
-        elif not false_negatives and false_positives:
-            ax[(1, 0)].set_ylabel('false positives')
-
-        # computation time
-        sns.barplot(x="method", y="time", data=results_experiment, ax=ax[(1, 1)]
-                    , color = 'white',errcolor="black", edgecolor="black",linewidth=1.5, errwidth=1.5)
-        ax[(1, 1)].set_ylabel('comp. time [s/rep.]')
-        ax[(1, 1)].axhline(0, linestyle='--', color='gray')
+            ax[(1, 1)].set_yticks(np.arange(0, 1+0.1, 0.2))
+            ax[(1, 1)].set(ylim=(-0.05, 1.05))
+            ax[(1, 1)].set_ylabel('false positives [%]')
 
         # Change color style to white and black in box plots
-        for axi in [ax[(0, 0)],ax[(0, 1)]]:
-            for i, box in enumerate(axi.artists):
-                box.set_edgecolor('black')
-                box.set_facecolor('white')
+        for axi in [ax[(0, 0)]]:
+            for i, box in enumerate(axi.patches):
+                box.set_edgecolor("black")
+                box.set_facecolor("white")
 
-            plt.setp(axi.artists, edgecolor='k', facecolor='w')
-            plt.setp(axi.lines, color='k')
+            plt.setp(axi.patches, edgecolor='black', facecolor='white')
+            plt.setp(axi.lines, color='black')
 
-                # iterate over whiskers and median lines
-                # for j in range(6 * i, 6 * (i + 1)):
-                    # axi.lines[j].set_color('black')
+        ax[(0, 0)].axhline(0, linestyle='--', color='gray')
+        ax[(0, 1)].axhline(sd_x, linestyle='--', color='gray')
+        ax[(1, 0)].axhline(0, linestyle='--', color='gray')
+        ax[(1, 1)].axhline(alpha, linestyle='--', color='gray')
 
         fig.tight_layout()
 
-        plt.show()
+        self.save_fig(fig, folder, 'inference_summary')
 
-        self.save_fig(fig, subfolder, 'inference_summary')
 
-        # matplotlib.rcParams['text.usetex'] = True
-
-    def inference_noise_experiments(self, results_experiment, theta_true, subfolder, levels, silent_mode = True):
-
-        # true_values = {i: theta_true[current_network][i] for i in k_Y + k_Z}
-        theta_true['vot'] = theta_true['tt'] / theta_true['c']
-
-        # # Rename optimizaion stages
-        # results_experiment.loc[results_experiment['stage'] == 'norefined', 'stage'] = levels[0]
-        # results_experiment.loc[results_experiment['stage'] == 'refined', 'stage'] = levels[1]
-        # results_experiment.loc[results_experiment['stage'] == 'combined', 'stage'] = levels[2]
-        results_experiment['level'] = results_experiment['level']
-
-        # stats_list = ['ttest','theta','pvalue','stage']
-        # stats_list = ['ttest','theta','stage']
+        if summary_only:
+            return
 
         # (i) Facet of box plots for distribution of  parameter estimates and among estimation levels
 
@@ -3156,9 +2932,9 @@ class Artist:
             plt.cla()
             plt.close()
 
-        # fig.savefig(self.folder + '/' + subfolder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
+        # fig.savefig(self.folder + '/' + subfoldername + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
 
-        self.save_fig(g.fig, subfolder, 'parameter_estimates')
+        self.save_fig(g.fig, folder, 'parameter_estimates')
 
         # (ii) Facet of box plots for distribution of bias in parameter estimates and estimation levels.
 
@@ -3194,7 +2970,7 @@ class Artist:
 
         g.fig.tight_layout()
 
-        self.save_fig(g.fig, subfolder, 'parameter_bias')
+        self.save_fig(g.fig, folder, 'parameter_bias')
 
         if not silent_mode:
             plt.show()
@@ -3229,7 +3005,7 @@ class Artist:
 
         # g.set_axis_labels("state", "value of time")
 
-        self.save_fig(fig, subfolder, 'vot_estimate_bias')
+        self.save_fig(fig, folder, 'vot_estimate_bias')
 
         if not silent_mode:
             plt.show()
@@ -3283,7 +3059,7 @@ class Artist:
 
         # https://stackoverflow.com/questions/30490740/move-legend-outside-figure-in-seaborn-tsplot
 
-        self.save_fig(g.fig, subfolder, 'distribution_ttest')
+        self.save_fig(g.fig, folder, 'distribution_ttest')
 
         if not silent_mode:
             plt.show()
@@ -3316,7 +3092,7 @@ class Artist:
 
         g.fig.tight_layout()
 
-        self.save_fig(g.fig, subfolder, 'distribution_ttest')
+        self.save_fig(g.fig, folder, 'distribution_ttest')
 
         if not silent_mode:
             plt.show()
@@ -3354,7 +3130,7 @@ class Artist:
             plt.cla()
             plt.close()
 
-        self.save_fig(g.fig, subfolder, 'distribution_pvalues')
+        self.save_fig(g.fig, folder, 'distribution_pvalues')
 
         # vii) False positives and negatives
 
@@ -3416,7 +3192,7 @@ class Artist:
 
         fig.tight_layout()
 
-        self.save_fig(fig, subfolder, 'falseposneg')
+        self.save_fig(fig, folder, 'falseposneg')
 
         if not silent_mode:
             plt.show()
@@ -3444,7 +3220,7 @@ class Artist:
 
         g.fig.tight_layout()
 
-        self.save_fig(g.fig, subfolder, 'width_ci')
+        self.save_fig(g.fig, folder, 'width_ci')
 
         if not silent_mode:
             plt.show()
@@ -3453,74 +3229,7 @@ class Artist:
             plt.cla()
             plt.close()
 
-        # matplotlib.rcParams['text.usetex'] = True
 
-        # x) Summary plot (computation time, ci_width, average bias and proportion of false positives/negatives
-
-        matplotlib.rcParams['text.usetex'] = False
-
-        fig, ax = plt.subplots(nrows=2, ncols=2)
-
-        # # computation time
-        # sns.barplot(x="level", y="time", data=results_experiment, ax=ax[(0, 0)])
-        # ax[(0, 0)].set_ylabel('comp. time [s/rep.]')
-        # ax[(0, 0)].axhline(0, linestyle='--', color='gray')
-
-        # ci width
-        # sns.boxplot(x="level", y="width_confint", data=results_experiment[results_experiment.attr != 'vot'],
-        #             ax=ax[(0, 1)],
-        #             showfliers=False)
-        # ax[(0, 1)].axhline(0, linestyle='--', color='gray')
-        # ax[(0, 1)].set_ylabel('CI width')
-
-        # 1) bias in estimates
-        sns.boxplot(x="level", y="bias", data=results_experiment[results_experiment.attr != 'vot'], ax=ax[(0, 0)],
-                    showfliers=False)
-        ax[(0, 0)].axhline(0, linestyle='--', color='gray')
-        ax[(0, 0)].set_ylabel('bias' + r"$(\hat{\theta})$")
-        # ax[(1, 0)].set_ylabel('bias ' + r"$(\hat{\theta} - \theta)$")
-
-        # 2) Bias in value of time
-        sns.boxplot(x="level", y="bias", data=results_experiment[results_experiment.attr == 'vot'], showfliers=False,
-                    ax=ax[(0, 1)])
-        ax[(0, 1)].axhline(0, linestyle='--', color='gray')
-        ax[(0, 1)].set_ylabel('bias' + r"$(\hat{\theta}_t/\hat{\theta}_c)$")
-        # ax[(0, 1)].set_ylabel('bias in VOT')
-
-        # 3) False negatives
-        sns.pointplot(x="level", y="fn", data=results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fn')], ax=ax[(1, 0)], color = 'black',errcolor="black", edgecolor="black",linewidth=1, errwidth=1.5, scale = 0.7, capsize=.2)
-        # sns.catplot(x="level", y="fn", kind = 'point'
-        #             , data=results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fn')], ax=ax[(1, 1)], color = 'white',errcolor="black", edgecolor="black",linewidth=1.5, errwidth=1.5)
-        ax[(1, 0)].axhline(0, linestyle='--', color='gray')
-        ax[(1, 0)].set(ylim=(-0.05, 1.05))
-        ax[(1, 0)].set_ylabel('false negatives')
-
-        # 4) False positives
-        sns.pointplot(x="level", y="fp",
-                      data=results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fp')],
-                      ax=ax[(1, 1)], color='black', errcolor="black", edgecolor="black", linewidth=1.5, errwidth=1.5,
-                      scale=0.7, capsize=.2)
-        # sns.barplot(x="level", y="fp",
-        #             data=results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fp')],
-        #             ax=ax[(1, 0)], color='white', errcolor="black", edgecolor="black", linewidth=1.5, errwidth=1.5)
-
-        ax[(1, 1)].axhline(0, linestyle='--', color='gray')
-        ax[(1, 1)].set(ylim=(-0.05, 1.05))
-        ax[(1, 1)].set_ylabel('false positives')
-
-        # Change color style to white and black in box plots
-        for axi in [ax[(0, 0)],ax[(0, 1)]]:
-            for i, box in enumerate(axi.artists):
-                box.set_edgecolor('black')
-                box.set_facecolor('white')
-
-        fig.tight_layout()
-
-        self.save_fig(fig, subfolder, 'inference_summary')
-
-        plt.show()
-
-        # matplotlib.rcParams['text.usetex'] = True
 
 def draw_networkx_digraph_edge_labels(G, pos,
                               edge_labels=None,

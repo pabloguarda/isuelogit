@@ -13,9 +13,7 @@ class Link:
 
     def __init__(self, key: tuple, init_node: Node, term_node: Node, position: LinkPosition = None):
         '''
-        :argument key: tuple with the origin node, destination node, and index from 0 to ... when there are parallel links
-        :argument flow: flow in the edge
-        :argument cost: cost function of the arc, which generally depend only on the flow in the edge
+        :argument key: tuple with the origin node, destination node, and index from 0 to N-1 when there are N parallel links
         :argument init_nodes: head node
         :argument term_nodes: tail node
         '''
@@ -34,7 +32,9 @@ class Link:
         self._inrix_id = None
         
         # INRIX data associated to inrix id
-        self._inrix_features = {}
+        self._inrix_features = dict.fromkeys(
+            ['speed_avg','speed_sd','speed_cv','speed_ref_avg','speed_ref_sd','speed_hist_avg','speed_hist_sd',
+             'traveltime_cv','traveltime_avg','traveltime_sd','traveltime_var','road_closure_avg'])
 
         # List of incidents (list of dictionaries with data on incidents)
         self._incidents_list = []
@@ -49,7 +49,7 @@ class Link:
         self._x = float(0)
 
         # If simulated mode with synthetic data is used, then the observed count is filled out with the synthetic count
-        self._observed_count = np.nan
+        self._count = np.nan
 
         # Link capacity (it is also stored in the bpr object)
         self._capacity = int(0) # int
@@ -57,15 +57,19 @@ class Link:
 
         # Dictionary with attributes labels as dict keys, and their values as dict value
         self._Z_dict = {}
+        self._Y_dict = {}
         self._performance_function = None # It can be BPR() or other function
         self._bpr = None  # BPR()
         self._traveltime = 0 # current travel time
+        self._true_traveltime = None
+        self._true_counts = None
         self._utility = 0
         self._init = key[0]
         self._term = key[1]
 
-        # Type of link according to Sean's files classification ('LWRLK','PQULK','DMDLK','DMOLK')
-        self._link_type = None
+        # Type of links ('LWRLK','PQULK','DMDLK','DMOLK')
+        self._link_type = 'LWRLK'
+        self.Z_dict['link_type'] = 'LWRLK'
         
         # Nodes
         self._init_node = init_node
@@ -92,30 +96,6 @@ class Link:
         #
         #     # print('pass here')
         #     self.set_position_from_nodes(nodes = self.nodes)
-
-
-
-    # def __copy__(self):
-    #
-    # # https://stackoverflow.com/questions/48338847/how-to-copy-a-class-instance-in-python
-    #
-    #     self.normalizeArgs()
-    #
-    #     return Link()
-    #
-    # # THIS IS AN ADDITIONAL GATE-KEEPING METHOD TO ENSURE
-    # # THAT EVEN WHEN PROPERTIES ARE DELETED, CLONED OBJECTS
-    # # STILL GETS DEFAULT VALUES (NONE, IN THIS CASE)
-    # def normalizeArgs(self):
-    #     # if not hasattr(self, "a"):
-    #     #     self.a = None
-    #     # if not hasattr(self, "b"):
-    #     #     self.b = None
-    #     # if not hasattr(self, "kwargs"):
-    #     #     self.kwargs = {}
-    #
-    #     if not hasattr(self, position):
-    #         self.position = None
 
     def get_position_from_nodes(self, nodes):
 
@@ -184,11 +164,12 @@ class Link:
         
     @property
     def link_type(self):
-        return self._link_type
+        return self.Z_dict['link_type']
 
     @link_type.setter
     def link_type(self, value):
         self._link_type = value
+        self.Z_dict['link_type'] = self._link_type
 
     @property
     def init_node(self):
@@ -239,12 +220,12 @@ class Link:
         self._x = value
 
     @property
-    def observed_count(self):
-        return self._observed_count
+    def count(self):
+        return self._count
 
-    @observed_count.setter
-    def observed_count(self, value):
-        self._observed_count = value
+    @count.setter
+    def count(self, value):
+        self._count = value
     
     @property
     def traveltime(self):
@@ -253,6 +234,25 @@ class Link:
     @traveltime.setter
     def traveltime(self, value):
         self._traveltime = value
+
+        self.Y_dict.update({'tt': self._traveltime})
+
+    @property
+    def true_traveltime(self):
+        return self._true_traveltime
+
+    @true_traveltime.setter
+    def true_traveltime(self, value):
+        self._true_traveltime = value
+        
+    @property
+    def true_counts(self):
+        return self._true_counts
+
+    @true_counts.setter
+    def true_counts(self, value):
+        self._true_counts = value
+
 
     def set_traveltime_from_x(self, x):
         self.traveltime = self.bpr.bpr_function_x(x)
@@ -334,6 +334,14 @@ class Link:
     @Z_dict.setter
     def Z_dict(self, value):
         self._Z_dict = value
+
+    @property
+    def Y_dict(self):
+        return self._Y_dict
+
+    @Y_dict.setter
+    def Y_dict(self, value):
+        self._Y_dict = value
 
     def utility(self, theta: {}):
         v = 0
@@ -419,7 +427,10 @@ class BPR:
         :arg integral: value of integral of the BPR function given a flow value (x)
 
         """
-        integral = self.tf * (1 + self.alpha * self.k ** (-self.beta) * x ** (self.beta + 1) / (self.beta + 1))
+        # integral = self.tf * (1 + self.alpha * 1/(self.k ** self.beta) * x ** (self.beta + 1) / (self.beta + 1))
+
+        # For numerical stability, equivalently:
+        integral = self.tf * (1 + self.alpha * self.k * (x/self.k) ** (self.beta + 1) / (self.beta + 1))
 
         return integral
 
@@ -440,11 +451,29 @@ def generate_links_keys(G):
 
 
 
-def generate_links_dict(link_keys: [tuple]):
+def generate_links_nodes_dicts(links_keys: [tuple],
+                               nodes_dict = {}):
     # links_keys = self.get_links_keys(self.G)
 
-    link_list = [Link(key=link_key, init_node=Node(link_key[0]), term_node=Node(link_key[1])) for link_key in link_keys]
+    links = []
 
-    return dict(zip(link_keys, link_list))
+    for link_key in links_keys:
+
+        if link_key[0] not in nodes_dict.keys():
+            nodes_dict[link_key[0]] = Node(key=link_key[0])
+
+        if link_key[1] not in nodes_dict.keys():
+            nodes_dict[link_key[1]] = Node(key=link_key[1])
+
+        node_init = nodes_dict[link_key[0]]
+        node_term = nodes_dict[link_key[1]]
+
+        links.append(Link(key=link_key,
+                          init_node=node_init,
+                          term_node=node_term))
+
+    links_dict = dict(zip(links_keys, links))
+
+    return links_dict, nodes_dict
 
 

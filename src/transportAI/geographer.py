@@ -12,7 +12,6 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import addfips
-import folium
 import webbrowser
 import urllib
 import os
@@ -21,7 +20,7 @@ import math
 import shapely.geometry
 from shapely.geometry import Point, LineString
 
-# import config
+import config
 
 
 class NodePosition(Point):
@@ -126,7 +125,10 @@ def mirror_y_coordinates(nodes: Nodes):
     return nodes
 
 
-def rotate_coordinates(nodes: Nodes, degrees, origin, bbox_ranges):
+def rotate_coordinates(nodes: Nodes,
+                       degrees,
+                       origin,
+                       bbox_ranges):
     # https://calcworkshop.com/transformations/rotation-rules/
 
     nodes_to_rotate = []
@@ -183,7 +185,8 @@ def rotate_coordinates_180degrees(nodes: Nodes):
     return nodes
 
 
-def rescale_coordinates(nodes: Nodes, factor: float):
+def rescale_coordinates(nodes: Nodes,
+                        factor: float):
     # https://calcworkshop.com/transformations/rotation-rules/
 
     positions = [node.position.get_xy() for node in nodes]
@@ -194,7 +197,10 @@ def rescale_coordinates(nodes: Nodes, factor: float):
 
     return nodes
 
-def adjust_by_base_coordinates(nodes: Nodes, base_node, base_coordinates, bbox_ranges: tuple  = None):
+def adjust_by_base_coordinates(nodes: Nodes,
+                               base_node,
+                               base_coordinates,
+                               bbox_ranges: tuple  = None):
     # https://calcworkshop.com/transformations/rotation-rules/
 
     delta_coordinates = tuple((base_coordinates[i]-base_node.position.get_xy()[i] for i in [0,1]))
@@ -238,7 +244,8 @@ def adjust_by_base_coordinates(nodes: Nodes, base_node, base_coordinates, bbox_r
 #
 #     return nodes
 
-def adjust_fresno_nodes_coordinates(nodes: Nodes, rescale_factor = None) -> None:
+def adjust_fresno_nodes_coordinates(nodes: Nodes,
+                                    rescale_factor = None) -> None:
     # Mirroring x coordinates to match the visualization of the network shown in papers
     nodes = mirror_x_coordinates(nodes=nodes)
 
@@ -379,7 +386,9 @@ def set_cardinal_direction_links(links):
 
 
 
-def write_node_points_shp(nodes, folderpath: str, networkname: str, config) -> None:
+def write_node_points_shp(nodes,
+                          folderpath: str,
+                          networkname: str) -> None:
     """ Save line segments using x,y coordinates from nodes """
 
     # links = N['train']['Fresno'].links
@@ -405,7 +414,9 @@ def write_node_points_shp(nodes, folderpath: str, networkname: str, config) -> N
 
     print('\nShapefile with nodes of ' + networkname + ' was written')
 
-def write_line_segments_shp(links, folderpath: str, networkname: str, config) -> None:
+def write_line_segments_shp(links,
+                            folderpath: str,
+                            networkname: str) -> None:
     """ Save line segments using x,y coordinates from nodes """
 
     # Links positions comes from x,y coordinates of nodes, which are expected to be different from the raw file to better match the shape of the network in a real map
@@ -446,7 +457,10 @@ def write_line_segments_shp(links, folderpath: str, networkname: str, config) ->
     print('\nShapefile with links of ' + networkname + ' was written')
 
 
-def write_links_congestion_map_shp(links, flows, folderpath: str, networkname: str, config) -> None:
+def write_links_congestion_map_shp(links,
+                                   flows,
+                                   folderpath: str,
+                                   networkname: str) -> None:
     """ Save line segments using x,y coordinates from nodes """
 
     # Links positions comes from x,y coordinates of nodes, which are expected to be different from the raw file to better match the shape of the network in a real map
@@ -487,7 +501,8 @@ def write_links_congestion_map_shp(links, flows, folderpath: str, networkname: s
     print('\nShapefile with links congestion of ' + networkname + ' was written')
 
 
-def write_census_blocks_data_fresno(countyname: str, filepath: str, config):
+def write_census_blocks_data_fresno(countyname: str,
+                                    filepath: str):
 
     # note that field names with more than 10 characters will be shorten down
 
@@ -596,18 +611,11 @@ def write_census_blocks_data_fresno(countyname: str, filepath: str, config):
     census_blocks_county_gdf = census_blocks_county_gdf.merge(block_income_county_gdf, left_on='GEOID', right_on='GEOID').merge(block_age_sex_county_gdf, left_on='GEOID', right_on='GEOID')
 
     # Write geodatabase for Fresno only
-    census_blocks_county_gdf.to_file(driver='ESRI Shapefile',
-                                     filename=config.paths[
-                                                  'folder_gis_data'] + countyname + '/census/' + countyname + '_census_shp')
-
-
-
+    filename = config.paths['folder_gis_data'] + countyname + '/census/' + countyname + '_census_shp'
+    census_blocks_county_gdf.to_file(driver='ESRI Shapefile',filename=filename)
 
 
 def read_census_tracts_shp_fresno(filepath: str) -> gpd.GeoDataFrame:
-
-
-
 
     # Read geopandas dataframe
     census_tracts_gdf = gpd.read_file(filepath, header=0)
@@ -617,7 +625,10 @@ def read_census_tracts_shp_fresno(filepath: str) -> gpd.GeoDataFrame:
     return census_tracts_gdf
 
 
-def match_network_links_and_census_tracts_fresno(network_gdf: gpd.GeoDataFrame, census_tracts_gdf: gpd.GeoDataFrame, config,links: Links, attrs: [], inrix_matching: bool = False) -> None:
+def match_network_links_and_census_tracts_fresno(network_gdf: gpd.GeoDataFrame,
+                                                 census_tracts_gdf: gpd.GeoDataFrame,
+                                                 links: Links, attrs: [],
+                                                 inrix_matching: bool = False) -> None:
 
     """
 
@@ -630,7 +641,7 @@ def match_network_links_and_census_tracts_fresno(network_gdf: gpd.GeoDataFrame, 
     census_tracts_gdf = census_tracts_gdf.to_crs(epsg=config.gis_options['crs_ca'])
     network_gdf = network_gdf.to_crs(epsg=config.gis_options['crs_ca'])
 
-    network_census_data_gdf = gpd.sjoin(network_gdf, census_tracts_gdf, how="left", op='intersects').drop(
+    network_census_data_gdf = gpd.sjoin(network_gdf, census_tracts_gdf, how="left", predicate='intersects').drop(
         ['index_right'], axis=1)
 
     # Add census data to link objects
@@ -686,10 +697,14 @@ def match_network_links_and_census_tracts_fresno(network_gdf: gpd.GeoDataFrame, 
 
     # assert len(network_census_data_gdf) == n_matched_links, 'errors in matching'
 
-    print(str(n_matched_links) + ' network links were matched (' + "{:.1%}". format(n_matched_links/len(links)) + ' of regular links)'  )
-    print(str(n_imputed_links) + ' network links were imputed (' + "{:.1%}". format(n_imputed_links/len(links)) + ' of regular links)'  )
+    print(str(n_matched_links) + ' network links were matched (' + "{:.1%}". format(n_matched_links/len(links)) + ' of links)'  )
+    print(str(n_imputed_links) + ' network links were imputed (' + "{:.1%}". format(n_imputed_links/len(links)) + ' of links)'  )
 
-def match_network_links_and_inrix_segments_fresno(network_gdf: gpd.GeoDataFrame, inrix_gdf: gpd.GeoDataFrame, links: Links, config, buffer_size: float = 0, centroids: bool = False):
+def match_network_links_and_inrix_segments_fresno(network_gdf: gpd.GeoDataFrame,
+                                                  inrix_gdf: gpd.GeoDataFrame,
+                                                  links: Links,
+                                                  buffer_size: float = 0,
+                                                  centroids: bool = False):
 
     """
     :param buffer_size: in feets if crs from CA is used
@@ -711,7 +726,7 @@ def match_network_links_and_inrix_segments_fresno(network_gdf: gpd.GeoDataFrame,
     # inrix_buffer_gdf['geometry'] = inrix_buffer_gdf.geometry.buffer(10)
     #
     # # Spatial join of traffic incidents and links geometries
-    # incidents_network_gdf = gpd.sjoin(network_gdf, inrix_buffer_gdf, how='inner', op='intersects')
+    # incidents_network_gdf = gpd.sjoin(network_gdf, inrix_buffer_gdf, how='inner', predicate='intersects')
     #
     # # Verify that the spatial join is one to one
 
@@ -732,7 +747,7 @@ def match_network_links_and_inrix_segments_fresno(network_gdf: gpd.GeoDataFrame,
     # plt.show()
 
     # Join inrix street centroids with buffer to osmn data
-    inrix_network_gdf = gpd.sjoin(link_centroids_buffer_gdf, inrix_gdf, how="left", op='intersects').drop(['index_right'], axis=1)
+    inrix_network_gdf = gpd.sjoin(link_centroids_buffer_gdf, inrix_gdf, how="left", predicate='intersects').drop(['index_right'], axis=1)
 
     # if selected_years is not None:
     #     incidents_network_gdf = incidents_network_gdf.loc[incidents_network_gdf['year'].isin(selected_years)]
@@ -786,17 +801,18 @@ def match_network_links_and_inrix_segments_fresno(network_gdf: gpd.GeoDataFrame,
     #     print(link.key)
     #     print(link.inrix_id)
 
-    config.gis_results['inrix_matching'] = {'perc_matching': "{:.1%}".format(counter / len(links)), 'conf_matching': "{:.1%}".format(sum_confidence/counter) }
+    # config.gis_results['inrix_matching'] = {'perc_matching': "{:.1%}".format(counter / len(links)), 'conf_matching': "{:.1%}".format(sum_confidence/counter) }
 
     # Compute percentage matching
-    print(str(counter) + ' network links were matched (' + "{:.1%}".format(counter / len(links)) + ' of regular links) with a ' + "{:.1%}".format(sum_confidence/counter)+ ' confidence')
+    print(str(counter) + ' network links were matched (' + "{:.1%}".format(counter / len(links)) + ' of links) with a ' + "{:.1%}".format(sum_confidence/counter)+ ' confidence')
 
 
 
     return link_centroids_buffer_gdf
 
 
-def read_inrix_shp(filepath: str, county: str) -> gpd.GeoDataFrame:
+def read_inrix_shp(filepath: str,
+                   county: str) -> gpd.GeoDataFrame:
 
     print('\nReading inrix shapefile of Fresno')
 
@@ -808,7 +824,8 @@ def read_inrix_shp(filepath: str, county: str) -> gpd.GeoDataFrame:
 
     return inrix_gdf
 
-def export_bus_stops_shp(bus_stops_gdf: gpd.GeoDataFrame, folderpath, config):
+def export_bus_stops_shp(bus_stops_gdf: gpd.GeoDataFrame,
+                         folderpath):
 
     bus_stops_gdf = bus_stops_gdf.to_crs(epsg=config.gis_options['crs_ca'])
 
@@ -816,7 +833,8 @@ def export_bus_stops_shp(bus_stops_gdf: gpd.GeoDataFrame, folderpath, config):
 
     bus_stops_gdf.to_file(driver='ESRI Shapefile', filename=folderpath + '/' + 'Fresno' + "_bus_stops.shp")
 
-def export_inrix_shp(inrix_gdf: gpd.GeoDataFrame, folderpath):
+def export_inrix_shp(inrix_gdf: gpd.GeoDataFrame,
+                     folderpath):
 
     inrix_gdf= inrix_gdf.to_crs(epsg=config.gis_options['crs_ca'])
 
@@ -824,7 +842,9 @@ def export_inrix_shp(inrix_gdf: gpd.GeoDataFrame, folderpath):
 
     inrix_gdf.to_file(driver='ESRI Shapefile', filename=folderpath + '/' + 'Fresno' + "_inrix.shp")
 
-def export_buffer_shp(gdf: gpd.GeoDataFrame, folderpath, filename, config):
+def export_buffer_shp(gdf: gpd.GeoDataFrame,
+                      folderpath,
+                      filename):
 
     gdf= gdf.to_crs(epsg=config.gis_options['crs_ca'])
 
@@ -834,7 +854,7 @@ def export_buffer_shp(gdf: gpd.GeoDataFrame, folderpath, filename, config):
 
 
 
-def read_qgis_shp_fresno(filepath: str, config) -> gpd.GeoDataFrame:
+def read_qgis_shp_fresno(filepath: str) -> gpd.GeoDataFrame:
 
     print('\nReading network shapefile generated from x,y coordinates and qgis')
 
@@ -851,7 +871,8 @@ def read_qgis_shp_fresno(filepath: str, config) -> gpd.GeoDataFrame:
     return fresno_network_gdf
 
 
-def read_pems_stations_fresno(config, filepath: str = None, adjusted_gis_stations: bool = False):
+def read_pems_stations_fresno(filepath: str = None,
+                              adjusted_gis_stations: bool = False):
 
 
     if adjusted_gis_stations is False:
@@ -879,7 +900,8 @@ def read_pems_stations_fresno(config, filepath: str = None, adjusted_gis_station
     # # Plot
     # stations_gdf.plot(figsize=(5, 5), edgecolor="purple", facecolor="None")
 
-def manual_match_network_and_stations_fresno(network_gdf: gpd.GeoDataFrame, links: Links) -> None:
+def manual_match_network_and_stations_fresno(network_gdf: gpd.GeoDataFrame,
+                                             links: Links) -> None:
 
     # REplace nan by NOne
 
@@ -918,16 +940,21 @@ def manual_match_network_and_stations_fresno(network_gdf: gpd.GeoDataFrame, link
                 link.pems_stations_ids.append(int(pems_id3))
                 # print(link.pems_stations_ids)
 
-def match_network_and_stations_fresno(network_gdf: gpd.GeoDataFrame, stations_gdf: gpd.GeoDataFrame, config, links: Links, folderpath, adjusted_gis_stations: bool = False):
+def match_network_and_stations_fresno(network_gdf: gpd.GeoDataFrame,
+                                      stations_gdf: gpd.GeoDataFrame,
+                                      links: Links,
+                                      folderpath,
+                                      adjusted_gis_stations: bool = False):
     # Generate a bounding box to cover only the area covered in the network file
     fresno_network_bbox = shapely.geometry.box(*network_gdf.total_bounds)
 
-    fresno_network_bbox_gdf = gpd.GeoDataFrame(gpd.GeoSeries(fresno_network_bbox), columns=['geometry'],crs=config.gis_options['crs_ca'])
+    fresno_network_bbox_gdf = gpd.GeoDataFrame(gpd.GeoSeries(fresno_network_bbox),
+                                               columns=['geometry'],crs=config.gis_options['crs_ca'])
 
 
 
     if adjusted_gis_stations is False:
-        stations_gdf = gpd.sjoin(stations_gdf, fresno_network_bbox_gdf, how="inner", op='intersects').drop(['index_right'],axis=1)
+        stations_gdf = gpd.sjoin(stations_gdf, fresno_network_bbox_gdf, how="inner", predicate='intersects').drop(['index_right'],axis=1)
 
         #Write shapefile with PeMS stations in fresno
         # Save shapefile
@@ -938,7 +965,7 @@ def match_network_and_stations_fresno(network_gdf: gpd.GeoDataFrame, stations_gd
     else:
         print('\nReading adjusted shapefile of Fresno PeMS stations')
 
-        stations_gdf = gpd.sjoin(stations_gdf, fresno_network_bbox_gdf, how="inner", op='intersects').drop(
+        stations_gdf = gpd.sjoin(stations_gdf, fresno_network_bbox_gdf, how="inner", predicate='intersects').drop(
             ['index_right'],
             axis=1)
 
@@ -1049,16 +1076,22 @@ def match_network_and_stations_fresno(network_gdf: gpd.GeoDataFrame, stations_gd
 
 
 
-    print(str(n_matched_links) + ' network links were matched (' + "{:.1%}".format(n_matched_links / len(links)) + ' of regular links)'  )
+    print(str(n_matched_links) + ' network links were matched (' + "{:.1%}".format(n_matched_links / len(links)) + ' of links)'  )
 
-def match_network_links_and_fresno_incidents(network_gdf: gpd.GeoDataFrame, incidents_df: pd.DataFrame, links: Links, config, inrix_matching: bool = False, buffer_size: float = 0):
+def match_network_links_and_fresno_incidents(network_gdf: gpd.GeoDataFrame,
+                                             incidents_df: pd.DataFrame,
+                                             links: Links,
+                                             inrix_matching: bool = False,
+                                             buffer_size: float = 0):
 
     """:param buffer_size: in feets if crs from CA is used"""
 
     print('Matching incidents (N=' + str(len(incidents_df)) + ') with network links')
 
     # Create geodataframe
-    incidents_gdf = gpd.GeoDataFrame(incidents_df, geometry=gpd.points_from_xy(incidents_df.Start_Lng, incidents_df.Start_Lat), crs=config.gis_options['crs_mercator'])
+    incidents_gdf = gpd.GeoDataFrame(incidents_df,
+                                     geometry=gpd.points_from_xy(incidents_df.Start_Lng, incidents_df.Start_Lat),
+                                     crs=config.gis_options['crs_mercator'])
 
     #Reproject coordinates into CA system
     incidents_gdf = incidents_gdf.to_crs(epsg=config.gis_options['crs_ca'])
@@ -1069,7 +1102,7 @@ def match_network_links_and_fresno_incidents(network_gdf: gpd.GeoDataFrame, inci
     links_buffer_gdf['geometry'] = network_gdf.geometry.buffer(buffer_size)
 
     # Spatial join of traffic incidents and links geometries
-    incidents_network_gdf = gpd.sjoin(links_buffer_gdf, incidents_gdf, how='inner', op='intersects')
+    incidents_network_gdf = gpd.sjoin(links_buffer_gdf, incidents_gdf, how='inner', predicate='intersects')
 
     # if selected_years is not None:
     #     incidents_network_gdf = incidents_network_gdf.loc[incidents_network_gdf['year'].isin(selected_years)]
@@ -1106,9 +1139,9 @@ def match_network_links_and_fresno_incidents(network_gdf: gpd.GeoDataFrame, inci
             n_matched_links+= 1
             n_matched_incidents += len(link.incidents_list)
 
-    config.gis_results['matching_stats']['incidents'] = {'perc_matching': "{:.1%}".format(n_matched_links / len(links))}
+    # gis_results['matching_stats']['incidents'] = {'perc_matching': "{:.1%}".format(n_matched_links / len(links))}
 
-    print(str(n_matched_incidents)+ ' incidents were matched to ' + str(n_matched_links) + ' links  (' + "{:.1%}".format(n_matched_links / len(links)) + ' of regular links)'  )
+    print(str(n_matched_incidents)+ ' incidents were matched to ' + str(n_matched_links) + ' links  (' + "{:.1%}".format(n_matched_links / len(links)) + ' of links)'  )
 
 
 
@@ -1136,7 +1169,11 @@ def generate_fresno_streets_intersections_gpd(filepath:str):
     return streets_intersections_gpd
 
 
-def match_network_links_and_fresno_streets_intersections(network_gdf: gpd.GeoDataFrame, streets_intersections_gdf: gpd.GeoDataFrame, links: Links, config, inrix_matching: bool = False, buffer_size: float = 0):
+def match_network_links_and_fresno_streets_intersections(network_gdf: gpd.GeoDataFrame,
+                                                         streets_intersections_gdf: gpd.GeoDataFrame,
+                                                         links: Links,
+                                                         inrix_matching: bool = False,
+                                                         buffer_size: float = 0):
 
     """:param buffer_size: in feets if crs from CA is used"""
 
@@ -1151,7 +1188,7 @@ def match_network_links_and_fresno_streets_intersections(network_gdf: gpd.GeoDat
     links_buffer_gdf['geometry'] = network_gdf.geometry.buffer(buffer_size)
 
     # Spatial join of traffic incidents and links geometries
-    streets_intersections_network_gdf = gpd.sjoin(links_buffer_gdf, incidents_gdf, how='inner', op='intersects')
+    streets_intersections_network_gdf = gpd.sjoin(links_buffer_gdf, incidents_gdf, how='inner', predicate='intersects')
 
     n_matched_links = 0
     n_matched_streets_intersections = 0
@@ -1188,9 +1225,9 @@ def match_network_links_and_fresno_streets_intersections(network_gdf: gpd.GeoDat
             n_matched_links+= 1
             n_matched_streets_intersections += len(link.streets_intersections_list)
 
-    config.gis_results['matching_stats']['streets_intersections'] = {'perc_matching': "{:.1%}".format(n_matched_links / len(links))}
+    # config.gis_results['matching_stats']['streets_intersections'] = {'perc_matching': "{:.1%}".format(n_matched_links / len(links))}
 
-    print(str(n_matched_streets_intersections)+ ' street intersecions were matched to ' + str(n_matched_links) + ' links (' + "{:.1%}".format(n_matched_links / len(links)) + ' of regular links)'  )
+    print(str(n_matched_streets_intersections)+ ' street intersecions were matched to ' + str(n_matched_links) + ' links (' + "{:.1%}".format(n_matched_links / len(links)) + ' of links)'  )
 
 
 
@@ -1200,7 +1237,11 @@ def match_network_links_and_fresno_streets_intersections(network_gdf: gpd.GeoDat
     return links_buffer_gdf
 
 
-def match_network_links_and_fresno_bus_stops(network_gdf: gpd.GeoDataFrame, bus_stops_gdf: gpd.GeoDataFrame, links: Links, config, inrix_matching: bool = False, buffer_size: float = 0):
+def match_network_links_and_fresno_bus_stops(network_gdf: gpd.GeoDataFrame,
+                                             bus_stops_gdf: gpd.GeoDataFrame,
+                                             links: Links,
+                                             inrix_matching: bool = False,
+                                             buffer_size: float = 0):
 
     """:param buffer_size: in feets if crs from CA is used"""
 
@@ -1215,7 +1256,7 @@ def match_network_links_and_fresno_bus_stops(network_gdf: gpd.GeoDataFrame, bus_
     links_buffer_gdf['geometry'] = network_gdf.geometry.buffer(buffer_size)
 
     # Spatial join of traffic incidents and links geometries
-    bus_stops_network_gdf = gpd.sjoin(links_buffer_gdf, incidents_gdf, how='inner', op='intersects')
+    bus_stops_network_gdf = gpd.sjoin(links_buffer_gdf, incidents_gdf, how='inner', predicate='intersects')
 
     n_matched_links = 0
     n_matched_bus_stops = 0
@@ -1249,18 +1290,21 @@ def match_network_links_and_fresno_bus_stops(network_gdf: gpd.GeoDataFrame, bus_
             n_matched_links+= 1
             n_matched_bus_stops += len(link.bus_stops_list)
 
-    config.gis_results['matching_stats']['bus_stops'] = {'perc_matching': "{:.1%}".format(n_matched_links / len(links))}
+    # config.gis_results['matching_stats']['bus_stops'] = {'perc_matching': "{:.1%}".format(n_matched_links / len(links))}
 
-    print(str(n_matched_bus_stops)+ ' bus stops were matched to ' + str(n_matched_links) + ' links (' + "{:.1%}".format(n_matched_links / len(links)) + ' of regular links)'  )
+    print(str(n_matched_bus_stops)+ ' bus stops were matched to ' + str(n_matched_links) + ' links (' + "{:.1%}".format(n_matched_links / len(links)) + ' of links)'  )
 
     # #To show in a map
     # incidents_buffer_gdf = incidents_buffer_gdf.to_crs(config.gis_options['crs_mercator'])
 
     return links_buffer_gdf
 
-def generate_fresno_bus_stops_gpd(bus_stops_df: pd.Dataframe, config, export_filepath: str = None):
+def generate_fresno_bus_stops_gpd(bus_stops_df: pd.Dataframe,
+                                  export_filepath: str = None):
 
-    bus_stops_gdf = gpd.GeoDataFrame(bus_stops_df, geometry=gpd.points_from_xy(bus_stops_df.stop_lon, bus_stops_df.stop_lat), crs=config.gis_options['crs_mercator'])
+    bus_stops_gdf = gpd.GeoDataFrame(bus_stops_df,
+                                     geometry=gpd.points_from_xy(bus_stops_df.stop_lon, bus_stops_df.stop_lat),
+                                     crs=config.gis_options['crs_mercator'])
 
     bus_stops_gdf = bus_stops_gdf.to_crs(epsg=config.gis_options['crs_ca'])
 
@@ -1273,10 +1317,11 @@ def generate_fresno_bus_stops_gpd(bus_stops_df: pd.Dataframe, config, export_fil
     return bus_stops_gdf
 
 
+def export_fresno_incidents_shp(incidents_df: pd.Dataframe, folderpath):
 
-def export_fresno_incidents_shp(incidents_df: pd.Dataframe, folderpath, config ):
-
-    incidents_gdf = gpd.GeoDataFrame(incidents_df, geometry=gpd.points_from_xy(incidents_df.Start_Lng, incidents_df.Start_Lat), crs=config.gis_options['crs_mercator'])
+    incidents_gdf = gpd.GeoDataFrame(incidents_df,
+                                     geometry=gpd.points_from_xy(incidents_df.Start_Lng, incidents_df.Start_Lat),
+                                     crs=config.gis_options['crs_mercator'])
 
     incidents_gdf = incidents_gdf.to_crs(epsg=config.gis_options['crs_ca'])
 

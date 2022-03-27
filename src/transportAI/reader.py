@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .mytypes import Nodes
+    from .mytypes import Nodes, Paths, Matrix,TNetwork, DiTNetwork, MultiDiTNetwork
 
 import os
 import openmatrix as omx
@@ -22,19 +22,13 @@ csv.field_size_limit(sys.maxsize)  # to support reading large matrices
 
 import printer
 
-from networks import TNetwork, DiTNetwork, MultiDiTNetwork
-from paths import Path
-
-from mytypes import Matrix
-
+from paths import Path, get_paths_od_from_paths
+from networks import MultiDiTNetwork
 
 import config
 
-#TODO: Eliminate dependency of reader and writer methods from config module
-config = config.Config(network_key = 'Fresno')
-
-
-def read_colombus_paths(Nt:TNetwork, filepath: str) -> None:
+def read_colombus_paths(network:TNetwork,
+                        filepath: str) -> Paths:
     """
     Read path data from Colombus network
     It assumes that a dictionary of existing links is available in the input network
@@ -59,11 +53,11 @@ def read_colombus_paths(Nt:TNetwork, filepath: str) -> None:
         total_paths = len(list(path_reader))
         print('Total paths to be read: ' + str(total_paths))
 
-    if Nt.network_type is MultiDiTNetwork:
+    if network.network_type is MultiDiTNetwork:
         raise NotImplementedError
 
     # Create hash table (dictionary) to speed up mapping from original to internal ids (keys)
-    links_ids_to_keys = {(int(link.init_node.id), int(link.term_node.id), '0'): link.key for link in Nt.links}
+    links_ids_to_keys = {(int(link.init_node.id), int(link.term_node.id), '0'): link.key for link in network.links}
 
     with open(filepath, 'r', newline='') as csvfile:
         path_reader = csv.reader(csvfile, delimiter=' ')
@@ -84,8 +78,8 @@ def read_colombus_paths(Nt:TNetwork, filepath: str) -> None:
                 # Key of link based on internal id
                 link_key = links_ids_to_keys[link_key_id]
 
-                # if Nt.network_type is DiTNetwork:
-                links.append(Nt.links_dict[link_key])
+                # if network.network_type is DiTNetwork:
+                links.append(network.links_dict[link_key])
 
                 # links.append(self._links_dict[(path_line[i], path_line[i + 1], '0')])
 
@@ -106,13 +100,13 @@ def read_colombus_paths(Nt:TNetwork, filepath: str) -> None:
     assert len(paths) >= total_paths, str(total_paths-len(paths)) + ' were not succesfully read'
     print(str(total_paths) + ' were read in ' + str(np.round(time.time() - t0, 1)) + ' [s]')
 
-    Nt.paths = paths
-    Nt.paths_od = paths_od
+    network.paths = paths
+    network.paths_od = paths_od
 
     # return paths, paths_od
 
 
-def read_internal_paths(Nt: TNetwork, filepath: str) -> None:
+def read_internal_paths(network: TNetwork) -> Paths:
     """ It assumes that a dictionary of existing links is available and the path generated and rematched to those links
 
     Each line in the text file contains a sequence of nodes separated by a comma
@@ -121,13 +115,15 @@ def read_internal_paths(Nt: TNetwork, filepath: str) -> None:
 
     paths = []
 
-    if Nt.network_type is MultiDiTNetwork:
+    filepath = config.dirs['read_network_data'] + 'paths/paths-' + network.key + '.csv'
+
+    if network.network_type is MultiDiTNetwork:
         raise NotImplementedError
 
     with open(filepath, 'r', newline='') as csvfile:
         path_reader = csv.reader(csvfile, delimiter=' ')
         total_paths = len(list(path_reader))
-        print('Total paths to be read: ' + str(total_paths))
+        # print('Total paths to be read: ' + str(total_paths))
 
     t0 = time.time()
 
@@ -153,10 +149,10 @@ def read_internal_paths(Nt: TNetwork, filepath: str) -> None:
 
                 # Searching for existing links in network object that match the current path
 
-                # if Nt.network_type is DiTNetwork:
-                links.append(Nt.links_dict[link_label])
+                # if network.network_type is DiTNetwork:
+                links.append(network.links_dict[link_label])
 
-                # if Nt.network_type is MultiDiTNetwork:
+                # if network.network_type is MultiDiTNetwork:
                 #     raise NotImplementedError
                 # links.append(self._links_dict[(path_line[i], path_line[i + 1], '0')])
 
@@ -175,10 +171,8 @@ def read_internal_paths(Nt: TNetwork, filepath: str) -> None:
 
     assert len(paths) > 0, 'Paths were not succesfully read'
     print(str(total_paths) + ' paths were read in ' + str(np.round(time.time() - t0, 1)) + '[s]')
-
-    Nt.paths = paths
-
-    Nt.paths_od = Nt.get_paths_od_from_paths(Nt.paths)
+    
+    return paths
 
     # # Do not need to read again
     # options['reading']['paths'] = False
@@ -189,21 +183,23 @@ def read_internal_paths(Nt: TNetwork, filepath: str) -> None:
     # print('Paths were succesfully read')
 
 
-def read_internal_C(Nt: TNetwork, sparse_format: bool = False):
+def read_internal_C(network: TNetwork, 
+                    sparse_format: bool = False) -> Matrix:
+    
     format_label = 'sparse' if sparse_format else 'dense'
 
-    print('Reading C in ' + format_label + ' format')
+    # print('Reading C in ' + format_label + ' format')
 
     t0 = time.time()
 
     C_rows = []
 
     if sparse_format:
-        filepath = config.paths['network_data'] + 'C/C-sparse-' + Nt.key + '.npz'
-        Nt.C = np.array(scipy.sparse.load_npz(filepath).todense())
+        filepath = config.dirs['read_network_data'] + 'C/C-sparse-' + network.key + '.npz'
+        C = np.array(scipy.sparse.load_npz(filepath).todense())
 
     else:
-        filepath = config.paths['network_data'] + 'C/C-' + Nt.key + '.csv'
+        filepath = config.dirs['read_network_data'] + 'C/C-' + network.key + '.csv'
 
         with open(filepath, 'r', newline='') as csvfile:
             rows_reader = csv.reader(csvfile, delimiter=' ')
@@ -218,28 +214,31 @@ def read_internal_C(Nt: TNetwork, sparse_format: bool = False):
 
                 C_rows.append(list(map(float, C_row)))
 
-        Nt.C = np.array(C_rows)
+        C = np.array(C_rows)
 
-    assert Nt.C.shape[0] > 0, 'Matrix C was not succesfully read'
-    print('Matrix C ' + str(Nt.C.shape) + ' read in ' + str(
-        round(time.time() - t0, 1)) + '[s]')
+    assert C.shape[0] > 0, 'Matrix C was not succesfully read using ' + format_label + ' format'
+    print('Matrix C ' + str(C.shape) + ' read in ' + str(
+        round(time.time() - t0, 1)) + '[s] with ' + format_label + ' format')
+    
+    return C
 
 
-def read_internal_D(Nt: TNetwork, sparse_format: bool = False) -> None:
+def read_internal_D(network: TNetwork, 
+                    sparse_format: bool = False) -> Matrix:
     format_label = 'sparse' if sparse_format else 'dense'
 
-    print('Reading D in ' + format_label + ' format')
+    # print('Reading D in ' + format_label + ' format')
 
     t0 = time.time()
 
     D_rows = []
 
     if sparse_format:
-        filepath = config.paths['network_data'] + 'D/D-sparse-' + Nt.key + '.npz'
-        Nt.D = np.array(scipy.sparse.load_npz(filepath).todense())
+        filepath = config.dirs['read_network_data'] + 'D/D-sparse-' + network.key + '.npz'
+        D = np.array(scipy.sparse.load_npz(filepath).todense())
 
     else:
-        filepath = config.paths['network_data'] + 'D/D-' + Nt.key + '.csv'
+        filepath = config.dirs['read_network_data'] + 'D/D-' + network.key + '.csv'
         with open(filepath, 'r', newline='') as csvfile:
             rows_reader = csv.reader(csvfile, delimiter=' ')
             total_rows = len(list(rows_reader))
@@ -253,31 +252,34 @@ def read_internal_D(Nt: TNetwork, sparse_format: bool = False) -> None:
 
                 D_rows.append(list(map(float, D_row)))
 
-        Nt.D = np.array(D_rows)
+        D = np.array(D_rows)
 
-    assert Nt.D.shape[0] > 0, 'Matrix D was not succesfully read'
-    print('Matrix D ' + str(Nt.D.shape) + ' read in ' + str(
-        round(time.time() - t0, 1)) + '[s]')
+    assert D.shape[0] > 0, 'Matrix D was not succesfully read using ' + format_label + ' format'
+    print('Matrix D ' + str(D.shape) + ' read in ' + str(
+        round(time.time() - t0, 1)) + '[s] with ' + format_label + ' format')
+    
+    return D
 
 
-def read_internal_M(Nt: TNetwork, sparse_format: bool = False) -> None:
+def read_internal_M(network: TNetwork, 
+                    sparse_format: bool = False) -> Matrix:
     # TODO: distributed storage per OD pair for huge matrices
 
     format_label = 'sparse' if sparse_format else 'dense'
 
-    print('Reading M in ' + format_label + ' format')
+    # print('Reading M in ' + format_label + ' format')
 
     t0 = time.time()
 
     M_rows = []
 
     if sparse_format:
-        filepath = config.paths['network_data'] + 'M/M-sparse-' + Nt.key + '.npz'
-        Nt.M = np.array(scipy.sparse.load_npz(filepath).todense())
+        filepath = config.dirs['read_network_data'] + 'M/M-sparse-' + network.key + '.npz'
+        M = np.array(scipy.sparse.load_npz(filepath).todense())
 
 
     else:
-        filepath = config.paths['network_data'] + 'M/M-' + Nt.key + '.csv'
+        filepath = config.dirs['read_network_data'] + 'M/M-' + network.key + '.csv'
         with open(filepath, 'r', newline='') as csvfile:
             rows_reader = csv.reader(csvfile, delimiter=' ')
             total_rows = len(list(rows_reader))
@@ -291,28 +293,32 @@ def read_internal_M(Nt: TNetwork, sparse_format: bool = False) -> None:
 
                 M_rows.append(list(map(float, M_row)))
 
-        Nt.M = np.array(M_rows)
+        M = np.array(M_rows)
 
-    assert Nt.M.shape[0] > 0, 'Matrix M was not succesfully read'
-    print('Matrix M ' + str(Nt.M.shape) + ' read in ' + str(
-        round(time.time() - t0, 1)) + '[s]')
+    assert M.shape[0] > 0, 'Matrix M was not succesfully read using ' + format_label + ' format'
+
+    print('Matrix M ' + str(M.shape) + ' read in ' + str(
+        round(time.time() - t0, 1)) + '[s] with ' + format_label + ' format')
+    
+    return M
 
 
-def read_internal_Q(Nt: TNetwork, sparse_format: bool = False) -> None:
+def read_internal_Q(network: TNetwork, 
+                    sparse_format: bool = False) -> Matrix:
     format_label = 'sparse' if sparse_format else 'dense'
 
-    print('Reading Q in ' + format_label + ' format')
+    # print('Reading Q in ' + format_label + ' format')
 
     t0 = time.time()
 
     Q_rows = []
 
     if sparse_format:
-        filepath = config.paths['network_data'] + 'Q/Q-sparse-' + Nt.key + '.npz'
-        Nt.Q = np.array(scipy.sparse.load_npz(filepath).todense())
+        filepath = config.dirs['read_network_data'] + 'Q/Q-sparse-' + network.key + '.npz'
+        Q = np.array(scipy.sparse.load_npz(filepath).todense())
 
     else:
-        filepath = config.paths['network_data'] + 'Q/Q-' + Nt.key + '.csv'
+        filepath = config.dirs['read_network_data'] + 'Q/Q-' + network.key + '.csv'
         with open(filepath, 'r', newline='') as csvfile:
             rows_reader = csv.reader(csvfile, delimiter=' ')
             total_rows = len(list(rows_reader))
@@ -326,66 +332,93 @@ def read_internal_Q(Nt: TNetwork, sparse_format: bool = False) -> None:
 
                 Q_rows.append(list(map(float, Q_row)))
 
-        Nt.Q = np.array(Q_rows)
+        Q = np.array(Q_rows)
 
-    assert Nt.Q.shape[0] > 0, 'Matrix Q was not succesfully read'
-    print('Matrix Q ' + str(Nt.Q.shape) + ' read in ' + str(
-        round(time.time() - t0, 1)) + '[s]')
+    assert Q.shape[0] > 0, 'Matrix Q was not succesfully read using ' + format_label + ' format'
+    print('Matrix Q ' + str(Q.shape) + ' read in ' + str(
+        round(time.time() - t0, 1)) + '[s] with ' + format_label + ' format')
+    
+    return Q
 
 
-def read_internal_network_files(Nt: TNetwork, options) -> None:
+def read_internal_network_files(network: TNetwork,
+                                options,
+                                **kwargs) -> None:
     """ Wrapper function for reading"""
-
-    # paths, paths_od = None, None
 
     # TODO: Reading sparse matrix si quite slow. An upgrade writing matrix in sparse format is needed
     # TODO: Break this method in parts as it is done for the writer
     # print(options['reading'])
 
-    if options['reading']['paths']:
-        # print('reading paths')
 
-        filepath = config.paths['network_data'] + 'paths/paths-' + options['subfolder'] + '.csv'
-        read_internal_paths(Nt=Nt, filepath=filepath)
 
-    if options['reading']['C']:
+    if options['reading']['C'] or options['reading']['sparse_C']:
 
         sparse_format = False
 
         if options['reading']['sparse_C']:
             sparse_format = True
 
-        read_internal_C(Nt=Nt, sparse_format=sparse_format)
+        network.C = read_internal_C(network=network, sparse_format=sparse_format)
 
-    if options['reading']['D']:
+    if options['reading']['D'] or options['reading']['sparse_D']:
 
         sparse_format = False
 
         if options['reading']['sparse_D']:
             sparse_format = True
 
-        read_internal_D(Nt=Nt, sparse_format=sparse_format)
+        network.D = read_internal_D(network=network, sparse_format=sparse_format)
 
-    if options['reading']['M']:
+    if options['reading']['M'] or options['reading']['sparse_M']:
 
         sparse_format = False
 
         if options['reading']['sparse_M']:
             sparse_format = True
 
-        read_internal_M(Nt=Nt, sparse_format=sparse_format)
+        network.M = read_internal_M(network=network, sparse_format=sparse_format)
 
-    if options['reading']['Q']:
+    if options['reading']['Q'] or options['reading']['sparse_Q']:
 
         sparse_format = False
 
         if options['reading']['sparse_Q']:
             sparse_format = True
 
-        read_internal_Q(Nt=Nt, sparse_format=sparse_format)
+        Q = read_internal_Q(network=network, sparse_format=sparse_format)
+        network.load_OD(Q = Q)
 
 
-def read_tntp_network(folderpath: str, subfolder) -> (Matrix, {}):
+def read_tntp_linkdata(folderpath: str,
+                    subfoldername: str):
+    od_filename = [_ for _ in os.listdir(os.path.join(folderpath, subfoldername)) if
+                   'trips' in _ and _.endswith('tntp')]
+
+    prefix_filenames = od_filename[0].partition('_')[0]
+
+    # nets = {i: pd.read_csv(j, skiprows=8, sep='\t') for i, j in net_files.items()}
+
+    # links_df = links_dfs['Berlin-Center']
+    links_df = pd.read_csv(folderpath + subfoldername + '/' + prefix_filenames + '_net.tntp', skiprows=8,
+                              sep='\t')  # links_dfs['SiouxFalls']
+    # links_df = links_dfs['Austin']
+
+    trimmed = [s.strip().lower() for s in links_df.columns]
+    links_df.columns = trimmed
+
+    # And drop the silly first andlast columns
+    links_df.drop(['~', ';'], axis=1, inplace=True)
+
+    import matplotlib.pyplot as plt
+
+    # Reduce the number of the node by 1 for internal consistency
+    links_df['init_node'] -= 1
+    links_df['term_node'] -= 1
+
+    return links_df
+
+def read_tntp_network(folderpath: str, subfoldername: str) -> (Matrix, pd.Dataframe):
     """
 
     This method return an adjacency matrix, od matrix and link level information based on the ".omx" and "_net.tntp" files
@@ -428,46 +461,48 @@ def read_tntp_network(folderpath: str, subfolder) -> (Matrix, {}):
     # od_files = {}
     # od_files['SiouxFalls'] = os.path.join(root, 'SiouxFalls', 'SiouxFalls_trips.tntp')
 
-    od_filename = [_ for _ in os.listdir(os.path.join(folderpath, subfolder)) if 'trips' in _ and _.endswith('tntp')]
+    od_filename = [_ for _ in os.listdir(os.path.join(folderpath, subfoldername)) if 'trips' in _ and _.endswith('tntp')]
 
     prefix_filenames = od_filename[0].partition('_')[0]
 
     # nets = {i: pd.read_csv(j, skiprows=8, sep='\t') for i, j in net_files.items()}
 
     # links_attrs = links_attrss['Berlin-Center']
-    links_attrs = pd.read_csv(folderpath + subfolder + '/' + prefix_filenames + '_net.tntp', skiprows=8,
-                              sep='\t')  # links_attrss['SiouxFalls']
-    # links_attrs = links_attrss['Austin']
+    links_df = pd.read_csv(folderpath + subfoldername + '/' + prefix_filenames + '_net.tntp', skiprows=8, sep='\t')  # links_dfs['SiouxFalls']
+    # links_df = links_dfs['Austin']
 
-    trimmed = [s.strip().lower() for s in links_attrs.columns]
-    links_attrs.columns = trimmed
+    trimmed = [s.strip().lower() for s in links_df.columns]
+    links_df.columns = trimmed
 
     # And drop the silly first andlast columns
-    links_attrs.drop(['~', ';'], axis=1, inplace=True)
+    links_df.drop(['~', ';'], axis=1, inplace=True)
 
     import matplotlib.pyplot as plt
 
     # Reduce the number of the node by 1 for internal consistency
-    links_attrs['init_node'] -= 1
-    links_attrs['term_node'] -= 1
+    links_df['init_node'] -= 1
+    links_df['term_node'] -= 1
+
+    # Create link id column
+    # links_df['link_key']
 
     # Create adjacency matrix
-    # dimension_A = len(links_attrs['init_node'].append(links_attrs['term_node']).unique())
-    dimension_A = links_attrs['init_node'].append(links_attrs['term_node']).unique().max() + 1
+    # dimension_A = len(links_df['init_node'].append(links_df['term_node']).unique())
+    dimension_A = links_df['init_node'].append(links_df['term_node']).unique().max() + 1
 
     A = np.zeros([dimension_A, dimension_A])
 
-    for index, row in links_attrs.iterrows():
+    for index, row in links_df.iterrows():
         A[(int(row['init_node']), int(row['term_node']))] = 1
 
-    return A, links_attrs
+    return A, links_df
 
 
 def read_colombus_network(folderpath: str) -> (Matrix, pd.DataFrame, pd.DataFrame):
 
     #TODO: read new files upload by Bin
 
-    # folder = tai.config.paths['Colombus_network']
+    # folder = tai.Config().paths['Colombus_network']
 
     # # ===================================================================
     # # SHAPE FILE COLOMBUS NETWORK
@@ -634,7 +669,7 @@ def read_fresno_network(folderpath: str) -> (Matrix, pd.DataFrame, pd.DataFrame)
     # NETWORK SUMMARY (SR41.net)
     # ===================================================================
     # import transportAI as tai
-    # folder = tai.config.paths['Fresno_network']
+    # folder = tai.Config().paths['Fresno_network']
     # filepath = folder + '/SR41.net'
     #
     # n_nodes, n_links, n_origins, n_destination, n_ods = 0, 0, 0, 0, 0
@@ -694,13 +729,13 @@ def read_fresno_network(folderpath: str) -> (Matrix, pd.DataFrame, pd.DataFrame)
 
     # Original header
     # ID Type Name From To LEN(mi) FFS(mi/h)	Cap(v/h) RHOJ(v/mi)	Lane
-    header_links_df = ['id', 'type', 'name', 'init_node_id', 'term_node_id', 'length', 'ff_speed', 'capacity', 'rhoj','lane']
+    header_links_df = ['id', 'link_type', 'name', 'init_node_id', 'term_node_id', 'length', 'ff_speed', 'capacity', 'rhoj','lane']
 
     # links_df['init_node']
 
     links_df = pd.read_csv(folderpath + '/SR41.lin', delimiter="\t"
                            , names=header_links_df, skiprows=1
-                           , dtype={'id': 'int', 'type': 'string'
+                           , dtype={'id': 'int', 'link_type': 'string'
             , 'init_node_id': 'int', 'term_node_id': 'int'}
                            )
 
@@ -725,12 +760,12 @@ def read_fresno_network(folderpath: str) -> (Matrix, pd.DataFrame, pd.DataFrame)
     #
     # dimension_A = max()
 
-    A = np.zeros([dimension_A, dimension_A])
+    # A = np.zeros([dimension_A, dimension_A])
+    #
+    # for index, row in links_df.iterrows():
+    #     A[(int(row['init_node_key']), int(row['term_node_key']))] = 1
 
-    for index, row in links_df.iterrows():
-        A[(int(row['init_node_key']), int(row['term_node_key']))] = 1
-
-    return A, links_df, nodes_df
+    return links_df, nodes_df
 
 
 def read_sacramento_network(folderpath: str) -> (Matrix, pd.DataFrame, pd.DataFrame):
@@ -740,7 +775,7 @@ def read_sacramento_network(folderpath: str) -> (Matrix, pd.DataFrame, pd.DataFr
     # NETWORK SUMMARY (pfe.net)
     # ===================================================================
     # import transportAI as tai
-    # folder = tai.config.paths['Sacramento_network']
+    # folder = tai.Config().paths['Sacramento_network']
     # filepath = folder + '/pfe.net'
     #
     # n_nodes, n_links, n_origins, n_destination, n_ods = 0, 0, 0, 0, 0
@@ -783,8 +818,8 @@ def read_sacramento_network(folderpath: str) -> (Matrix, pd.DataFrame, pd.DataFr
     filepath = folderpath + '/pfe.nod'
 
     nodes_df = pd.read_csv(filepath, skiprows=1, delimiter="\t"
-                           , names=['id', 'type', 'x', 'y']
-                           , dtype={'id': 'int', 'type': 'string', 'x': 'int', 'y': 'int'}
+                           , names=['id', 'node_type', 'x', 'y']
+                           , dtype={'id': 'int', 'node_type': 'string', 'x': 'int', 'y': 'int'}
                            )
 
     # Sequential key
@@ -801,14 +836,14 @@ def read_sacramento_network(folderpath: str) -> (Matrix, pd.DataFrame, pd.DataFr
 
     # Original header
     # ID Type Name From To LEN(mi) FFS(mi/h)	Cap(v/h) RHOJ(v/mi)	Lane
-    header_links_df = ['id', 'type', 'name', 'init_node_id', 'term_node_id',
+    header_links_df = ['id', 'link_type', 'name', 'init_node_id', 'term_node_id',
                        'length', 'ff_speed', 'capacity', 'rhoj', 'lane']
 
     # links_df['init_node']
 
     links_df = pd.read_csv(filepath, delimiter="\t"
                            , names=header_links_df, skiprows=1
-                           , dtype={'id': 'int', 'type': 'string'
+                           , dtype={'id': 'int', 'link_type': 'string'
             , 'init_node_id': 'int', 'term_node_id': 'int'}
                            )
 
@@ -846,7 +881,10 @@ def read_sacramento_network(folderpath: str) -> (Matrix, pd.DataFrame, pd.DataFr
     return A, links_df, nodes_df
 
 
-def read_tntp_od(folderpath: str, subfolder) -> Matrix:
+
+
+def read_tntp_od(folderpath: str,
+                 subfoldername: str) -> Matrix:
     """
 
     This method return an adjacency matrix, od matrix and link level information based on the ".omx" and "_net.tntp" files
@@ -895,17 +933,19 @@ def read_tntp_od(folderpath: str, subfolder) -> Matrix:
 
         return numpy_matrix
 
-    od_filename = [_ for _ in os.listdir(os.path.join(folderpath, subfolder)) if 'trips' in _ and _.endswith('tntp')]
+    od_filename = [_ for _ in os.listdir(os.path.join(folderpath, subfoldername)) if 'trips' in _ and _.endswith('tntp')]
 
     prefix_filenames = od_filename[0].partition('_')[0]
 
     Q = import_matrix(matfile=od_filename[0]
-                      , subfolder_path=folderpath + subfolder + '/', filename=prefix_filenames)
+                      , subfolder_path=folderpath + subfoldername + '/', filename=prefix_filenames)
 
     assert Q.shape[0] > 0, 'Matrix Q was not succesfully read'
     print('Matrix Q ' + str(Q.shape) + ' read in ' + str(round(time.time() - t0, 1)) + '[s]')
 
     return Q
+
+
 
 
 def read_colombus_od(folderpath: str, A: Matrix, nodes: Nodes) -> Matrix:
@@ -1095,7 +1135,8 @@ def read_fresno_od(folderpath, A, nodes) -> Matrix:
 
     return Q
 
-def read_fresno_dynamic_od(folderpath, A, nodes, periods: []) -> Matrix:
+
+def read_fresno_dynamic_od(filepath, network, periods: []) -> Matrix:
     """
 
     :argument periods: list with periods (integers 1..6) that will be aggregated to get the OD
@@ -1107,6 +1148,9 @@ def read_fresno_dynamic_od(folderpath, A, nodes, periods: []) -> Matrix:
 
     t0 = time.time()
 
+    nodes = network.nodes
+    A = network.A
+
     # ===================================================================
     # Reading OD demand from SR41.dmd
     # ===================================================================
@@ -1115,7 +1159,8 @@ def read_fresno_dynamic_od(folderpath, A, nodes, periods: []) -> Matrix:
 
     # filepath = folderpath + '/SR41.csv'
 
-    filepath = folderpath + '/SR41/SR41.dmd'
+    # filepath = folderpath + '/SR41/SR41.dmd'
+    # filepath = folderpath + '/SR41.dmd'
 
     assert not any([period not in [1,2,3,4,5,6] for period in periods]), 'invalid period for the OD matrix'
 
@@ -1182,12 +1227,14 @@ def read_fresno_dynamic_od(folderpath, A, nodes, periods: []) -> Matrix:
 
     # OD matrix has the same dimensions than the adjacency matrix. Trips information is obtained from trips_od_df
 
-    Q = np.zeros(A.shape)
+    Q = np.zeros(network.A.shape)
 
     for index, row in od_df.iterrows():
         Q[(int(row['origin_key']), int(row['destination_key']))] = row['demand']
 
     print('Matrix Q ' + str(Q.shape) + ' read in ' + str(round(time.time() - t0, 1)) + '[s]')
+
+    network.load_OD(Q = Q)
 
     return Q
 
@@ -1201,7 +1248,7 @@ def read_sacramento_od(folder, A, nodes) -> Matrix:
        """
 
     t0 = time.time()
-    # folder = tai.config.paths['Fresno_Sac_networks']
+    # folder = tai.Config().paths['Fresno_Sac_networks']
 
     # ===================================================================
     # Reading OD demand

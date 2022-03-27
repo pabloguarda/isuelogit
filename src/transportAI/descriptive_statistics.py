@@ -1,28 +1,35 @@
 """ Descriptive statistics in terms of tables or plots"""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from mytypes import List
+    from networks import TNetwork
+
 import pandas as pd
-
-
 import numpy as np
 
-import analyst
-import writer
 import matplotlib.pyplot as plt
 import matplotlib
+# matplotlib.rcParams['text.usetex'] = False
 # plt.rcParams['figure.dpi'] = 30
 # plt.rcParams['savefig.dpi'] = 30
 
+
 import seaborn as sns
 # sns.set(rc={"figure.dpi":30, 'savefig.dpi':30})
-
-
-
 import copy
-import datetime
-# matplotlib.rcParams['text.usetex'] = False
+
+from etl import masked_link_counts_after_path_coverage
 
 
-def distribution_pems_counts(filepath, selected_period, selected_links = None, col_wrap = 2):
+def distribution_pems_counts(filepath,
+                             selected_period,
+                             data_reader,
+                             selected_links = None,
+                             col_wrap = 2):
     """ Analyze counts from a selected group of links. We may compare counts in 2019 and 2020 and over the same day of the week during each month to analyze the validity of Gaussian distribution and see differences between years """
 
 
@@ -33,9 +40,7 @@ def distribution_pems_counts(filepath, selected_period, selected_links = None, c
     # Avoid clash with underscore in feature names, e.g. flow_total
     matplotlib.rcParams['text.usetex'] = False
 
-    data_analyst = analyst.Analyst()
-
-    pems_count_sdf = data_analyst.read_pems_counts_data(filepath, selected_period)
+    pems_count_sdf = data_reader.read_pems_counts_data(filepath, selected_period)
     pems_count_df = pems_count_sdf.toPandas()
 
     # selected_period = {'year': 2019, 'hour': 6, 'duration': 900}
@@ -95,13 +100,18 @@ def distribution_pems_counts(filepath, selected_period, selected_links = None, c
     return fg
 
 
-def get_link_Z_attributes_df(links, attrs_list, Z_labels):
+def get_link_Z_attributes_df(links,
+                             attrs_list: List = None,
+                             Z_labels: List = None) -> pd.Dataframe:
 
     df_dict = {}
 
     # df_dict['key'] = [link.key for link in links]
 
     missing_attrs = []
+
+    if attrs_list is None:
+        attrs_list = list(links[0].Z_dict.keys())
 
     if Z_labels is None:
         Z_labels = attrs_list
@@ -122,7 +132,8 @@ def get_link_Z_attributes_df(links, attrs_list, Z_labels):
     return links_df
 
 
-def get_loss_and_estimates_over_iterations(results_norefined: pd.DataFrame, results_refined: pd.DataFrame):
+def get_loss_and_estimates_over_iterations(results_norefined: pd.DataFrame,
+                                           results_refined: pd.DataFrame):
 
     results_norefined_bilevelopt = results_norefined
     results_refined_bilevelopt = results_refined
@@ -247,10 +258,12 @@ def get_gap_estimates_over_iterations(results_norefined: pd.DataFrame, results_r
     return gap_estimates_over_iterations_df
 
 
-def get_predicted_link_counts_over_iterations_df(results_norefined: dict, results_refined: dict,  Nt):
+def get_predicted_link_counts_over_iterations_df(results_norefined: dict,
+                                                 results_refined: dict,
+                                                 network):
     # Create pandas dataframe with link_keys as rows and add observed link column
 
-    link_keys = results_norefined[1]['equilibrium']['x'].keys()
+    link_keys = results_norefined[1]['x'].keys()
 
     predicted_counts_link_df = pd.DataFrame(
         {'link_key': link_keys,
@@ -259,15 +272,15 @@ def get_predicted_link_counts_over_iterations_df(results_norefined: dict, result
          }
     )
 
-    observed_links_keys = [link.key for link in Nt.get_observed_links()]
+    observed_links_keys = [link.key for link in network.get_observed_links()]
 
-    for link in Nt.links:
+    for link in network.links:
         if link.key in observed_links_keys:
             predicted_counts_link_df.loc[predicted_counts_link_df['link_key'] == link.key,['observed']] = 1
-            predicted_counts_link_df.loc[predicted_counts_link_df['link_key'] == link.key, ['true_count']] = link.observed_count
+            predicted_counts_link_df.loc[predicted_counts_link_df['link_key'] == link.key, ['true_count']] = link.count
 
     # Create a dictionary with the predicted counts for every link over iterations
-    predicted_counts_norefined_link_dict = {iter: results_norefined[iter]['equilibrium']['x'] for iter in results_norefined.keys()}
+    predicted_counts_norefined_link_dict = {iter: results_norefined[iter]['x'] for iter in results_norefined.keys()}
 
     # Create a dictionary with link keys and predicted counts over iterations as values
     predicted_link_counts_dict = {}
@@ -289,7 +302,7 @@ def get_predicted_link_counts_over_iterations_df(results_norefined: dict, result
         predicted_counts_link_df['iter_' + str(counter)] = list(predicted_counts_norefined_link_dict[iteration].values())
 
     # Fill out with predicted count of refined stage
-    predicted_counts_refined_link_dict = {iter: results_refined[iter]['equilibrium']['x'] for iter in results_refined.keys()}
+    predicted_counts_refined_link_dict = {iter: results_refined[iter]['x'] for iter in results_refined.keys()}
 
     for iteration, link_counts_dict in predicted_counts_refined_link_dict.items():
 
@@ -308,23 +321,26 @@ def get_predicted_link_counts_over_iterations_df(results_norefined: dict, result
     return predicted_counts_link_df
 
 
-def get_gap_predicted_link_counts_over_iterations_df(results_norefined: dict, results_refined: dict, Nt):
+def get_gap_predicted_link_counts_over_iterations_df(results_norefined: dict,
+                                                     results_refined: dict,
+                                                     network):
 
-    predicted_link_counts_over_iterations_df = get_predicted_link_counts_over_iterations_df(results_norefined, results_refined, Nt)
+    predicted_link_counts_over_iterations_df = get_predicted_link_counts_over_iterations_df(results_norefined, results_refined, network)
 
     for key in predicted_link_counts_over_iterations_df.keys():
 
         if 'iter' in key:
             predicted_link_counts_over_iterations_df[key] -= predicted_link_counts_over_iterations_df['true_count']
 
-
     return predicted_link_counts_over_iterations_df
 
 
-def get_predicted_traveltimes_over_iterations_df(results_norefined: dict, results_refined: dict,  Nt):
+def get_predicted_traveltimes_over_iterations_df(results_norefined: dict,
+                                                 results_refined: dict,
+                                                 network):
     # Create pandas dataframe with link_keys as rows and add observed link column
 
-    link_keys = results_norefined[1]['equilibrium']['tt_x'].keys()
+    link_keys = results_norefined[1]['tt_x'].keys()
 
     predicted_traveltime_link_df = pd.DataFrame(
         {'link_key': link_keys,
@@ -332,14 +348,14 @@ def get_predicted_traveltimes_over_iterations_df(results_norefined: dict, result
          }
     )
 
-    observed_links_keys = [link.key for link in Nt.get_observed_links()]
+    observed_links_keys = [link.key for link in network.get_observed_links()]
 
-    for link in Nt.links:
+    for link in network.links:
         if link.key in observed_links_keys:
             predicted_traveltime_link_df.loc[predicted_traveltime_link_df['link_key'] == link.key,['observed']] = 1
 
     # Create a dictionary with the predicted traveltime for every link over iterations
-    predicted_traveltime_norefined_link_dict = {iter: results_norefined[iter]['equilibrium']['tt_x'] for iter in results_norefined.keys()}
+    predicted_traveltime_norefined_link_dict = {iter: results_norefined[iter]['tt_x'] for iter in results_norefined.keys()}
 
     # Create a dictionary with link keys and predicted traveltime over iterations as values
     predicted_link_traveltime_dict = {}
@@ -361,7 +377,7 @@ def get_predicted_traveltimes_over_iterations_df(results_norefined: dict, result
         predicted_traveltime_link_df['iter_' + str(counter)] = list(predicted_traveltime_norefined_link_dict[iteration].values())
 
     # Fill out with predicted count of refined stage
-    predicted_traveltime_refined_link_dict = {iter: results_refined[iter]['equilibrium']['tt_x'] for iter in results_refined.keys()}
+    predicted_traveltime_refined_link_dict = {iter: results_refined[iter]['tt_x'] for iter in results_refined.keys()}
 
     for iteration, link_traveltime_dict in predicted_traveltime_refined_link_dict.items():
 
@@ -380,18 +396,20 @@ def get_predicted_traveltimes_over_iterations_df(results_norefined: dict, result
     return predicted_traveltime_link_df
 
 
-def summary_table_links(links: [], Z_attrs = None, Z_labels = None) -> pd.DataFrame:
+def summary_table_links(links: List = None,
+                        Z_attrs = None,
+                        Z_labels = None) -> pd.DataFrame:
     
-    """ It is expected to receive list of links with observed counts but it can receive an arbitrary list of links as well """
+    """ It is expected to receive list of links with observed counts but it can receive an arbitrary list of links as well
 
     # Allow to receive arbitrary link labels and generate a table showing those labels as column in the panda dataframe
-    
-    link_pems_station_id = [link.pems_stations_ids for link in links]
+
+    """
 
     # Traffic counts
-    # dict_link_counts = {(link.key[0], link.key[1]): np.round(link.observed_count, 1) for link in links}
+    # dict_link_counts = {(link.key[0], link.key[1]): np.round(link.count, 1) for link in links}
 
-    dict_link_counts = {link.key: np.round(link.observed_count, 1) for link in links}
+    dict_link_counts = {link.key: np.round(link.count, 1) for link in links}
 
     link_capacities = np.array(
         [int(link.bpr.k) for link in links ])
@@ -406,29 +424,24 @@ def summary_table_links(links: [], Z_attrs = None, Z_labels = None) -> pd.DataFr
     link_speed_ff =  np.empty(len(dict_link_counts))
 
     if 'ff_speed' in links[0].Z_dict:
-        link_speed_ff = np.array(
-            [link.Z_dict['ff_speed'] for link in links ])
+        link_speed_ff = np.array([link.Z_dict['ff_speed'] for link in links ])
 
     else:
         link_speed_ff[:] = np.nan
 
-    link_speed_ff_print = []
-    for i in range(len(link_speed_ff)):
-        if link_speed_ff[i] > 1000:  # 99999
-            link_speed_ff_print.append(float('inf'))
-        else:
-            link_speed_ff_print.append(link_speed_ff[i])
+    # link_speed_ff_print = []
+    # for i in range(len(link_speed_ff)):
+    #     if link_speed_ff[i] > 1000:  # 99999
+    #         link_speed_ff_print.append(float('inf'))
+    #     else:
+    #         link_speed_ff_print.append(link_speed_ff[i])
+    link_speed_ff_print = link_speed_ff
 
     # Travel time are originally in minutes
     # link_traveltime_ff = np.array(
     #     [str(np.round(link.Z_dict['ff_traveltime'], 2)) for link in links if
-    #      not np.isnan(link.observed_count)])
-    link_traveltime_ff = np.array(
-        [link.bpr.tf for link in links ])
-
-    # Inrix id
-    link_inrix_id = np.array(
-        [link.inrix_id for link in links ])
+    #      not np.isnan(link.count)])
+    link_traveltime_ff = np.array([link.bpr.tf for link in links ])
 
     # link_incidents = np.empty(len(dict_link_counts))
     # link_incidents[:] = np.nan
@@ -440,19 +453,23 @@ def summary_table_links(links: [], Z_attrs = None, Z_labels = None) -> pd.DataFr
     #     link_streets_intersections = np.array(
     #         [int(link.Z_dict['intersections']) for link in links ])
 
+    #TODO: only show columns where there is data. For that first create a dictionary and then a dataframe with selected
+    # keys and values
+
     # Link internal attributes
-    summary_links_df = pd.DataFrame({'link_key': dict_link_counts.keys()
-                                                 , 'inrix_id': link_inrix_id
-                                                 , 'pems_id': link_pems_station_id
-                                                 , 'counts': dict_link_counts.values()
-                                                 , 'capacity [veh]': link_capacities_print
-                                                 , 'speed_ff[mi/hr]': link_speed_ff_print
-                                                 , 'tt_ff [min]': link_traveltime_ff
-                                              })
+    summary_links_df = pd.DataFrame({'link_key': dict_link_counts.keys(),
+                                     'observed': [int(~np.isnan(link.count)) for link in links],
+                                     'counts': dict_link_counts.values(),
+                                     'capacity [veh]': link_capacities_print,
+                                     'tt_ff [min]': link_traveltime_ff,
+                                     'speed_ff[mi/hr]': link_speed_ff_print,
+                                     })
 
-    # Exogenous link attributes
+    summary_links_df['inrix_id'] =[link.inrix_id for link in links ]
+    summary_links_df['pems_id'] = [link.pems_stations_ids for link in links]
 
-    summary_links_Z_attrs_df = get_link_Z_attributes_df(links, Z_attrs, Z_labels )
+    # Link attributes
+    summary_links_Z_attrs_df = get_link_Z_attributes_df(links, Z_attrs, Z_labels)
 
     # summary_links_Z_attrs_df.columns = Z_labels
 
@@ -528,6 +545,104 @@ def scatter_plots_features_vs_counts(links_df):
     
     return g1, g2
 
+def summary_table_networks(networks: List[TNetwork]) -> None:
+
+    networks_table = {'nodes': [], 'links': [], 'paths': [], 'ods': []}
+    networks_df = pd.DataFrame()
+
+    # Network description
+    for network in networks:
+        networks_table['ods'].append(len(network.OD.denseQ(network.Q, remove_zeros=True)))
+        networks_table['nodes'].append(network.A.shape[0])
+        networks_table['links'].append(len(network.links))
+        networks_table['paths'].append(len(network.paths))
+
+    networks_df['network'] = np.array([network.key for network in networks])
+
+    for var in ['nodes', 'links', 'ods', 'paths']:
+        networks_df[var] = networks_table[var]
+
+    return networks_df
+
+
+
+def adjusted_link_coverage(network, counts) -> None:
+
+    # Initial coverage
+    x_bar = np.array(list(counts.values()))[:, np.newaxis]
+
+    # If no path are traversing some link observations, they are set to nan values
+    counts = masked_link_counts_after_path_coverage(network, xct=counts)
+
+    x_bar_remasked = np.array(list(counts.values()))[:, np.newaxis]
+
+    true_coverage = np.count_nonzero(~np.isnan(x_bar_remasked)) / x_bar.shape[0]
+
+    # After accounting for path coverage (not all links may be traversed)
+
+    total_true_counts_observations = np.count_nonzero(~np.isnan(np.array(list(counts.values()))))
+
+    print('Adjusted link coverage:', "{:.1%}".format(true_coverage))
+    print('Adjusted total link observations: ' + str(total_true_counts_observations))
+
+    # print('dif in coverage', np.count_nonzero(~np.isnan(x_bar))-np.count_nonzero(~np.isnan( x_bar_remasked)))
+
+
+def summary_links_fresno(network):
+
+    x_bar = network.link_data.counts_vector
+    x_eq = network.link_data.x_vector
+
+    idx_nonas = list(np.where(~np.isnan(x_bar))[0])
+
+    link_keys = [(link.key[0], link.key[1]) for link in network.links if not np.isnan(link.count)]
+
+    # [link.count for link in network.links]
+
+    link_capacities = np.array([link.bpr.k for link in network.links if not np.isnan(link.count)])
+
+    link_capacities_print = []
+    for i in range(len(link_capacities)):
+        if link_capacities[i] > 10000:
+            link_capacities_print.append(float('inf'))
+        else:
+            link_capacities_print.append(link_capacities[i])
+
+    # Travel time are originally in minutes
+    link_travel_times = \
+        np.array(
+            [str(np.round(link.get_traveltime_from_x(network.link_data.x[link.key]), 2)) for link in network.links if
+             not np.isnan(link.count)])
+
+    # This may raise a warning for OD connectors where the length is equal to 0
+
+    if 'length' in network.links[0].Z_dict:
+        link_speed_av = \
+            np.array(
+                [np.round(60 * link.Z_dict['length'] / link.get_traveltime_from_x(network.link_data.x[link.key]), 1)
+                 for link
+                 in
+                 network.links if not np.isnan(link.count)])
+
+        # link_speed_av = \
+        #     np.array([np.round(60 * link.Z_dict['length'] / link.get_traveltime_from_x(network.x_dict[link.key]), 1) for link in
+        #               network.links])[
+        #     idx_nonas]
+
+    else:
+        link_speed_av = np.array([0] * len(link_travel_times.flatten()))
+
+    summary_table = pd.DataFrame(
+        {'link_key': link_keys
+            , 'capacity': link_capacities_print
+            , 'tt[min]': link_travel_times.flatten()
+            , 'speed[mi/hr]': link_speed_av.flatten()
+            , 'count': x_bar[idx_nonas].flatten()
+            , 'predicted': x_eq[idx_nonas].flatten()})
+
+
+    return summary_table
+
 
 def regression_counts_features_link_level(links):
 
@@ -561,3 +676,316 @@ def analysis_inrix_free_flow_speed_imputation():
 def congestion_plot_map():
     """ Shows a congestion plot using a red color palette in links with higher counts (similar to PEMS map) """
 
+import numpy as np
+
+EPSILON = 1e-10
+
+
+# def _error(actual: np.ndarray, predicted: np.ndarray):
+#     """ Simple error """
+#     return actual - predicted
+
+def _error(actual: np.ndarray, predicted: np.ndarray):
+    """ Simple error considering nan in array entries"""
+
+    # Remove elements associated to link with no traffic counts
+    idxs = np.where(np.isnan(actual))[0]
+    actual = copy.deepcopy(np.delete(actual,idxs,axis = 0))
+    predicted = copy.deepcopy(np.delete(predicted, idxs,axis = 0))
+
+    return actual - predicted
+
+def _percentage_error(actual: np.ndarray, predicted: np.ndarray):
+    """
+    Percentage error
+    Note: result is NOT multiplied by 100
+    """
+    return _error(actual, predicted) / (actual + EPSILON)
+
+
+def _naive_forecasting(actual: np.ndarray, seasonality: int = 1):
+    """ Naive forecasting method which just repeats previous samples """
+    return actual[:-seasonality]
+
+
+def _relative_error(actual: np.ndarray, predicted: np.ndarray, benchmark: np.ndarray = None):
+    """ Relative Error """
+    if benchmark is None or isinstance(benchmark, int):
+        # If no benchmark prediction provided - use naive forecasting
+        if not isinstance(benchmark, int):
+            seasonality = 1
+        else:
+            seasonality = benchmark
+        return _error(actual[seasonality:], predicted[seasonality:]) /\
+               (_error(actual[seasonality:], _naive_forecasting(actual, seasonality)) + EPSILON)
+
+    return _error(actual, predicted) / (_error(actual, benchmark) + EPSILON)
+
+
+def _bounded_relative_error(actual: np.ndarray, predicted: np.ndarray, benchmark: np.ndarray = None):
+    """ Bounded Relative Error """
+    if benchmark is None or isinstance(benchmark, int):
+        # If no benchmark prediction provided - use naive forecasting
+        if not isinstance(benchmark, int):
+            seasonality = 1
+        else:
+            seasonality = benchmark
+
+        abs_err = np.abs(_error(actual[seasonality:], predicted[seasonality:]))
+        abs_err_bench = np.abs(_error(actual[seasonality:], _naive_forecasting(actual, seasonality)))
+    else:
+        abs_err = np.abs(_error(actual, predicted))
+        abs_err_bench = np.abs(_error(actual, benchmark))
+
+    return abs_err / (abs_err + abs_err_bench + EPSILON)
+
+
+def _geometric_mean(a, axis=0, dtype=None):
+    """ Geometric mean """
+    if not isinstance(a, np.ndarray):  # if not an ndarray object attempt to convert it
+        log_a = np.log(np.array(a, dtype=dtype))
+    elif dtype:  # Must change the default dtype allowing array type
+        if isinstance(a, np.ma.MaskedArray):
+            log_a = np.log(np.ma.asarray(a, dtype=dtype))
+        else:
+            log_a = np.log(np.asarray(a, dtype=dtype))
+    else:
+        log_a = np.log(a)
+    return np.exp(log_a.mean(axis=axis))
+
+
+def mse(actual: np.ndarray, predicted: np.ndarray):
+    """ Mean Squared Error """
+    return np.mean(np.square(_error(actual, predicted)))
+
+# def rmse_nan(actual: np.ndarray, predicted: np.ndarray):
+#     """ Root Mean Squared Error with nan """
+#     return np.sqrt(mse(actual, predicted))
+
+def rmse(actual: np.ndarray, predicted: np.ndarray):
+    """ Root Mean Squared Error """
+    return np.sqrt(mse(actual, predicted))
+
+def nrmse(actual: np.ndarray, predicted: np.ndarray):
+    """ Root Mean Squared Error"""
+
+    return rmse(actual, predicted)/np.nanmean(actual)
+
+# def nrmse(actual: np.ndarray, predicted: np.ndarray):
+#     """ Normalized Root Mean Squared Error """
+#     return rmse(actual, predicted) / (actual.max() - actual.min())
+
+
+def me(actual: np.ndarray, predicted: np.ndarray):
+    """ Mean Error """
+    return np.mean(_error(actual, predicted))
+
+
+def mae(actual: np.ndarray, predicted: np.ndarray):
+    """ Mean Absolute Error """
+    return np.mean(np.abs(_error(actual, predicted)))
+
+
+mad = mae  # Mean Absolute Deviation (it is the same as MAE)
+
+
+def gmae(actual: np.ndarray, predicted: np.ndarray):
+    """ Geometric Mean Absolute Error """
+    return _geometric_mean(np.abs(_error(actual, predicted)))
+
+
+def mdae(actual: np.ndarray, predicted: np.ndarray):
+    """ Median Absolute Error """
+    return np.median(np.abs(_error(actual, predicted)))
+
+
+def mpe(actual: np.ndarray, predicted: np.ndarray):
+    """ Mean Percentage Error """
+    return np.mean(_percentage_error(actual, predicted))
+
+
+def mape(actual: np.ndarray, predicted: np.ndarray):
+    """
+    Mean Absolute Percentage Error
+    Properties:
+        + Easy to interpret
+        + Scale independent
+        - Biased, not symmetric
+        - Undefined when actual[t] == 0
+    Note: result is NOT multiplied by 100
+    """
+    return np.mean(np.abs(_percentage_error(actual, predicted)))
+
+
+def mdape(actual: np.ndarray, predicted: np.ndarray):
+    """
+    Median Absolute Percentage Error
+    Note: result is NOT multiplied by 100
+    """
+    return np.median(np.abs(_percentage_error(actual, predicted)))
+
+
+def smape(actual: np.ndarray, predicted: np.ndarray):
+    """
+    Symmetric Mean Absolute Percentage Error
+    Note: result is NOT multiplied by 100
+    """
+    return np.mean(2.0 * np.abs(actual - predicted) / ((np.abs(actual) + np.abs(predicted)) + EPSILON))
+
+
+def smdape(actual: np.ndarray, predicted: np.ndarray):
+    """
+    Symmetric Median Absolute Percentage Error
+    Note: result is NOT multiplied by 100
+    """
+    return np.median(2.0 * np.abs(actual - predicted) / ((np.abs(actual) + np.abs(predicted)) + EPSILON))
+
+
+def maape(actual: np.ndarray, predicted: np.ndarray):
+    """
+    Mean Arctangent Absolute Percentage Error
+    Note: result is NOT multiplied by 100
+    """
+    return np.mean(np.arctan(np.abs((actual - predicted) / (actual + EPSILON))))
+
+
+def mase(actual: np.ndarray, predicted: np.ndarray, seasonality: int = 1):
+    """
+    Mean Absolute Scaled Error
+    Baseline (benchmark) is computed with naive forecasting (shifted by @seasonality)
+    """
+    return mae(actual, predicted) / mae(actual[seasonality:], _naive_forecasting(actual, seasonality))
+
+
+def std_ae(actual: np.ndarray, predicted: np.ndarray):
+    """ Normalized Absolute Error """
+    __mae = mae(actual, predicted)
+    return np.sqrt(np.sum(np.square(_error(actual, predicted) - __mae))/(len(actual) - 1))
+
+
+def std_ape(actual: np.ndarray, predicted: np.ndarray):
+    """ Normalized Absolute Percentage Error """
+    __mape = mape(actual, predicted)
+    return np.sqrt(np.sum(np.square(_percentage_error(actual, predicted) - __mape))/(len(actual) - 1))
+
+
+def rmspe(actual: np.ndarray, predicted: np.ndarray):
+    """
+    Root Mean Squared Percentage Error
+    Note: result is NOT multiplied by 100
+    """
+    return np.sqrt(np.mean(np.square(_percentage_error(actual, predicted))))
+
+
+def rmdspe(actual: np.ndarray, predicted: np.ndarray):
+    """
+    Root Median Squared Percentage Error
+    Note: result is NOT multiplied by 100
+    """
+    return np.sqrt(np.median(np.square(_percentage_error(actual, predicted))))
+
+
+def rmsse(actual: np.ndarray, predicted: np.ndarray, seasonality: int = 1):
+    """ Root Mean Squared Scaled Error """
+    q = np.abs(_error(actual, predicted)) / mae(actual[seasonality:], _naive_forecasting(actual, seasonality))
+    return np.sqrt(np.mean(np.square(q)))
+
+
+def inrse(actual: np.ndarray, predicted: np.ndarray):
+    """ Integral Normalized Root Squared Error """
+    return np.sqrt(np.sum(np.square(_error(actual, predicted))) / np.sum(np.square(actual - np.mean(actual))))
+
+
+def rrse(actual: np.ndarray, predicted: np.ndarray):
+    """ Root Relative Squared Error """
+    return np.sqrt(np.sum(np.square(actual - predicted)) / np.sum(np.square(actual - np.mean(actual))))
+
+
+def mre(actual: np.ndarray, predicted: np.ndarray, benchmark: np.ndarray = None):
+    """ Mean Relative Error """
+    return np.mean(_relative_error(actual, predicted, benchmark))
+
+
+def rae(actual: np.ndarray, predicted: np.ndarray):
+    """ Relative Absolute Error (aka Approximation Error) """
+    return np.sum(np.abs(actual - predicted)) / (np.sum(np.abs(actual - np.mean(actual))) + EPSILON)
+
+
+def mrae(actual: np.ndarray, predicted: np.ndarray, benchmark: np.ndarray = None):
+    """ Mean Relative Absolute Error """
+    return np.mean(np.abs(_relative_error(actual, predicted, benchmark)))
+
+
+def mdrae(actual: np.ndarray, predicted: np.ndarray, benchmark: np.ndarray = None):
+    """ Median Relative Absolute Error """
+    return np.median(np.abs(_relative_error(actual, predicted, benchmark)))
+
+
+def gmrae(actual: np.ndarray, predicted: np.ndarray, benchmark: np.ndarray = None):
+    """ Geometric Mean Relative Absolute Error """
+    return _geometric_mean(np.abs(_relative_error(actual, predicted, benchmark)))
+
+
+def mbrae(actual: np.ndarray, predicted: np.ndarray, benchmark: np.ndarray = None):
+    """ Mean Bounded Relative Absolute Error """
+    return np.mean(_bounded_relative_error(actual, predicted, benchmark))
+
+
+def umbrae(actual: np.ndarray, predicted: np.ndarray, benchmark: np.ndarray = None):
+    """ Unscaled Mean Bounded Relative Absolute Error """
+    __mbrae = mbrae(actual, predicted, benchmark)
+    return __mbrae / (1 - __mbrae)
+
+
+def mda(actual: np.ndarray, predicted: np.ndarray):
+    """ Mean Directional Accuracy """
+    return np.mean((np.sign(actual[1:] - actual[:-1]) == np.sign(predicted[1:] - predicted[:-1])).astype(int))
+
+
+METRICS = {
+    'mse': mse,
+    'rmse': rmse,
+    'nrmse': nrmse,
+    'me': me,
+    'mae': mae,
+    'mad': mad,
+    'gmae': gmae,
+    'mdae': mdae,
+    'mpe': mpe,
+    'mape': mape,
+    'mdape': mdape,
+    'smape': smape,
+    'smdape': smdape,
+    'maape': maape,
+    'mase': mase,
+    'std_ae': std_ae,
+    'std_ape': std_ape,
+    'rmspe': rmspe,
+    'rmdspe': rmdspe,
+    'rmsse': rmsse,
+    'inrse': inrse,
+    'rrse': rrse,
+    'mre': mre,
+    'rae': rae,
+    'mrae': mrae,
+    'mdrae': mdrae,
+    'gmrae': gmrae,
+    'mbrae': mbrae,
+    'umbrae': umbrae,
+    'mda': mda,
+}
+
+
+def evaluate(actual: np.ndarray, predicted: np.ndarray, metrics=('mae', 'mse', 'smape', 'umbrae')):
+    results = {}
+    for name in metrics:
+        try:
+            results[name] = METRICS[name](actual, predicted)
+        except Exception as err:
+            results[name] = np.nan
+            print('Unable to compute metric {0}: {1}'.format(name, err))
+    return results
+
+
+def evaluate_all(actual: np.ndarray, predicted: np.ndarray):
+    return evaluate(actual, predicted, metrics=set(METRICS.keys()))

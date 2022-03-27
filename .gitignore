@@ -1,5 +1,6 @@
 #Virtual environment
 venv/
+venv-transportAI/
 env/
 
 # Pycharm internal files

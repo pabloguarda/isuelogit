@@ -7,16 +7,18 @@ from typing import TYPE_CHECKING
 import networkx as nx
 import collections
 import numpy as np
-from links import Link, generate_links_keys, generate_links_dict
+
+from links import Link, generate_links_keys, generate_links_nodes_dicts
 from nodes import Node
 import printer
 import time
-import config
-import igraph as ig
+# import igraph as ig
+
 
 if TYPE_CHECKING:
     from networks import TNetwork
-    from mytypes import Matrix
+    from mytypes import Matrix, List, Dict
+    from estimation import UtilityFunction
 
 
 class Path:
@@ -35,10 +37,12 @@ class Path:
 
         self._origin = origin
         self._destination = destination
-        self._key = (self._origin, self._destination)
+        # self._key = (self._origin, self._destination)
         self._f = 0
         self._Z_dict = {}
-        self._key = dict()
+        self._key = {}
+
+        self._specific_utility = 0
 
     @property
     def links(self):
@@ -59,7 +63,7 @@ class Path:
     def nodes(self, value):
         self._nodes = value
 
-    def get_nodes_labels(self):
+    def get_nodes_keys(self):
         return [node.key for node in self.nodes]
 
     def get_nodes_from_links(self, links: [Link]):
@@ -129,17 +133,21 @@ class Path:
     def f(self, value):
         self._f = value
     
-    @property
-    def traveltime(self):
-        return self._traveltime
+    # @property
+    # def traveltime(self):
+    #     return self._traveltime
 
-    @traveltime.setter
-    def traveltime(self, value):
-        self._traveltime = value
+    @property
+    def true_traveltime(self):
+        return np.sum([link.true_traveltime for link in self.links])
 
     @property
     def traveltime(self):
         return np.sum([link.traveltime for link in self.links])
+
+    # @traveltime.setter
+    # def traveltime(self, value):
+    #     self._traveltime = value
 
     @property
     def Z_dict(self):
@@ -149,9 +157,21 @@ class Path:
         # if not bool(self._Z_dict): #dictionary is empty
         Z_dict_path = {}
 
-        for z_attr in self.links[0].Z_dict.keys():
-            Z_dict_path[z_attr] = np.sum([link.Z_dict[z_attr] for link in self.links])
+        z_attrs = self.links[0].Z_dict.keys()
 
+        for z_attr in z_attrs:
+
+            value = self.links[0].Z_dict[z_attr]
+
+            # [link.Z_dict[z_attr] for link in self.links]
+
+            if np.isreal(value):
+
+                Z_dict_path[z_attr] = 0
+
+                for link in self.links:
+                    Z_data = link.Z_dict[z_attr]
+                    Z_dict_path[z_attr] += Z_data
 
         return Z_dict_path
 
@@ -159,16 +179,49 @@ class Path:
     def Z_dict(self, value):
         self._Z_dict = value
 
-    def utility(self, theta):
+    @property
+    def specific_utility(self):
+        return self._specific_utility
 
-        Z_dict = self.Z_dict
+    @specific_utility.setter
+    def specific_utility(self, value):
+        self._specific_utility = float(value)
+
+    def Y_utility(self, theta):
 
         v = 0
 
-        for key in Z_dict.keys():
-            v += theta[key]*Z_dict[key]
+        if 'tt' in theta.keys():
+            v = float(theta['tt']) * self.traveltime
 
-        return v + theta['tt']*self.traveltime
+        return v
+
+    def Z_utility(self, theta, features_Z = None):
+
+        Z_data = self.Z_dict
+
+        if features_Z is None:
+            features_Z = theta.keys()
+
+        v = 0
+
+        for attr in features_Z:
+            if attr in Z_data.keys():
+                v += float(theta[attr]) * Z_data[attr]
+
+        return v
+
+    def utility(self, theta,features_Z):
+
+        v = self.specific_utility + self.Y_utility(theta) + self.Z_utility(theta,features_Z)
+
+        return v
+
+    def utility_summary(self, theta, features_Z = None):
+
+        return dict({'specific': self.specific_utility,
+                             'Y': float(self.Y_utility(theta)),
+                             'Z': round(self.Z_utility(theta, features_Z),1)})
 
 
 def _shortest_simple_paths_dinetwork_nx(G, source, target, weight):
@@ -259,7 +312,6 @@ def _all_simple_paths_dinetwork(G, source, targets, cutoff):
             visited.popitem()
 
 
-# @staticmethod
 def edges_from_source(source, links):
 
     edges_list = []
@@ -268,7 +320,6 @@ def edges_from_source(source, links):
             edges_list.append(link_i)
 
     return edges_list
-
 
 def _all_simple_paths_multidinetwork(A, source, targets, cutoff):
     ''' Modified version of nx._all_simple_paths_multigraph'''
@@ -288,7 +339,7 @@ def _all_simple_paths_multidinetwork(A, source, targets, cutoff):
             G.add_edge(i, j)
 
     link_keys = generate_links_keys(G)
-    link_dict = generate_links_dict(link_keys)
+    link_dict, _ = generate_links_nodes_dicts(links_keys = link_keys)
 
     # link_list = [Link(key=link_key, init_node=Node(link_key[0]), term_node=Node(link_key[1])) for link_key in link_keys]
 
@@ -384,14 +435,20 @@ def k_simple_paths_nx(source, target, G, links: {}, k, cutoff = None, weight = N
         paths_labels = []
         counter = 0
         while counter < k:
+
             try:
-                paths_labels.append(next(paths_generator))
+                path_label = next(paths_generator)
             except:
                 # print('Internal exception')
                 counter = k
                 pass
+
             else:
-                counter += 1
+                if len(path_label)>1:
+                    paths_labels.append(path_label)
+                    counter += 1
+
+
 
 
         for path, i in zip(paths_labels, range(len(paths_labels))):
@@ -407,25 +464,27 @@ def k_simple_paths_nx(source, target, G, links: {}, k, cutoff = None, weight = N
 
     return paths
 
-def path_generation_nx(A: Matrix, ods: [tuple], links:{tuple: Link}, cutoff: int, n_paths: int, edge_weights: dict = None, silent_mode = False):
+def k_path_generation_nx(A: Matrix,
+                         ods: List[tuple],
+                         links:Dict[tuple,Link],
+                         cutoff: int,
+                         n_paths: int,
+                         edge_weights: dict = None,
+                         silent_mode = True,
+                         max_attempts = None,
+                         cutoff_increase_factor = None,
+                         **kwargs):
 
         # TODO: Review weight label used to compute the shortest paths. Confirm if all simple paths are being generated or only a subset
 
         # for our specific usecase. Read on label correcting algorithms or even A*
 
-        print('Generating ' + str(n_paths) + ' paths per od')
-
+        print('Generating at most ' + str(n_paths) + ' paths per od')
 
         t0 = time.time()
 
         # Path generation
         paths_od = {}
-        # n_paths = 0
-        paths = []
-
-        # od = (19,7)
-        # od = ods[0]
-
         # total_ods = len(ods)
 
         # print(total_ods)
@@ -448,11 +507,12 @@ def path_generation_nx(A: Matrix, ods: [tuple], links:{tuple: Link}, cutoff: int
         # Labels does not matter
         G.add_nodes_from(np.arange(0, A.shape[0]))
 
-        # Assign link utilities as weight if provided
+        # Construct a networkx graph from adjacency matrix
         for (i, j) in zip(*A.nonzero()):
             for k in range(int(A[(i, j)])):
                 G.add_edge(i, j)
 
+        # Assign link utilities as weight if provided
         weight = None
 
         if edge_weights is not None:
@@ -468,7 +528,6 @@ def path_generation_nx(A: Matrix, ods: [tuple], links:{tuple: Link}, cutoff: int
             if silent_mode is True:
                 printer.blockPrint()
 
-
             paths_od[od] = list(k_simple_paths_nx(source=od[0], target=od[1], cutoff=cutoff, G = G, links = links, k = n_paths, weight = weight))
 
             #TODO: implement shortest path with igraph
@@ -481,9 +540,6 @@ def path_generation_nx(A: Matrix, ods: [tuple], links:{tuple: Link}, cutoff: int
             #     paths_od[od] = paths_od_temp
 
             # assert len(paths_od[od]) > n_paths, "Less than " + str(n_paths) + " paths between OD pair " + str(od[0])+ '-' +str(od[1])
-
-            cutoff_increase_factor = config.Config('default').sim_options['cutoff_paths_increase_factor']
-            max_attempts = config.Config('default').sim_options['max_attempts_path_generation']
 
         # nx.all_simple_paths()
         #     nx.all_shortest_paths()
@@ -509,8 +565,9 @@ def path_generation_nx(A: Matrix, ods: [tuple], links:{tuple: Link}, cutoff: int
                 #     new_cutoff) + ' links, ' + str(n_current_paths) + ' path(s) found in od-pair ' + str(od))
 
                 # Increase labels of OD pair by 1
-                print('With a cutoff of ' + str(
-                    new_cutoff) + ' links, ' + str(n_current_paths) + ' path(s) found in od-pair ' + str(tuple(map(lambda x: x+1,list(od)))))
+                if silent_mode is False:
+                    print('With a cutoff of ' + str(
+                        new_cutoff) + ' links, ' + str(n_current_paths) + ' path(s) found in od-pair ' + str(tuple(map(lambda x: x+1,list(od)))))
 
                 # It makes sense to increase the cutoff only until the maximum number of links in the network has been reached
 
@@ -538,61 +595,158 @@ def path_generation_nx(A: Matrix, ods: [tuple], links:{tuple: Link}, cutoff: int
 
                 if len(paths_od[od]) > n_current_paths:
                     additional_paths = len(paths_od[od]) - n_current_paths
-                    print(str(additional_paths) + ' simple path(s) found in ' + str(attempt) + ' attempts')
+                    if silent_mode is False:
+                        print(str(additional_paths) + ' simple path(s) found in ' + str(attempt) + ' attempts')
                     # print('No enough paths were found again')
 
                 elif len(paths_od[od]) == n_current_paths:
-                    print('No new paths were found by increasing the cutoff to ' + str(new_cutoff) + ' links')
+                    if silent_mode is False:
+                        print('No new paths were found by increasing the cutoff to ' + str(new_cutoff) + ' links')
 
                 # assert len(paths_od[od]) > 0, "No paths between OD pair " + str(od[0]+1)+ '-' +str(od[1]+1)
 
             paths.extend(paths_od[od])
-            # n_paths += len(paths_od[od])
+            # n_paths += len(paths_od[od]
 
-        # # Store paths
-        # self.paths = paths
-        #
-        # # Store paths per od
-        # self.paths_od = paths_od
-
-        # paths_od = A
-        # n_paths = 2
-        # paths = list(A.keys())
         # if n_paths is not None and n_paths < len(paths):
         #     self.paths = random.sample(paths, min(len(paths), n_paths))
         #     random_keys_paths_od = random.sample(list(paths_od), min(len(list(paths_od)), n_paths))
         #     paths_od = {k: paths_od[k] for k in random_keys_paths_od}
 
-
-
         # if len(paths) == 0:
         #     raise ValueError
-        #
-        # else:
-
         # print(len(ods_no_paths))
 
-        print(str(len(paths)) + ' paths were generated among ' + str(len(ods)) + ' od pairs')
-        print('Computation time: ' + str(np.round(time.time()- t0,1)) + ' [s]')
+        print(str(len(paths)) + ' paths were generated among ' + str(len(ods)) + ' od pairs in ' + str(np.round(time.time()- t0,1)) + ' [s]')
 
         if silent_mode is True:
             printer.enablePrint()
 
         return paths, paths_od #
 
+def compute_path_size_factors(D,
+                              ods_paths_idxs = None,
+                              paths_od = None,
+                              ):
+    '''
+    Path size correction proposed by Ben-Akiva and used by Freijinger and Bielaire
+
+    The logarithm of these factors should be added to path utilities v_f using function path_probabilities
+
+    Returns:
+
+    '''
+
+    cfs = []
+    # ods_paths_idxs = None
+
+    # assert ods_paths_idxs is not None, 'paths keys per od has not been provided'
+
+    if ods_paths_idxs is None:
+        ods_paths_idxs = get_ods_paths_idxs(paths_od)
+
+    for od, paths_idxs in ods_paths_idxs.items():
+        range_idxs = np.arange(paths_idxs[0],paths_idxs[-1] +1)
+        D_od = D[:,range_idxs]
+
+        # relative length of link in the path
+        relative_length = D_od/np.sum(D_od,axis = 0)
+
+        sums_overlaps = np.sum(D_od, axis = 1)
+
+        # Inverse of the number of paths traversing each link
+        with np.errstate(divide='ignore'):
+            overlapping = np.where(sums_overlaps == 0, 0, 1 / sums_overlaps)
+
+        cfs_paths_od = overlapping.dot(relative_length)
+
+        cfs.extend(cfs_paths_od)
+
+    return np.array(cfs)[:, np.newaxis]
+
+def get_ods_paths_idxs(paths_od):
+
+    ods_paths_idxs = {}
+
+    counter = 0
+
+    for od,paths in paths_od.items():
+
+        ods_paths_idxs[od] = []
+
+        for path in paths:
+            ods_paths_idxs[od].append(counter)
+            counter+=1
+
+    return ods_paths_idxs
 
 
-# def all_paths_from_OD(G,Q):
+def get_ods_paths_keys(paths_od):
+
+    ods_paths_keys = {}
+
+    for od,paths in paths_od.items():
+
+        ods_paths_keys[od] = []
+
+        for path in paths:
+            ods_paths_keys[od].append(path.get_nodes_keys())
+
+    return ods_paths_keys
+
+
+
+
+def get_paths_from_paths_od(paths_od):
+
+    paths_list = []
+
+    for od,paths in paths_od.items():
+        # This solves the problem to append paths when there is only one path per OD
+        paths_list.extend(list(paths))
+
+    return paths_list
+
+
+
+def get_paths_od_from_paths(paths):
+
+    paths_od = {}
+    ods = set()
+
+    for path in paths:
+
+        origin = path.origin
+        destination = path.destination
+
+        # path = Path(origin,destination, path.links)
+
+        if (origin,destination) in ods:
+            paths_od[(origin,destination)].append(path)
+        else:
+            # print('path in different OD')
+            paths_od[(origin, destination)] = [path]
+
+        ods.update([(origin, destination)])
+
+    return paths_od
+
+# def compute_pathsize_factor(self, D):
 #
-#     G.nodes()
-#     G.edges()
+#     '''
+#
+#     Path size Cascetta
+#
+#     The factors should be added to path utilities v_f using function path_probabilities
+#
+#     Args:
+#         D: Paths-links incidence matrix
+#
+#     Returns:
+#         A list
+#
+#     '''
 #
 #
-#     paths = list(nx.all_simple_paths(G, source = 0, target = 1))
 #
-#     for path in map(nx.utils.pairwise, paths):
-#         print(list(path))
-#
-#     list(test_all_paths(G))
-#
-#     return paths
+#     pass

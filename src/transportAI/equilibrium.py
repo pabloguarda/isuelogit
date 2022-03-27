@@ -2,34 +2,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from typing import Dict
-
-import copy
-
 if TYPE_CHECKING:
-    from mytypes import Links, Matrix, ColumnVector, Links, LogitFeatures, LogitParameters, Paths, Options, Vector
+    from mytypes import Links, Matrix, ColumnVector, Links, Features\
+        , ParametersDict, Paths, Options, Option, Vector, Optional, List
 
-import cvxpy as cp
-
-import transportAI.printer as printer
-# from transportAI import printer
-
-from utils import blockPrinting
-import estimation
-
-from sklearn import preprocessing
+from printer import block_output, printProgressBar
 
 from itertools import combinations
 
-from paths import path_generation_nx
-
-cp_solver = ''
-
-# import transportAI.links
-# import transportAI.networks
-# import transportAI.estimation
-
-from transportAI.networks import TNetwork
+from paths import compute_path_size_factors, k_path_generation_nx, get_paths_from_paths_od
+from networks import TNetwork
+from estimation import UtilityFunction, compute_paths_probabilities
+from utils import get_matrix_from_dict_attrs_values, v_normalization, no_zeros,almost_zero, Options
 
 import math
 import time
@@ -38,888 +22,879 @@ import numpy as np
 import os
 from scipy import optimize
 from scipy.stats import entropy
+from abc import ABC, abstractmethod
+import copy
+
+import numdifftools as nd
 
 
+class Equilibrator(ABC):
+
+    def __init__(self,
+                 network: TNetwork = None,
+                 utility_function: UtilityFunction = None,
+                 paths_generator = None,
+                 **kwargs
+                 ):
+
+        self.network = network
+        self.utility_function = utility_function
+        self.paths_generator = paths_generator
+
+        # Check that all bpr functions of the links have been defined
+
+        # Check that an OD matrix is available
+        # assert network.Q is not None, 'The network has no O-D matrix'
+
+        # Check that logit parameters have been provided
+
+        # Dictionary to store options
+
+        self.set_default_options()
+
+        self.options = self.options.get_updated_options(new_options=kwargs)
+
+    @abstractmethod
+    def set_default_options(self):
+        raise NotImplementedError
+
+    def get_updated_options(self, **kwargs):
+        return copy.deepcopy(self.options.get_updated_options(new_options=kwargs))
+
+    def update_options(self, **kwargs):
+        self.options = self.get_updated_options(**kwargs)
+
+    def update_network(self, network):
+        self.network = network
+
+    def update_utility_parameters(self, value):
+        self.utility_function = value
+
+class LUE_Equilibrator(Equilibrator):
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+
+        # Check that a matrix M and D has been provided
+
+        pass
+
+    def set_default_options(self):
+
+        '''
+        Congested or uncongested mode
+        # * In uncongested mode only 1 MSA iteration is made. More iterations are useful for the congested case
+        # In addition, the parameters of the bpr functions are set equal to 0 so the link travel time is just
+        free flow travel time
+
+        Returns:
+
+        '''
+
+        self.options = Options()
+
+        # Uncongested mode
+        self.options['uncongested_mode'] = False
+
+        # Exogenous travel times (i.e. true travel times obtained after simulating counting data)
+        self.options['exogenous_traveltimes'] = False
+
+        # Maximum number of iterations for equilibrium algorithms
+        self.options['max_iters'] = 9
+
+        # accuracy for relative gap used for equilibrium algorithm
+        self.options['accuracy'] = 1e-4
+
+        # Method to compute equilibrium ('fw' or 'msa')
+        self.options['method'] = 'fw'
+
+        # Options  for frank wolfe
+
+        # - Granularity/iterations for line search in Frank-Wolfe(fw) algorithm
+        self.options['iters_fw'] = 11
+
+        # - Type of line search for fw ('grid' or bisection)
+        self.options['search_fw'] = 'grid'
+
+        # Options for column generation
+        self.options['column_generation'] = {}
+
+        # Number of paths generated per of pair during column generation (If 0, no column generation is performed)
+        self.options['column_generation']['n_paths'] = None
+
+        # Number of paths selected for column generation
+        self.options['column_generation']['paths_selection'] = None
+
+        # Dissimilarity weight
+        self.options['column_generation']['dissimilarity_weight'] = 0
+
+        # Coverage of OD pairs to sample new paths
+        self.options['column_generation']['ods_coverage']  = 1
+
+        # Select ods at 'random' or by 'demand'
+        self.options['column_generation']['ods_sampling'] = 'demand'
+
+        # Record the number of times that the ods sampling has been performed
+        self.options['column_generation']['n_ods_sampling'] = 0
+
+        #Correction using path size logit
+        self.options['path_size_correction'] = 0
 
 # TODO: Implement frankwolfe and MSE using as reference ta.py and comparing result with observed flows in files.
 
+    def derivative_sue_objective_function_fisk(self,
+                                    f1: np.array,
+                                    f2: np.array,
+                                    lambda_bs: float,
+                                    theta: dict,
+                                    k_Z: List = [],
+                                    k_Y: List = ['tt'],
+                                    network=None
+                                    ):
 
+        ''' Numerical issues generates innacuracy to compute the derivative and thus, to perofrm the binary search later. '''
 
+        if network is None:
+            network = self.network
 
+        # Path flow
+        # f = lambda_bs * f2 + (1 - lambda_bs) * f1
+        f = f1 + lambda_bs * (f2 - f1)
 
-def sue_objective_function_fisk(Nt: TNetwork, x_dict: dict, f: Vector, theta: dict, k_Z: [], k_Y: [] = ['tt']):
+        # x1 = network.D.dot(f1)
+        # x2 = network.D.dot(f2)
 
-    links_dict = Nt.links_dict
-    x_vector = np.array(list(x_dict.values()))
-    theta_Z = {attr:theta[attr] for attr in k_Z}
+        delta_x2x1 =  network.D.dot(f2 - f1)
 
-    # Objective function
+        # x_weighted = x1 + lambda_bs*(x2-x1)
+        # np.allclose(x1 + lambda_bs * (x2 - x1), network.D.dot(f))
+        x_weighted = network.D.dot(f)
 
-    # Component for endogeonous attributes dependent on link flow
-    bpr_integrals = [link.bpr.bpr_integral_x(x=x_dict[i]) for i, link in links_dict.items()]
+        # Objective function
 
-    tt_utility_integral = theta[k_Y[0]] * np.sum(np.sum(bpr_integrals))
+        # Component for exogenous attributes (independent on link flow)
+        Z_dlambda = 0
 
-    # Component for exogenous attributes (independent on link flow)
-    Z_utility_integral =0
+        if k_Z:
+            for attr in k_Z:
+                Zx_vector = np.array(list(network.Z_data[attr]))[:,np.newaxis]
+                Z_dlambda += theta[attr]*Zx_vector
 
-    for attr in k_Z:
-        Zx_vector = np.array(list(Nt.Z_dict[attr].values()))[:,np.newaxis]
-        Z_utility_integral += theta_Z[attr]*Zx_vector.T.dot(x_vector)
+            Z_dlambda = float(Z_dlambda.T.dot(delta_x2x1))
 
-    # Objective function in multiattribute problem
-    utility_integral = tt_utility_integral + Z_utility_integral
+        # Component for endogeonous attributes dependent on link flow
+        traveltimes = [link.bpr.bpr_function_x(x=float(x)) for link, x in zip(network.links, x_weighted.flatten().tolist())]
 
-    # entropy = cp.sum(cp.entr(cp.hstack(list(cp_f.values()))))
-    entropy_function = np.sum(entropy(f))
+        traveltimes_dlambda = theta[k_Y[0]] * np.array(traveltimes)[:,np.newaxis].T.dot(delta_x2x1)
 
-    objective_function = utility_integral + entropy_function
+        # Entropy term
 
+        epsilon = 1e-12
+        #f1 + mid_lambda * (f2 - f1)
+        # entropy_dlambda = np.sum((f2-f1)*(np.log(f)+1))
+        entropy_dlambda = np.sum(almost_zero(f2-f1, tol = epsilon) * (np.log(f+epsilon) + 1))
 
-    return float(objective_function)
+        # np.sum(almost_zero(f2-f1))
 
+        # almost
 
+        # derivative_objective_function = Z_dlambda - entropy_dlambda
 
+        derivative_objective_function = float(traveltimes_dlambda) + Z_dlambda - entropy_dlambda
 
-def sue_logit_fisk(D: Matrix, M: Matrix, q: ColumnVector, links: Links, paths: Paths, theta: LogitParameters, Z_dict: {}, k_Z: LogitFeatures, k_Y: LogitFeatures = ['tt'], cp_solver='ECOS', feastol=1e-24) -> Dict[str, Dict]:
-    """Computation of Stochastic User Equilibrium with Logit Assignment
-    :arg q: Long vector of demand obtained from demand matrix between OD pairs
-    :arg M: OD pair - link incidence matrix
-    :arg D: path-link incidence matrix
-    :arg links: dictionary containing the links in the network
-    :arg Z: matrix with exogenous attributes values at each link that does not depend on the link flows
-    :arg theta: vector with parameters measuring individual preferences for different route attributes
-    :arg k_Z: subset of attributes from X chosen to perform assignment
-    """
+        return derivative_objective_function
 
-    # i = 'SiouxFalls'
+    def entropy_path_flows_sue(self, f):
 
-    # q = tai.network.denseQ(Q=N['train'][i].Q, remove_zeros=remove_zeros_Q); M = N['train'][i].M; D = N['train'][i].D; links = N['train'][i].links_dict; paths = N['train'][i].paths; Z_dict = N['train'][i].Z_dict; k_Z = []; theta = theta_true[i]; cp_solver = 'ECOS'; feastol = 1e-24; k_Y = ['tt']
+        ''' It corrects for numerical issues by masking terms before the entropy computation'''
 
-    # Subset of attributes
-    if len(k_Z) == 0:
-        k_Z = [k for k in theta.keys() if k not in k_Y]
+        epsilon = 1e-12
 
-    # #Solving issue with negative sign of parameters
-    # for k in k_Z:
-    #     if theta[k] > 0:
-    #         theta[k] = -theta[k]
-    #         Z_dict[k] = dict(zip(Z_dict[k].keys(), list(-1 * np.array(list(Z_dict[k].values())))))
+        return np.sum(almost_zero(f, tol = epsilon)*(np.log(f+epsilon)))
 
-    # Get Z matrix from Z dict
-    Z_subdict = {k: Z_dict.get(k) for k in k_Z}
-    Z = estimation.get_matrix_from_dict_attrs_values(W_dict=Z_subdict)
+        # return np.log(f) * f
 
-    # Decision variables
-    # cp_f = {i:cp.Variable(nonneg=True) for i in range(D.shape[1])} # cp.Variable([nRoutes]) #TODO: Transform this in dictionary as with x
-    # cp_x ={i:cp.Variable() for i, l_i in links.items()}  # cp.Variable([nLinks])
 
-    cp_f = cp.Variable(D.shape[1], nonneg=True)
-    # cp_f.value = np.ones(D.shape[1])*10000
 
-    # cp_f.value[0] = q[0]
-    # cp_f.value[2] = q[1]
-    # cp_f.value[4] = q[2]
-    # cp_f.value[0] = q[0:1]
-    # np.sum(M[0:3,:]*cp_f.value,axis=1)
-    # q[0:3]
+    def sue_objective_function_fisk(self,
+                                    f: Vector,
+                                    theta: dict,
+                                    k_Z: [],
+                                    k_Y: [] = ['tt'],
+                                    network=None
+                                    ):
 
-    # # Set equality for link flows instead of additional constraints
-    # cp_x = dict(zip(list(links.keys()), list(D * cp.hstack(list(cp_f.values())))))
-    cp_x = D * cp_f
+        if network is None:
+            network = self.network
 
-    # q
+        # links_dict = network.links_dict
+        # x_vector = np.array(list(x_dict.values()))
+        x_vector = network.D.dot(f)
 
-    # np.sum(cp_f.value)
+        if not np.all(f >=0):
+            print('some elements in the path flow vector are negative')
 
-    # np.sum(M[0:3, :],axis = 1)
 
-    # Constraints (* is equivalent to numpy dot product)
-    cp_constraints = []
-    # cp_constraints += [M*cp.hstack(list(cp_f.values())) == q]
-    cp_constraints += [M * cp.vstack(cp_f) == np.vstack(q)]
-    # cp_constraints += [M * cp.vstack(cp_f) >= np.vstack(q)]
-    # np.sum(M,axis = 0)
+        # Objective function
 
-    # cp_constraints += [cp.sum(M[0:3,:] * cp.hstack(cp_f), axis=1) == q[0:3]]
-    # cp_constraints += [M[0:3, :] * cp_f == q[0:3]]
-    # cp_constraints += [M[0:1, :] * cp_f == q[0:1]]
-    # cp_constraints += [D*cp.hstack(list(cp_f.values())) == cp.hstack(list(cp_x.values()))] #This constraint might be replaced directly into other constraints and objective function
-    #
-    # warm_start = np.zeros(D.shape[1])
-    # warm_start[0] =
-    # A = M[0:3, :]
+        # Component for endogeonous attributes dependent on link flow
+        bpr_integrals = [float(link.bpr.bpr_integral_x(x=x)) for link, x in zip(network.links, x_vector.flatten().tolist())]
+        # bpr_integrals = [float(link.bpr.bpr_integral_x(x=x_dict[i])) for i, link in links_dict.items()]
 
-    # type(q[0])
+        tt_utility_integral = float(theta[k_Y[0]]) * np.sum(np.sum(bpr_integrals))
 
-    # Check constraints
-    # cp_constraints[0].violation()
+        # Component for exogenous attributes (independent on link flow)
+        Z_utility_integral =0
 
-    # [0].value
+        if k_Z:
+            for attr in k_Z:
+                Zx_vector = np.array(list(network.Z_data[attr]))[:,np.newaxis]
+                Z_utility_integral += float(theta[attr])*Zx_vector.T.dot(x_vector)
 
-    # Parameters for cvxpy
-    cp_theta = {}
+        # Objective function in multiattribute problem
+        utility_integral = tt_utility_integral + float(Z_utility_integral)
+        # utility_integral = float(Z_utility_integral)
 
-    # Parameters that are dependent on link flow (only 'tt' so far)
-    cp_theta['Y'] = {'tt': cp.Parameter(nonpos=True)}  # cp.Parameter(nonpos=True)
-    # cp_theta['Y'] = {'tt': cp.Variable(pos=False)}  # cp.Parameter(nonpos=True)
+        # entropy = cp.sum(cp.entr(cp.hstack(list(cp_f.values()))))
 
-    # Parameters for attributes not dependent on link flow (all except for 'tt't)
-    cp_theta['Z'] = {k: cp.Parameter(nonpos=True) for k in k_Z if
-                     k != 'tt'}  # nonpos=True is required to find unique equilibrium
+        entropy_function = self.entropy_path_flows_sue(f)
 
-    # Objective function
+        # if not np.all(f > 0):
+        #     print('some elements in the path flow vector are 0')
+        #     f = no_zeros(f)
+        # entropy_function = np.sum(np.log(f)*f)
 
-    # Component for endogeonous attributes dependent on link flow
-    # bpr_integrals = [link.bpr.bpr_integral_x(x=cp_x[link.label]) for i,link in links.items()]
-    bpr_integrals = [link.bpr.bpr_integral_x(x=cp_x[i]) for i, link in zip(range(0, len(list(links))), links.values())]
-    tt_utility_integral = cp_theta['Y']['tt'] * cp.sum(cp.sum(bpr_integrals))
+        # objective_function = utility_integral #- entropy_function
+        objective_function = utility_integral - entropy_function
 
-    # Component for attributes (independent on link flow)
-    # Z_utility_integral = cp.sum(cp.multiply(Z*cp.hstack(list(cp_theta['Z'].values())),cp.hstack(list(cp_x.values()))))
-    Z_utility_integral = cp.sum(
-        cp.multiply(Z * cp.hstack(list(cp_theta['Z'].values())), cp.hstack(cp_x)))
 
-    # Objective function for multiattribute problem
-    utility_integral = tt_utility_integral + Z_utility_integral
+        return float(objective_function)
 
-    # entropy = cp.sum(cp.entr(cp.hstack(list(cp_f.values()))))
-    entropy = cp.sum(cp.entr(cp_f))
 
-    simple_obj = cp.Parameter()
-    cp_objective = cp.Maximize(utility_integral + entropy)
-    # cp_objective = cp.Maximize(entropy)
 
-    # Problem
-    # cp_problem = cp.Problem(cp_objective)
-    cp_problem = cp.Problem(cp_objective, cp_constraints)
 
-    # cp_problem.is_dcp()
+    def traffic_assignment_path_space(self,
+                                      q,
+                                      vf: ColumnVector,
+                                      network = None):
 
-    # Assign parameters values in objective function
-    cp_theta['Y']['tt'].value = theta['tt']
-    for k in k_Z:
-        cp_theta['Z'][k].value = theta[k]
-
-    # feastol = 100
-    # Solve
-
-    objective_value = None
-
-    try:
-        # objective_value = cp_problem.solve(solver=cp.ECOS, feastol=feastol)
-        # cp_theta['Y']['tt'] = 0 #no congestion
-        objective_value = cp_problem.solve(solver=cp.ECOS)
-
-    except:  # SCS failed less often because of numerical problems
-        objective_value = cp_problem.solve(solver=cp.SCS)
-        # cp_theta['Y']['tt'] = -10
-        # objective_value = cp_problem.solve(solver=cp.SCS, verbose = True, warm_start = True)
-
-    # if cp_solver == 'ECOS':
-    #     # objective_value = cp_problem.solve(solver = cp.ECOS, feastol = feastol)
-    #     objective_value = cp_problem.solve(solver=cp.ECOS, feastol=feastol, verbose = True)
-    #     # objective_value = cp_problem.solve(verbose=True)
-    #
-    # else:
-    #     objective_value = cp_problem.solve(solver=cp_solver, feastol=feastol,
-    #                                        verbose=True)  # #(solver = solver) #'ECOS' solver crashes with some problems
-
-    # Results
-
-    tt = {}
-    # - Travel time by link
-    # tt['x'] = {i:link.bpr.bpr_function_x(x=cp_x[link.label].value) for i,link in links.items()}
-    tt['x'] = {j: link.bpr.bpr_function_x(x=cp_x.value[i]) for i, j, link in
-               zip(range(0, len(list(links))), links.keys(), links.values())}
-
-    # Link flows
-    # x = {k:v.value for k,v in cp_x.values()}
-    x = {k: v for k, v in zip(links.keys(), cp_x.value)}
-
-    # cp_x.value
-
-    # np.sum(np.array(list(x.values())))
-    # np.sum(M* np.hstack(cp_f.value),axis = 0) == q[0]
-    # q[-1]
-
-    # [cons.violation() for cons in cp_constraints]
-
-    # cp_constraints[0].violation()
-
-    # Path flows
-    f = {k: v for k, v in zip(range(len(cp_f.value)), cp_f.value)}
-    # f = {k: v.value for k, v in cp_f.items()}
-
-    # np.sum(np.array(list(cp_f.value)))
-    #
-    # np.sum(cp_f.value)
-    # np.sum(q)
-
-    # np.sum(M[0, :] * np.hstack(np.array(list(f.values())))) == q[0]
-
-    # np.sum(list(x.values()))
-
-    # # Todo: Flow by route. Require class path
-    # f = {k:v.value for k,v in cp_x.items()}
+        """
 
-    # results = dict({'f': cp_f.value, 'x': x, 'tt': tt})
-
-    return {'x': x, 'f': f, 'tt_x': tt['x']}
+        :param vf: Vector of path utilities
+        :param q: assume that q is a row vector but this should change
+        """
 
-def sue_logit_OD_estimation(D, M, q_obs, tt_obs, links: Links, paths: Paths, theta: LogitParameters, Z_dict: {}, x_obs: np.array, k_Z=[], cp_solver='ECOS') -> Dict[str, Dict]:
-    """Computation of Stochastic User Equilibrium with Logit Assignment
-    :arg q: Long vector of demand obtained from demand matrix between OD pairs
-    :arg M: OD pair - link incidence matrix
-    :arg D: path-link incidence matrix
-    :arg links: dictionary containing the links in the network
-    :arg Z: matrix with exogenous attributes values at each link that does not depend on the link flows
-    :arg theta: vector with parameters measuring individual preferences for different route attributes
-    :arg k_Z: subset of attributes from X chosen to perform assignment
-    """
-    # i = 'N6'
-    # q_obs = tai.network.denseQ(Q = N['train'][i].Q, remove_zeros = remove_zeros_Q)
-    # x_obs = np.array(list(results_sue['train'][i]['x'].values()))
-    # tt_obs = np.array(list(results_sue['train'][i]['tt_x'].values()))
-    # np.sum(x_obs)
-    # np.sum(q_obs)
-    # D, M, links, paths, Z_dict, theta, cp_solver, K_Z = N['train'][i].D,N['train'][i].M, N['train'][i].links_dict,N['train'][i].paths, N['train'][i].Z_dict,theta_true,'ECOS', []
-
-    # Subset of attributes
-    if len(k_Z) == 0:
-        k_Z = [k for k in theta.keys() if k != 'tt']
-
-    # Get Z matrix from Z dict
-    Z_subdict = {k: Z_dict.get(k) for k in k_Z}
-    Z = estimation.get_matrix_from_dict_attrs_values(W_dict=Z_subdict)
-
-    # Decision variables
-    cp_x = {i: cp.Variable() for i, l_i in links.items()}  # cp.Variable([nLinks])
-    cp_f = {i: cp.Variable() for i in
-            range(D.shape[1])}  # cp.Variable([nRoutes]) #TODO: Transform this in dictionary as with x
-    # q  values
-    cp_q = {i: cp.Variable(pos=True) for i in range(q_obs.shape[0])}  # cp.Variable(
+        if network is None:
+            network = self.network
 
-    # Constraints
-    cp_constraints = [M * cp.hstack(list(cp_f.values())) == cp.hstack(list(cp_q.values()))]
-    # cp_constraints = [M * cp.hstack(list(cp_f.values())) == q]
-    cp_constraints += [D * cp.hstack(list(cp_f.values())) == cp.hstack(list(cp_x.values()))]
-    cp_constraints += [cp.sum(cp.hstack(list(cp_q.values()))) == np.sum(q_obs)]
+        # Network matrices
+        C = network.C
+        # q = network.q
 
-    # Parameters for cvxpy
-    cp_theta = {}
-    cp_scale = cp.Variable(nonpos=False)
-    # Parameters that are dependent on link flow (only 'tt' so far)
-    cp_theta['Y'] = {'tt': cp.Parameter(nonpos=True)}  # cp.Parameter(nonpos=True)
-    # cp_theta['Y'] = {'tt': cp.Variable(pos=False)}  # cp.Parameter(nonpos=True)
+        assert q.shape[1] == 1, 'od vector is not a column vector'
 
-    # Parameters for attributes not dependent on link flow (all except for 'tt't)
-    cp_theta['Z'] = {k: cp.Parameter(nonpos=True) for k in k_Z if
-                     k != 'tt'}  # nonpos=True is required to find unique equilibrium
-    # cp_theta['Z']['c'] = cp.Variable(nonpos=True)
+        # TODO: store this matrix in the network object eventually to save computation
 
-    # Objective function
+        # if len(q.shape) > 1 and q.shape[0] > 1:
+        #     q = q.reshape((q.T.shape))
 
-    # Component for endogeonous attributes dependent on link flow
-    bpr_integrals = [link.bpr.bpr_integral_x(x=cp_x[link.key]) for i, link in links.items()]
-    tt_utility_integral = cp_theta['Y']['tt'] * cp.sum(cp.sum(bpr_integrals))
+        # qM = q.dot(network.M)
 
-    # Component for attributes (independent on link flow)
-    Z_utility_integral = cp.sum(
-        cp.multiply(Z * cp.hstack(list(cp_theta['Z'].values())), cp.hstack(list(cp_x.values()))))
+        vf = v_normalization(v=vf, C=C)
+        exp_vf = np.exp(vf)
+        # v = np.exp(np.sum(V_Z, axis=1) + V_Y)
 
-    # x_obs = np.array(list(results_sue['train'][i]['x'].values()))
-    # q_obs = q
-    dq = 1 / 2 * cp.sum((cp.hstack(list(cp_q.values())) - q_obs) ** 2)
-    cp_tt = [link.bpr.bpr_function_x(cp_x[link.key]) for i, link in links.items()]
-    dt = cp.sum(cp.hstack(np.array(cp_tt) - tt_obs))  # -cp.sum(cp.multiply(np.array(cp_tt),np.array(list(q.values()))))
-    dx = 1 / 2 * cp.sum((cp.hstack(list(cp_x.values())) - x_obs) ** 2)
+        # Denominator logit functions
+        sum_exp_vf = C.dot(exp_vf)
 
-    OD_term = 100 * dq + dx + 0 * dt
+        p_f = exp_vf / sum_exp_vf
 
-    # Objective function for multiattribute problem
-    utility_integral = tt_utility_integral + Z_utility_integral
+        f = np.multiply(network.M.T.dot(q), p_f)
 
-    entropy = cp.sum(cp.entr(cp.hstack(list(cp_f.values()))))
-    cp_objective = cp.Maximize(utility_integral + entropy - OD_term)
+        return f,p_f
 
-    # Problem
-    # cp_problem = cp.Problem(cp_objective)
-    cp_problem = cp.Problem(cp_objective, cp_constraints)
+    def traffic_assignment(self,
+                           q,
+                           vf: Vector,
+                           network = None
+                           ):
 
-    # cp_problem.is_dcp()
+        """ vf is assumed to be a column vector"""
 
-    # Assign parameters values in objective function
-    cp_theta['Y']['tt'].value = theta['tt']
-    for k in k_Z:
-        cp_theta['Z'][k].value = theta[k]
+        if network is None:
+            network = self.network
 
-    cp_theta['Z']['c'].value
+        assert vf.shape[1] == 1, 'vector of path flows is not a column vector'
 
-    # Solve
-    objective_value = cp_problem.solve(solver=cp_solver,
-                                       verbose=True)  # (solver = solver) #'ECOS' solver crashes with some problems
+        f,p_f = self.traffic_assignment_path_space(network = network,
+                                                   q = q,
+                                                   vf = vf)
 
-    # Results
+        x = network.D.dot(f)
 
-    tt = {}
-    # - Travel time by link
-    tt['x'] = {i: link.bpr.bpr_function_x(x=cp_x[link.key].value) for i, link in links.items()}
+        return x,f,p_f
 
-    # Link flows
-    x = {k: v.value for k, v in cp_x.items()}
+    # @blockPrinting
+    def sue_logit_iterative(self,
+                            features_Z = None,
+                            theta=None,
+                            q: ColumnVector = None,
+                            silent_mode = False,
+                            network=None,
+                            **kwargs):
 
-    # Path flows
-    f = {k: v.value for k, v in cp_f.items()}
+        # TODO: set default values for everything that is required
 
-    # OD terms
-    q = {k: v.value for k, v in cp_q.items()}
+        t0 = time.time()
 
-    # print(np.sum(q_obs))
-    # print(np.sum(np.array(list(q.values()))))
-    # print(np.sum(np.array(list(f.values()))))
-    # print(np.sum(np.array(list(x.values()))))
-    # print(np.sum(x_obs))
-    # tt['x']
-    # tt_obs
-    # tt['x']
-    # np.round(np.array(list(q.values())),1)
-    # q_obs
+        exogenous_traveltimes = kwargs.pop('exogenous_traveltimes', self.options['exogenous_traveltimes'])
 
-    # # Todo: Flow by route. Require class path
-    # f = {k:v.value for k,v in cp_x.items()}
+        options = self.get_updated_options(**kwargs)
 
-    # results = dict({'f': cp_f.value, 'x': x, 'tt': tt})
+        if theta is None:
+            theta = self.utility_function.true_values
 
-    return {'x': x, 'f': f, 'tt_x': tt['x']}
+        if network is None:
+            network = self.network
 
-def traffic_assignment_path_space(Nt, q, vf: ColumnVector):
+        if q is None:
+            q = network.q
 
-    """
+        if features_Z is None:
+            features_Z = self.utility_function.features_Z
 
-    :param vf: Vector of path utilities
-    :param q: assume that q is a row vector but this should change
-    """
+        max_iters = options['max_iters']
 
-    # Network matrices
-    C = Nt.C
-    # q = Nt.q
+        if options['uncongested_mode'] or exogenous_traveltimes:
+            max_iters = 0
 
-    assert q.shape[1] == 1, 'od vector is not a column vector'
+        if not silent_mode:
+            print("\nSUE via " + options['method'] +  " (max iters: " + str(max_iters) + ')', end = '\n')
 
-    # TODO: store this matrix in the network object eventually to save computation
+        gap = float("inf")
+        gap_x = []
+        lambdas_ls = []
+        it = 0
+        end_algorithm = False
 
-    # if len(q.shape) > 1 and q.shape[0] > 1:
-    #     q = q.reshape((q.T.shape))
+        path_set_selection_done = False
+        column_generation_done = False
 
-    # qM = q.dot(Nt.M)
-
-
-    vf = estimation.v_normalization(v=vf, C=C)
-    exp_vf = np.exp(vf)
-    # v = np.exp(np.sum(V_Z, axis=1) + V_Y)
-
-    # Denominator logit functions
-    sum_exp_vf = C.dot(exp_vf)
-
-    p_f = exp_vf / sum_exp_vf
-
-    f = np.multiply(Nt.M.T.dot(q), p_f)
-
-    return f,p_f
-
-def traffic_assignment(Nt, q, vf: Vector):
-
-    """ vf is assumed to be a column vector"""
-
-    assert vf.shape[1] == 1, 'vector of path flows is not a column vector'
-
-    f,p_f = traffic_assignment_path_space(Nt, q, vf)
-
-    # if len(f.shape) > 1 and f.shape[1] > 1:
-    #     f = f.reshape(f.T.shape)
-
-    x = Nt.D.dot(f)
-
-    return x,f,p_f
-
-# @blockPrinting
-def sue_logit_iterative(Nt: TNetwork, theta: {}, k_Y: LogitFeatures, k_Z: LogitFeatures, params: Options, x_current=None, q: ColumnVector = None, n_paths_column_generation: int = 0, k_path_set_selection = 0, silent_mode = False, standardization: {} = None):
-
-    t0 = time.time()
-    maxIter, accuracy = params['iters'], params['accuracy_eq']
-
-    if 'method' in params.keys():
-        method = params['method']
-    else:
-        method = 'msa'
-
-    if 'k_path_set_selection' in params.keys() and params['k_path_set_selection'] > 0:
-        k_path_set_selection = params['k_path_set_selection']
-        dissimilarity_weight = params['dissimilarity_weight']
-    else:
-        k_path_set_selection = 0
-
-    if q is None:
-        q = Nt.q
-
-
-
-    if not silent_mode:
-
-        method_label = method
-
-        if method_label == 'line_search':
-            method_label = 'Frank-Wolfe'
-
-        print("\nSUE via " + method_label +  " (max iters: " + str(int(maxIter)) + ')', '\n')
-
-    # print(N.links[0].bpr.bpr_function_x(0))
-
-    # Initialize link travel times with free flow travel time
-    for link in Nt.links:
-        link.set_traveltime_from_x(x=0)
-        # print(link.traveltime)
-
-    # Path travel times
-    # for path in Nt.paths:
-    #     print(path.traveltime)
-
-    # MSA
-    # x_current = None
-    x_weighted = None
-    gap = float("inf")
-    gap_x = []
-    lambdas_ls = []
-    it = 0
-    end_algorithm = False
-
-    path_set_selection_done = False
-
-    fisk_objective_functions = []
-
-    # n_paths = Nt.setup_options['n_initial_paths']
-
-    # TODO: Not sure if I should do column generation at every MSA iteration, which is costly
-    if n_paths_column_generation > 0:
-
-        # printer.blockPrint()
-        sue_column_generation(Nt, theta=theta, n_paths=n_paths_column_generation)
-        # printer.enablePrint()
-        # print('printing')
-        # n_paths += 1
-
-    # Path utilities associated to exogenous attributes (do not change across iterations if path set is fixed). This operation is expensive when there are many paths and its complexity depend on the number of exogenous attributes
-
-    if len(k_Z) > 0:
-        listZ = []
-        for path in Nt.paths:
-            # print(path.Z_dict)
-
-            listZ_path = []
-            for key in k_Z:
-                if key in path.Z_dict.keys():
-                    listZ_path.append(float(path.Z_dict[key]) * theta[key])
-
-            listZ.append(listZ_path)
-
-        # Total utility of each path
-        vf_Z = np.sum(np.asarray(listZ), axis=1)[:, np.newaxis]
+        fisk_objective_functions = []
 
         # if standardization is not None:
         #     vf_Z = preprocessing.scale(vf_Z, with_mean=standardization['mean'], with_std=standardization['sd'], axis=0)
 
-    else:
-        vf_Z = 0
+        while end_algorithm is False:
 
-    while end_algorithm is False:
+            #Step 0
+            if it == 0:
 
-        if not silent_mode and maxIter > 0:
-            printer.printProgressBar(it, maxIter, prefix='Progress:', suffix='', length=20)
+                if exogenous_traveltimes:
+                    for link in network.links:
+                        link.traveltime = link.true_traveltime
 
-        if it >= 1 or x_current is None:
+                else:
+                    # Initialize link travel times with free flow travel time
+                    for link in network.links:
+                        link.set_traveltime_from_x(x=0)
 
-            # Path utilities associated to endogenous attributes (travel time) is the only that changes over iterations
+                # Generating new paths at every iteration is costly
+                if options['column_generation']['n_paths'] is not None and column_generation_done is False:
 
-            vf_Y = np.array([path.traveltime * theta['tt'] for path in Nt.paths])[:,np.newaxis]
-            # np.mean(   vf_Y )
-            # if standardization is not None:
-            #     vf_Y = preprocessing.scale(vf_Y, with_mean=standardization['mean'], with_std=standardization['sd'], axis=0)
+                    self.sue_column_generation(theta=theta,
+                                               n_paths=options['column_generation']['n_paths'],
+                                               ods_coverage=options['column_generation']['ods_coverage'],
+                                               network=network
+                                               )
+                    column_generation_done = True
 
-            # Traffic assignment
-            x,f,p_f = traffic_assignment(Nt, q = q, vf = vf_Y + vf_Z)
+                if options['path_size_correction'] > 0:
 
-            x_current = copy.deepcopy(x)
-            f_current = copy.deepcopy(f)
+                    path_specific_utilities = []
 
-        if it == 0:
-            x_weighted = copy.deepcopy(x_current)
-            f_weighted = copy.deepcopy(f_current)
+                    path_size_factors = compute_path_size_factors(D=network.D, paths_od=network.paths_od)
 
-            x_weighted_dict = dict(zip(list(Nt.links_dict.keys()), list(x_weighted.flatten())))
+                    for idx, path in zip(np.arange(0, len(network.paths)), network.paths):
+                        path.specific_utility = float(options['path_size_correction'] * np.log(path_size_factors[idx]))
+                        path_specific_utilities.append(path.specific_utility)
 
-            initial_fisk_objective_function = sue_objective_function_fisk(Nt=Nt, x_dict=x_weighted_dict, f=f_weighted, theta=theta, k_Z=k_Z)
+                    print('Performed path size correction with factor', options['path_size_correction'])
 
-        if it >= 1:
+                    # network.Z_data[features_Z]
 
-            if method == 'line_search':
+                    # [path.utility_summary(theta = theta) for path in network.paths_od[((1618, 1773))]]
+                    # (1618, 1775), (1618, 1776), (1618, 1777)
 
-                # if it>1:
-                iters_ls = params['iters_ls']
+                # Traffic assignment
+                x,f,p_f = self.traffic_assignment(
+                    network = network,
+                    q = q,
+                    vf = network.get_paths_utility(theta=theta,features_Z=features_Z))
 
-                x_weighted_dict = dict(zip(list(Nt.links_dict.keys()), x_weighted))
-                x_current_dict = dict(zip(list(Nt.links_dict.keys()), x_current))
+                initial_fisk_objective_function = self.sue_objective_function_fisk(
+                    network = network,
+                    f=f,
+                    theta=theta,
+                    k_Z=features_Z)
 
-                lambda_ls, xmin_ls, fmin_ls, objectivemin_ls = sue_line_search(Nt = Nt, theta = theta, k_Z = k_Z
-                    , iters = iters_ls, method = 'grid_search'
-                    , x1_dict = x_weighted_dict, x2_dict = x_current_dict
-                    ,f1 = f_weighted, f2 = f_current)
+            # if not silent_mode and max_iters > 0:
+            #     printProgressBar(it, max_iters, prefix='Progress:', suffix='', length=20)
 
+            if it >= 1:
 
-                f_weighted = fmin_ls
-                x_weighted = xmin_ls
+                # Traffic assignment to get auxiliary link flow y
+                y, f_y, p_f = self.traffic_assignment(
+                    network=network,
+                    q=q,
+                    vf=network.get_paths_utility(theta=theta, features_Z=features_Z))
 
-                # x_dict = dict(zip(list(Nt.links_dict.keys()), x_weighted))
+                if options['method'] == 'msa':
 
-                lambdas_ls.append(lambda_ls)
+                    alpha_n = 1 / (it + 1)
 
-                # print('fisk objective', sue_objective_function_fisk(Nt=Nt, x_dict=x_dict , f=f_weighted, theta=theta, k_Z=k_Z))
+                    # x = x + alpha_n * (y-x)
+                    f = f + alpha_n * (f_y-f)
 
-            if method == 'msa':
-                x_weighted = (1 / (it + 1)) * x_current + (1 - 1 / (it + 1)) * x_weighted
-                f_weighted = f_current
+                if options['method'] == 'fw':
 
-            #evaluate sue objective function
-            x_weighted_dict = dict(zip(list(Nt.links_dict.keys()), list(x_weighted.flatten())))
+                    lambda_ls, xmin_ls, fmin_ls, objectivemin_ls \
+                        = self.sue_line_search(theta = theta,
+                                               features_Z= features_Z,
+                                               iters = options['iters_fw'],
+                                               search_type=  options['search_fw'],
+                                               network = network,
+                                               f1 = f,
+                                               f2 = f_y)
 
-            fisk_objective_function = sue_objective_function_fisk(Nt=Nt, x_dict=x_weighted_dict, f=f_weighted, theta=theta, k_Z=k_Z)
+                    x = xmin_ls
+                    f = fmin_ls
 
-            fisk_objective_functions.append(fisk_objective_function)
+                    lambdas_ls.append(lambda_ls)
 
-            if len(fisk_objective_functions)>=2:
-                # max_fisk_objective_functions = np.max(fisk_objective_functions[:-1])
-                # #TODO: change definition for equilibrium gap (boyles)
-                #
-                # change = (fisk_objective_function - max_fisk_objective_functions)
-                #
-                # gap = np.linalg.norm(
-                #     np.divide(change, max_fisk_objective_functions, out=np.zeros_like(change), where=fisk_objective_function != 0))
+                    # print('fisk objective', sue_objective_function_fisk(network=network, x_dict=x_dict , f=f_weighted, theta=theta, features=features))
 
-                change = (fisk_objective_functions[-1] - fisk_objective_functions[-2])
+                #evaluate sue objective function
+                fisk_objective_function = self.sue_objective_function_fisk(network = network,
+                                                                           f=f,
+                                                                           theta=theta,
+                                                                           k_Z=features_Z)
 
-                gap = np.linalg.norm(
-                    np.divide(change, fisk_objective_functions[-1], out=np.zeros_like(change), where=fisk_objective_functions[-1] != 0))
+                fisk_objective_functions.append(fisk_objective_function)
 
+                if len(fisk_objective_functions)>=2:
+                # if it >= 2:
+                    # max_fisk_objective_functions = np.max(fisk_objective_functions[:-1])
+                    # #TODO: Definition for equilibrium gap does not apply for SUE-logit but may adapt it
+                    # change = (fisk_objective_function - max_fisk_objective_functions)
+                    # gap = np.linalg.norm(
+                    #     np.divide(change, max_fisk_objective_functions, out=np.zeros_like(change), where=fisk_objective_function != 0))
 
+                    change = (fisk_objective_functions[-1] - fisk_objective_functions[-2])
 
-                gap_x.append(gap)
-            # gap_x.append(np.sum(np.abs(x_msa - x_current) / len(x_current)))
+                    gap = np.linalg.norm(
+                        np.divide(change, fisk_objective_functions[-1], out=np.zeros_like(change), where=fisk_objective_functions[-1] != 0))
 
-        # prev_fisk_objective_function = fisk_objective_function
+                    gap_x.append(gap)
 
-        if k_path_set_selection > 0 and path_set_selection_done is False:
+            if options['column_generation']['paths_selection'] is not None and path_set_selection_done is False:
 
-            # Create dictionary with path probabilities
-            pf_dict = {str(path.get_nodes_labels()): p_f[i] for i, path in zip(np.arange(len(p_f)), Nt.paths)}
+                # Create dictionary with path probabilities
+                pf_dict = {str(path.get_nodes_keys()): p_f[i] for i, path in zip(np.arange(len(p_f)), network.paths)}
 
+                print('\nPath selection:', 'dissimilarity_weight: '
+                      + str(options['column_generation']['dissimilarity_weight']) +
+                      ', paths per od: ' + str(options['column_generation']['paths_selection']))
 
-            # print('\nPerforming path selection:', 'dissimilarity_weight=' + str(dissimilarity_weight), 'k=' + str(k_path_set_selection))
+                total_paths = 0
+                total_ods = 0
+                total_paths_removed = 0
 
-            total_paths = 0
+                # Combinatorial problem which works well for small path set
+                for od, paths in network.paths_od.items():
 
-            # Combinatorial problem which works well for small path set
-            for od, paths in Nt.paths_od.items():
+                    total_paths_od = len(paths)
 
-                if len(paths) > k_path_set_selection:
-                    Nt.paths_od[od], best_score = path_set_selection(paths = paths,pf_dict = pf_dict, k = k_path_set_selection, dissimilarity_weight=dissimilarity_weight)
+                    if total_paths_od > options['column_generation']['paths_selection']:
 
-                total_paths += len(Nt.paths_od[od])
+                        network.paths_od[od], best_score \
+                            = self.path_set_selection(
+                            paths = paths,
+                            pf_dict = pf_dict,
+                            k = options['column_generation']['paths_selection'],
+                            dissimilarity_weight=options['column_generation']['dissimilarity_weight']
+                        )
 
-            path_set_selection_done = True
+                        total_paths_removed += total_paths_od-options['column_generation']['paths_selection']
 
-            print('\nPath selection with k=' + str(k_path_set_selection), '(total paths: ' + str(total_paths) +')' )
+                        total_ods+=1
 
-        # Update travel times in links (and thus in paths)
-        for link, j in zip(Nt.links, range(len(x_weighted))):
-            link.set_traveltime_from_x(x=x_weighted[j])
+                    total_paths += len(network.paths_od[od])
 
-        # Nt.links[0].traveltime
+                with block_output(show_stdout=False, show_stderr=False):
+                    network.load_paths(paths_od = network.paths_od)
 
-        it += 1
+                path_set_selection_done = True
 
+                print(str(total_paths_removed) + ' paths removed among ' + str(
+                    total_ods) + ' ods (New total paths: ' + str(len(network.paths)) + ')')
 
+                # print('Path selection with k=' + str(options['column_generation']['paths_selection']),
+                #       '(New total paths: ' + str(total_paths) +')' )
 
-        # print('fisk objective', sue_objective_function_fisk(Nt = Nt, x_dict = x_dict,f = f,theta = theta,k_Z = k_Z))
+                # New paths change trajectory of equilibria so the process is restarted
+                it = -1
 
 
-            # n_paths += 1
+            if not options['uncongested_mode'] and not exogenous_traveltimes:
+                for link, j in zip(network.links, range(len(x))):
+                    link.set_traveltime_from_x(x=float(x[j]))
 
-            # print(maxIter)
+            it += 1
 
-        if it > maxIter:
-            end_algorithm = True
+            if it > max_iters:
+                end_algorithm = True
 
-        elif gap < accuracy and it > 2:
-            end_algorithm = True
+            elif gap < options['accuracy'] and it > 1:
+                end_algorithm = True
 
-    if gap > accuracy:
-        if not silent_mode:
-            print("Assignment did not converge with the desired gap")
-        # print("Traffic assignment did not converge with the desired gap and max iterations are reached")
+        if gap > options['accuracy'] and not options['uncongested_mode'] and not exogenous_traveltimes:
+            if not silent_mode:
+                print("Assignment did not converge with the desired gap")
+                # print("Traffic assignment did not converge with the desired gap and max iterations are reached")
 
-    # if end_algorithm:
-    #     printer.printProgressBar(maxIter, maxIter, prefix='Progress:', suffix='',
-    #                              length=20)
 
-    # print("total iterations: ", str(it) + )
-    if not silent_mode and maxIter > 0:
-        # print('current theta: ',str({key: "{0:.1E}".format(val) for key, val in theta_current.items()}))
+        if not silent_mode and max_iters > 0:
 
-        print('gaps:', ["{0:.0E}".format(val) for val in gap_x])
-        # print('gaps:', np.round(gap_x,2))
+            print('\nEquilibrium gaps:', ["{0:.0E}".format(val) for val in gap_x])
 
-        if method == 'line_search':
-            print('lambdas:', ["{0:.2E}".format(val) for val in lambdas_ls])
+            if options['method'] == 'line_search':
+                print('lambdas:', ["{0:.2E}".format(val) for val in lambdas_ls])
 
-        print('initial sue fisk objective: ' + '{:,}'.format(
-            round(initial_fisk_objective_function,2)))
-        print('final sue fisk objective: ' + '{:,}'.format(
-            round(fisk_objective_functions[-1],2)))
+            final_fisk_objective_function = fisk_objective_functions[-1]
 
-        print('iters: ' + str(it-1))
+            print('Initial Fisk Objective: ' + '{:,}'.format(
+                round(initial_fisk_objective_function,2)))
+            print('Final Fisk Objective: ' + '{:,}'.format(
+                round(final_fisk_objective_function,2)))
 
-        print('Time: ' + str(round(time.time() - t0, 1)) + ' [s]' + '. Final gap: ' + "{0:.0E}".format(gap) + '. Acc. bound: ' + "{0:.0E}".format(accuracy)  )
+            if initial_fisk_objective_function != 0:
+                print('Improvement Fisk Objective: ' + "{:.2%}".format(
+                    np.round((final_fisk_objective_function - initial_fisk_objective_function)/abs(initial_fisk_objective_function), 4)))
+            print('Final gap: ' + "{0:.0E}".format(gap) + '. Acc. bound: ' + "{0:.0E}".format(options['accuracy'])+  '. Time: ' + str(round(time.time() - t0, 1)) + ' [s]')
+            # print('Iters:',str(it - 1))
 
+        links_keys = list(network.links_dict.keys())
 
-    links_keys = list(Nt.links_dict.keys())
+        x_final = dict(zip(links_keys, list(x.flatten())))
 
-    x_final = dict(zip(links_keys, list(x_weighted.flatten())))
+        tt_final = dict(zip(links_keys, [link.traveltime for link in network.links]))
 
-    if 'uncongested_mode' in params.keys() and params['uncongested_mode']:
-        for link in Nt.links:
+        for link in network.links:
             link.set_traveltime_from_x(x=0)
 
+        return {'x': x_final
+            , 'tt_x': tt_final
+            , 'gap_x': gap_x
+            , 'p_f': p_f
+            , 'f': f
+                }
+
+    def sue_line_search(self,
+                        iters,
+                        search_type,
+                        f1: Vector,
+                        f2: Vector,
+                        theta: dict,
+                        features_Z: [],
+                        network=None,
+                        ):
 
-    # print('iteration :' + str(it))
+        # Under the assumption the best lambda result from solving a convex problem, we can use the bisection method
+
+        # def sue_objective_function_fisk_numeric_grad(lambda_bs):
+        #
+        #     fnew = f1 + lambda_bs * (f2-f1)
+        #     # fnew = f1*(1-lambda_bs) + lambda_bs * f2
+        #
+        #     if not np.all(fnew >= 0):
+        #         here = 0
+        #
+        #     xnew = network.D.dot(fnew)
+        #     xnew_dict = dict(zip(list(x1_dict.keys()), xnew))
+        #
+        #     objective_new = self.sue_objective_function_fisk(theta=theta,
+        #                                                      x_dict=xnew_dict,
+        #                                                      f=xnew,
+        #                                                      k_Z=k_Z)
+        #
+        #     return objective_new
 
-    # # Store link flows of current iteration
-    # if i < maxIter-1:
-    #     x_previous = x_current
+        def plot_fisk_objective_derivatives_lambdas():
+
+            import matplotlib.pyplot as plt
 
-    # print(np.round(x_iteration,2))
-    # print(np.round(np.array([link.traveltime for link in N.links]),1))
+            values = []
+            derivatives = []
 
+            lambdas_bs = np.arange(0, 1, 0.01)
+
+            for lambda_bs in np.arange(0, 1, 0.01):
+
+                fopt = f1 + lambda_bs * (f2 - f1)
+
+                values.append(self.sue_objective_function_fisk(f=fopt,
+                                                               theta=theta,
+                                                               network=self.network,
+                                                               k_Z=features_Z))
 
+                derivatives.append(self.derivative_sue_objective_function_fisk(
+                    f1 = f1,
+                    f2 = f2,
+                    theta = theta,
+                    lambda_bs = lambda_bs,
+                    network = network,
+                    k_Z=features_Z
+                ))
 
-    return {'x': x_final
-        , 'tt_x': dict(zip(links_keys, [link.traveltime for link in Nt.links]))
-        , 'gap_x': gap_x  # np.sum(np.abs(x_msa - x_current)/len(x_current))
-        , 'p_f': p_f
-        , 'f': f
-            }
+            plt.plot(lambdas_bs, values)
+            plt.show()
 
-def sue_line_search(iters, method, Nt, x1_dict:dict, x2_dict:dict, f1: Vector, f2: Vector, theta: dict, k_Z: [], k_Y: [] = ['tt']):
+            plt.plot(lambdas_bs, derivatives)
+            plt.show()
 
+            return values, derivatives
 
-    # Under the assumption the best lambda result from solving a convex problem, we can use the bisection method
 
+        if network is None:
+            network = self.network
 
-    # x1_vector = np.array(list(x1_dict.values()))
-    # x2_vector = np.array(list(x2_dict.values()))
+        # values, derivatives = plot_fisk_objective_derivatives_lambdas()
 
-    # Bisection:
+        if search_type == 'bisection':
 
-    if method == 'bisection':
+            left_lambda = 0
+            right_lambda = 1
 
-        raise NotImplementedError
+            for iter in range(iters):
 
-        objective_1 = sue_objective_function_fisk(Nt=Nt, x_dict=x2_dict, f=f1, theta=theta, k_Z=k_Z)
-        objective_2 = sue_objective_function_fisk(Nt=Nt, x_dict=x2_dict, f=f2, theta=theta, k_Z=k_Z)
+                mid_lambda = 0.5 * (left_lambda + right_lambda)
 
-        left_lambda = 0
-        right_lambda = 1
+                # derivative = nd.Gradient(sue_objective_function_fisk_numeric_grad)(
+                #     mid_lambda)
+                # print(derivative)
 
-        for iter in iterations:
+                derivative = self.derivative_sue_objective_function_fisk(
+                    f1 = f1,
+                    f2 = f2,
+                    theta = theta,
+                    lambda_bs = mid_lambda,
+                    network = network,
+                    k_Z=features_Z
+                )
+                # print(derivative)
 
-            mid_lambda = 0.5*(left_lambda + right_lambda)
-            mid_f = mid_lambda * f1 + (1 - mid_lambda) * f2
+                if derivative<0:
+                    left_lambda = left_lambda
+                    right_lambda = 0.5 * (left_lambda + right_lambda)
 
+                else:
+                    left_lambda = 0.5 * (left_lambda + right_lambda)
 
+            lambda_opt = mid_lambda
 
-            left_f = left_lambda * f1 + (1 - lambda_ls) * f2
-            left_x = Nt.D.dot(left_f)
-            xnew_dict = dict(zip(list(x1_dict.keys()), xnew))
+            fopt = f1 + mid_lambda * (f2-f1)
 
-            left_objective = sue_objective_function_fisk(Nt=Nt, x_dict=x1_dict, f=f1, theta=theta, k_Z=k_Z)
+            xopt = network.D.dot(fopt)
 
+            objective_opt = self.sue_objective_function_fisk(f=fopt,
+                                                             theta=theta,
+                                                             network = network,
+                                                             k_Z=features_Z)
 
-    if method == 'grid_search':
-        objective_opt = float('-inf')
-        lambda_opt = None
-        xopt = None
-        fopt = None
+        if search_type == 'grid':
+            objective_opt = float('-inf')
+            lambda_opt = None
+            xopt = None
+            fopt = None
 
-        grid_lambda = np.linspace(0,1, iters)
+            grid_lambda = np.linspace(0,1, iters)
+            objectives = []
 
-        for lambda_ls in grid_lambda:
+            for lambda_ls in grid_lambda:
 
-            # From Damberg (1996)
+                # From Damberg (1996)
+                fnew = f1 + lambda_ls * (f2-f1)
+                xnew = network.D.dot(fnew)
 
-            fnew = lambda_ls * f1 + (1 - lambda_ls) * f2
-            xnew = Nt.D.dot(fnew)
-            xnew_dict = dict(zip(list(x1_dict.keys()), xnew))
+                objective_new = self.sue_objective_function_fisk(f=fnew,
+                                                                 theta=theta,
+                                                                 k_Z=features_Z,
+                                                                 network = network
+                                                                 )
 
-            objective_new = sue_objective_function_fisk(Nt=Nt, x_dict=xnew_dict, f=fnew, theta=theta, k_Z=k_Z)
+                objectives.append(objective_new)
 
-            if objective_new >= objective_opt:
-                objective_opt = objective_new
-                xopt = xnew
-                fopt = fnew
-                lambda_opt = lambda_ls
+                if objective_new > objective_opt:
+                    objective_opt = objective_new
+                    xopt = xnew
+                    fopt = fnew
+                    lambda_opt = lambda_ls
 
-    return lambda_opt, xopt, fopt,objective_opt
+                else:
+                    # Assume that the objective function is always concave to save iterations
+                    break
 
-def path_set_selection(paths, pf_dict, k, dissimilarity_weight):
+        return lambda_opt, xopt, fopt,objective_opt
 
-    # https://www.geeksforgeeks.org/python-percentage-similarity-of-lists/
-    # https://stackoverflow.com/questions/41680388/how-do-i-iterate-through-combinations-of-a-list
+    def path_set_selection(self,
+                           paths,
+                           pf_dict,
+                           k,
+                           dissimilarity_weight):
 
-    best_score = -float('inf')
+        # https://www.geeksforgeeks.org/python-percentage-similarity-of-lists/
+        # https://stackoverflow.com/questions/41680388/how-do-i-iterate-through-combinations-of-a-list
 
-    for path_set in combinations(paths, k): # 2 for pairs, 3 for triplets, etc
+        best_score = -float('inf')
 
-        total_probability = 0
-        total_similarity = 0
+        for path_set in combinations(paths, k): # 2 for pairs, 3 for triplets, etc
 
-        for path in path_set:
-            total_probability = pf_dict[str(path.get_nodes_labels())]
+            total_probability = 0
+            total_similarity = 0
 
-        for paths_pair in combinations(paths, 2):
+            for path in path_set:
+                total_probability = pf_dict[str(path.get_nodes_keys())]
 
-            path1_sequence = paths_pair[0].get_nodes_labels()
-            path2_sequence = paths_pair[1].get_nodes_labels()
+            for paths_pair in combinations(paths, 2):
 
-            similarity = len(set(path1_sequence) & set(path2_sequence)) / float(len(set(path1_sequence) | set(path2_sequence)))
-            total_similarity += similarity
+                path1_sequence = paths_pair[0].get_nodes_keys()
+                path2_sequence = paths_pair[1].get_nodes_keys()
 
-        average_dissimilarity = 1-total_similarity/len(path_set)
-        average_probability = total_probability/len(path_set)
+                similarity = len(set(path1_sequence) & set(path2_sequence)) / float(len(set(path1_sequence) | set(path2_sequence)))
+                total_similarity += similarity
 
-        score = dissimilarity_weight*average_dissimilarity + (1-dissimilarity_weight)*average_probability
+            average_dissimilarity = 1-total_similarity/len(path_set)
+            average_probability = total_probability/len(path_set)
 
-        if score >= best_score:
-            best_score = score
-            best_path_set = path_set
-            best_average_probability = average_probability
-            best_average_dissimilarity = average_dissimilarity
+            score = dissimilarity_weight*average_dissimilarity + (1-dissimilarity_weight)*average_probability
 
+            if score >= best_score:
+                best_score = score
+                best_path_set = path_set
+                best_average_probability = average_probability
+                best_average_dissimilarity = average_dissimilarity
 
 
-    return list(best_path_set), best_score
 
+        return list(best_path_set), best_score
 
-def sue_column_generation(Nt, theta, n_paths, silent_mode = False, path_selection= True ) -> None:
 
-    ods_coverage = Nt.setup_options['ods_coverage_column_generation']
+    def sue_column_generation(self,
+                              network,
+                              theta,
+                              n_paths,
+                              ods_coverage = None,
+                              ods_sampling = None,
+                              silent_mode = False) -> None:
 
-    print('Column generation:', str(n_paths) + ' paths per od, '+ "{:.1%}". format(ods_coverage) + ' od coverage')
+        '''
 
-    t0 = time.time()
+        Algorithm is the followig:
+        0.Initialization
 
-    cutoff_paths = Nt.setup_options['cutoff_paths']
+        # - Perform traffic assignment by computing shortest paths using the current estimate of the logit parameters and free flow travel times (1 iteration of MSA)
 
-    # 0.Initialization
+        # 1. Restricted master problem phase
 
-    # - Perform traffic assignment by computing shortest paths using the current estimate of the logit parameters and free flow travel times (1 iteration of MSA)
+        # Loop:
 
-    # 1. Restricted master problem phase
+        # i) Perform traffic assignment again with new travel times
 
-    # Loop:
+        # ii) Line search to find the minimum objective function for SUE
 
-    # i) Perform traffic assignment again with new travel times
+        # 2. Column generation phase
 
-    # ii) Line search to find the minimum objective function for SUE
+        # i) Augment the path set used in 1, by for instance, adding the next shortest path
 
-    #TODO: Function to compute SUE in multiattribute setting
+        # * I may do the augmentation only once for efficiency but define a factor to control for this. The augmentation may be based on the shortest path
 
-    # 2. Column generation phase
+        # * In the algorithm proposed by Damberg et al. (1996)  it is, however, possible to avoid generating flows on overlapping routes by deleting (or suitably modifying) any route generated that overlaps with a previously generated one more than a maximal allowed measure of overlapping; depending on the overlap measure, this may be easily performed by augmenting the route generation phase with a suitable check.
 
-    # i) Augment the path set used in 1, by for instance, adding the next shortest path
+        Args:
+            network:
+            theta:
+            n_paths:
+            ods_coverage:
+            ods_sampling:
+            silent_mode:
 
-    # * I may do the augmentation only once for efficiency but define a factor to control for this. The augmentation may be based on the shortest path
+        Returns:
 
-    # * In the algorithm proposed by Damberg et al. (1996)  it is, however, possible to avoid generating flows on overlapping routes by deleting (or suitably modifying) any route generated that overlaps with a previously generated one more than a maximal allowed measure of overlapping; depending on the overlap measure, this may be easily performed by augmenting the route generation phase with a suitable check.
+        '''
 
-    #Path generation
+        t0 = time.time()
 
-    # theta['tt'] = 1
+        if ods_coverage is None:
+            ods_coverage = self.options['column_generation']['ods_coverage']
 
-    # Matrix with link utilities
-    Nt.V = Nt.generate_V(A = Nt.A, links = Nt.links, theta = theta)
+        if ods_sampling is None:
+            ods_sampling = self.options['column_generation']['ods_sampling']
 
-    # print(Nt.V)
+        print('\nColumn generation:', str(n_paths) + ' paths per od, '+ "{:.1%}". format(ods_coverage) + ' od coverage, ' + ods_sampling + ' sampling' )
 
-    # edge_utilities = Nt.generate_edges_weights_dict_from_utility_matrix(V = Nt.V)
+        # Sample part of the ods according to the coverage defined for column generation
+        if ods_coverage > 0 and ods_coverage <= 1:
 
-    # edge_utilities = Nt.generate_edges_weights_dict_from_utility_matrix(V=np.zeros(Nt.V.shape))
+            if ods_sampling == 'random':
+                ods_sample = network.OD.random_ods(ods_coverage)
 
-    # Key to have the minus sign so we look the route that lead to the lowest disutility
-    edge_utilities = Nt.generate_edges_weights_dict_from_utility_matrix(V=Nt.V)
+            if ods_sampling == 'demand':
+                ods_sample = network.OD.sample_ods_by_demand(percentage = ods_coverage,
+                                                             k = self.options['column_generation']['n_ods_sampling'] )
+                self.options['column_generation']['n_ods_sampling']+=1
 
+        else:
+            ods_sample = network.ods
 
-    # Sample part of the ods according to the coverage set for column generation
+        with block_output(show_stdout=False, show_stderr=False):
+            paths, paths_od = self.paths_generator.k_shortest_paths(network = network,
+                                                                    theta = theta,
+                                                                    k = n_paths,
+                                                                    ods = ods_sample,
+                                                                    paths_per_od = n_paths,
+                                                                    silent_mode = True)
 
+        # See if new paths were found so they are added into the existing path set
+        paths_added = 0
+        n_ods_added = 0
 
-    if ods_coverage > 0 and ods_coverage <= 1:
-        n_ods_sample = int(np.floor(ods_coverage*len(Nt.ods)))
-        ods_sample = [Nt.ods[idx] for idx in np.random.choice(np.arange(len(Nt.ods)), n_ods_sample, replace=False)]
+        for od, paths in paths_od.items():
 
-    else:
-        ods_sample = Nt.ods
+            some_path_added_od = False
 
-    paths, paths_od = path_generation_nx(A=Nt.A
-                                               , ods= ods_sample
-                                               , links=Nt.links_dict
-                                               , cutoff=cutoff_paths
-                                               , n_paths=n_paths
-                                               , edge_weights = edge_utilities
-                                               , silent_mode = True
-                                               )
+            existing_paths_keys = [path.get_nodes_keys() for path in network.paths_od[od]]
+            for path in paths_od[od]:
+                if path.get_nodes_keys() not in existing_paths_keys:
+                    network.paths_od[od].append(path)
+                    # network.paths.append(path)
+                    paths_added += 1
+                    some_path_added_od = True
 
-    printer.blockPrint()
+            if some_path_added_od:
+                n_ods_added += 1
 
+        # network.load_paths(paths_od = network.paths_od)
+        with block_output(show_stdout=False, show_stderr=False):
+            network.update_incidence_matrices()
 
-    # See if new paths were found so they are added into the existing path set
-    paths_added = 0
-    n_ods_added = 0
+        # enablePrint()
 
-    for od, paths in paths_od.items():
-
-        some_path_added_od = False
-
-        existing_paths_keys = [path.get_nodes_labels() for path in Nt.paths_od[od]]
-        for path in paths_od[od]:
-            if path.get_nodes_labels() not in existing_paths_keys:
-                Nt.paths_od[od].append(path)
-                # Nt.paths.append(path)
-                paths_added += 1
-                some_path_added_od = True
-
-        if some_path_added_od:
-            n_ods_added += 1
-
-    Nt.paths = Nt.get_paths_from_paths_od(Nt.paths_od)
-
-
-    Nt.M = Nt.generate_M(paths_od=Nt.paths_od)
-    Nt.D = Nt.generate_D(paths_od=Nt.paths_od, links=Nt.links)
-    Nt.C = estimation.choice_set_matrix_from_M(Nt.M)
-
-    printer.enablePrint()
-
-    # print("Total number of links among paths: ", np.sum(Nt.D))
-    print(str(paths_added) + ' paths added/replaced among ' + str(n_ods_added) + ' ods (total paths: ' + str(len(Nt.paths)) + ')')
-    # print('- Computation time: ' + str(np.round(time.time() - t0, 1)) + ' [s]')
+        # print("Total number of links among paths: ", np.sum(network.D))
+        print(str(paths_added) + ' paths added/replaced among ' + str(n_ods_added) + ' ods (New total paths: ' + str(len(network.paths)) + ')')
+        # print('- Computation time: ' + str(np.round(time.time() - t0, 1)) + ' [s]')
 
 
 def sue_logit_dial(root, subfolder, prefix_filename, options, Z_dict, k_Z, theta={'tt': 1}):
@@ -1369,3 +1344,7 @@ def sue_logit_dial(root, subfolder, prefix_filename, options, Z_dict, k_Z, theta
     tt_x = {(int(i[0]) - 1, int(i[1]) - 1, '0'): link.traveltime for i, link in linkSet.items()}
 
     return x, tt_x
+
+
+
+
