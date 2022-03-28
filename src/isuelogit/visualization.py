@@ -1917,7 +1917,7 @@ class Artist:
         ax[(0, 0)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
         ax[(0, 0)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
         ax[(0, 0)].set_ylabel(r"$n^{-1} \  ||x(\hat{\theta})-\bar{x}||_2^2$")
-        ax[(0, 0)].set_xticklabels([], fontsize=12)
+        ax[(0, 0)].set_xticklabels([])
 
         # r"$\hat{\theta}$"
 
@@ -1928,7 +1928,7 @@ class Artist:
         ax[(0, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
         ax[(0, 1)].plot(x_range, y_vals, color='red')
         ax[(0, 1)].set_ylabel(r"$n^{-1} \ \nabla_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)$")
-        ax[(0, 1)].set_xticklabels([], fontsize=12)
+        ax[(0, 1)].set_xticklabels([])
 
 
 
@@ -1939,7 +1939,7 @@ class Artist:
         ax[(1, 0)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
         ax[(1, 0)].plot(x_range, y_vals, color='red')
         ax[(1, 0)].set_ylabel(r"$n^{-1} \ \textmd{sign} (\nabla_{\theta} ||x(\hat{\theta})-\bar{x}||_2^2 )$")
-        ax[(1, 0)].set_xticks(np.arange(int(round(min(x_range))), int(round(max(x_range)))+0.1, 5), fontsize=12)
+        ax[(1, 0)].set_xticks(np.arange(int(round(min(x_range))), int(round(max(x_range)))+0.1, 5))
         # ax[(1, 0)].set_xticklabels([])
 
         # Hessian L2-norm
@@ -1967,7 +1967,7 @@ class Artist:
         ax[(1, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
         ax[(1, 1)].plot(x_range, y_vals, color='red', )
         ax[(1, 1)].set_ylabel(r"$n^{-1} \  \textmd{sign} (\nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)) $")
-        ax[(1, 1)].set_xticks(np.arange(int(round(min(x_range))), int(round(max(x_range)))+0.1, 5), fontsize=12)
+        ax[(1, 1)].set_xticks(np.arange(int(round(min(x_range))), int(round(max(x_range)))+0.1, 5))
 
 
         # ax[(0, 2)].set_title("Hessian L2-norm")
