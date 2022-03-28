@@ -43,7 +43,7 @@ class NetworkExperiment(Reporter):
 
         super().__init__(**kwargs)
 
-        self.make_dirs(folderpath= kwargs.get('folderpath'))
+        # self.make_dirs(folderpath= kwargs.get('folderpath'))
 
         self.artist = visualization.Artist(folder_plots=self.dirs['experiment_folder'])
 
@@ -354,10 +354,9 @@ class ConvergenceExperiment(NetworkExperiment):
                  outer_optimizers: List[OuterOptimizer],
                  bilevel_iters,
                  equilibrator,
-                 *args,
                  **kwargs):
 
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
 
         # It is assumed that the same equilibrator is used for both learners
         self.equilibrator = equilibrator
@@ -478,10 +477,9 @@ class PseudoconvexityExperiment(NetworkExperiment):
 
     def __init__(self,
                  equilibrator,
-                 *args,
                  **kwargs):
 
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
 
         self.equilibrator = equilibrator
 
@@ -495,7 +493,9 @@ class PseudoconvexityExperiment(NetworkExperiment):
 
         # TODO: Redesign this code such that it is common with the pseudoconvexity experiment for small networks. Maybe I will need to have a Multi and Single Network Experiment
 
-        self.make_dirs(folderpath=self.network.key.lower())
+        # self.make_dirs(folderpath=self.network.key.lower())
+
+        self.write_experiment_report()
 
         if features_labels is None:
             features_labels = features
@@ -577,8 +577,6 @@ class PseudoconvexityExperiment(NetworkExperiment):
             # , labels = ['travel time', 'cost', 'intersections']
 
         )
-
-        self.write_experiment_report()
 
     def write_experiment_report(self,
                                 filename=None):
