@@ -33,8 +33,9 @@ input/private
 input/public
 
 #Notebooks
-/notebooks/read_write_fresno_data.ipynb
-/notebooks/lue_random_network.ipynb
+notebooks/read_write_fresno_data.ipynb
+notebooks/lue_random_network.ipynb
+notebooks/lue_fresno_network-2020a.ipynb
 
 #extra
 src/extra
