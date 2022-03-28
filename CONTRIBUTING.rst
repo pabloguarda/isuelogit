@@ -111,7 +111,7 @@ Tips
 
 To run a subset of tests::
 
-$ pytest tests.test_transportAI
+$ pytest tests.test_isuelogit
 
 
 Deploying

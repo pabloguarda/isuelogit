@@ -12,17 +12,19 @@ def response():
     """
     # import requests
     # return requests.get('https://github.com/audreyr/cookiecutter-pypackage')
+    pass
 
 
 def test_content(response):
     """Sample pytest test function with the pytest fixture as an argument."""
+    pass
     # from bs4 import BeautifulSoup
     # assert 'GitHub' in BeautifulSoup(response.content).title.string
 
 
-def test_package_import():
-    import isuelogit as tt
-    assert tt.__version__
+# def test_package_import():
+#     import isuelogit as isl
+#     assert isl.__version__
 
 # Gradient and hessian checks
 # a = hessian_l2norm(theta, YZ_x, Ix, idx_links = np.arange(0, n))

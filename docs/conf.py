@@ -19,7 +19,9 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath(''))
+# sys.path.insert(0, os.path.abspath("."))
+# sys.path.insert(0, os.path.abspath("../"))
 
 from src import isuelogit
 
@@ -47,7 +49,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'isuelogit'
-copyright = "2020, Pablo Guarda"
+copyright = "2022, Pablo Guarda"
 author = "Pablo Guarda"
 
 # The version info for the project you're documenting, acts as replacement
@@ -100,7 +102,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ---------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'transportAIdoc'
+htmlhelp_basename = 'isuelogitdoc'
 
 
 # -- Options for LaTeX output ------------------------------------------
@@ -154,8 +156,7 @@ texinfo_documents = [
      'isuelogit Documentation',
      author,
      'isuelogit',
-     'One line description of project.',
-     'Miscellaneous'),
+     'Inverse Stochastic User Equilibrium with Logit Assignment (`sue-logit`)'),
 ]
 
 

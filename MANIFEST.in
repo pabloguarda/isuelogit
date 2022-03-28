@@ -1,6 +1,7 @@
 include AUTHORS.rst
 include CONTRIBUTING.rst
 include HISTORY.rst
+include *.txt
 include LICENSE
 include README.rst
 

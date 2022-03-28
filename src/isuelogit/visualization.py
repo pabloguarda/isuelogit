@@ -21,13 +21,13 @@ import networkx as nx
 from networkx.utils import is_string_like
 
 import pandas as pd
+
 pd.options.mode.chained_assignment = None  # default='warn'
 
 import numpy as np
 
 
-
-#To write with scienfic notation in y axis
+# To write with scienfic notation in y axis
 class ScalarFormatterForceFormat(ScalarFormatter):
     def _set_format(self):  # Override function that finds format to use.
         self.format = "%1.1f"  # Give format here
@@ -38,19 +38,22 @@ class OOMFormatter(matplotlib.ticker.ScalarFormatter):
     def __init__(self, order=0, fformat="%1.1f", offset=True, mathText=True):
         self.oom = order
         self.fformat = fformat
-        matplotlib.ticker.ScalarFormatter.__init__(self,useOffset=offset,useMathText=mathText)
+        matplotlib.ticker.ScalarFormatter.__init__(self, useOffset=offset, useMathText=mathText)
+
     def _set_order_of_magnitude(self):
         self.orderOfMagnitude = self.oom
+
     def _set_format(self, vmin=None, vmax=None):
         self.format = self.fformat
         if self._useMathText:
             self.format = r'$\mathdefault{%s}$' % self.format
 
+
 class Artist:
     def __init__(self,
-                 folder_plots = None,
-                 dim_subplots = None,
-                 tex = True):
+                 folder_plots=None,
+                 dim_subplots=None,
+                 tex=False):
 
         self._folder = folder_plots
         self._dim_subplots = dim_subplots
@@ -65,8 +68,6 @@ class Artist:
             plt.rcParams['mathtext.default'] = 'regular'
         else:
             matplotlib.rcParams['text.usetex'] = False
-
-
 
     @property
     def folder(self):
@@ -88,7 +89,7 @@ class Artist:
         if folder is None:
             folder = self.folder
 
-        fig.savefig(folder + '/' + filename + '.pdf', pad_inches=0.1, bbox_inches="tight") #
+        fig.savefig(folder + '/' + filename + '.pdf', pad_inches=0.1, bbox_inches="tight")  #
 
     def show_network(self, G):
         '''Visualization of network.
@@ -112,7 +113,8 @@ class Artist:
 
         plt.show()
 
-    def draw_MultiDiNetwork(self, G: nx.graph, font_size=12, node_size=300, edge_curvature = 0.3, nodes_pos=None, show_edge_labels=True):
+    def draw_MultiDiNetwork(self, G: nx.graph, font_size=12, node_size=300, edge_curvature=0.3, nodes_pos=None,
+                            show_edge_labels=True):
         ''' Visualization of Digraph or Multigraphs'''
 
         # https://stackoverflow.com/questions/60067022/multidigraph-edges-from-networkx-draw-with-connectionstyle
@@ -194,7 +196,7 @@ class Artist:
 
         plt.show()
 
-        self.save_fig(fig=fig, folder= subfolder, filename= filename)
+        self.save_fig(fig=fig, folder=subfolder, filename=filename)
 
     def plot_all_networks(self, N, show_edge_labels, subfolder, filename):
 
@@ -211,7 +213,7 @@ class Artist:
 
         self.save_fig(fig=fig, folder=subfolder, filename=filename)
 
-    def regularization_error(self, filename, subfolder, errors: {}, lambdas: {},  N_labels: {}, color):
+    def regularization_error(self, filename, subfolder, errors: {}, lambdas: {}, N_labels: {}, color):
 
         fig = plt.figure()
         ax = fig.subplots(nrows=self.dim_subplots[0], ncols=self.dim_subplots[1])
@@ -224,15 +226,15 @@ class Artist:
             test_error = np.array(list(errors[i].values()))
             idx = np.nanargmin(test_error)
             ax[pos_plot].axvline(x=lambdas[i][idx], color=color, linestyle='dashed', linewidth=0.5
-                                 , label= r'Optimal $\lambda$')
+                                 , label=r'Optimal $\lambda$')
 
-            ax[pos_plot].plot(np.array(list(lambdas[i])), np.array(list(errors[i].values())), color = color
+            ax[pos_plot].plot(np.array(list(lambdas[i])), np.array(list(errors[i].values())), color=color
                               )
             ax[pos_plot].set_title(j)
             ax[pos_plot].set_xscale("log")
             ax[pos_plot].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 
-        #Remove empty subplots
+        # Remove empty subplots
         for k in range(len(N_labels), self.dim_subplots[0] * self.dim_subplots[1]):
             pos_plot = int(np.floor(k / self.dim_subplots[0])), int(k % self.dim_subplots[1])
             ax[pos_plot].axis('off')
@@ -243,13 +245,13 @@ class Artist:
 
         # Legend
         lines, labels = fig.axes[0].get_legend_handles_labels()
-        fig.legend(lines, labels, loc='upper center', ncol = 2
+        fig.legend(lines, labels, loc='upper center', ncol=2
                    , bbox_to_anchor=[0.52, -0.45]
-                   , bbox_transform= BlendedGenericTransform(fig.transFigure, ax.flatten()[-2].transAxes))
+                   , bbox_transform=BlendedGenericTransform(fig.transFigure, ax.flatten()[-2].transAxes))
 
         plt.tight_layout()
         plt.show()
-        self.save_fig(fig = fig, filename = filename, folder= subfolder)
+        self.save_fig(fig=fig, filename=filename, folder=subfolder)
 
     def regularization_joint_error(self, filename, subfolder, lambdas: {}, errors: {}, N_labels, colors):
 
@@ -264,15 +266,19 @@ class Artist:
             # Training: Error and Vertical lines with optimal lambda
             train_error = np.array(list(errors['train'][i].values()))
             validation_error = np.array(list(errors['validation'][i].values()))
-            ax[pos_plot].axvline(x=lambdas['train'][i][np.nanargmin(train_error)], color=colors[0], linestyle='dashed', linewidth=0.5,
-                                 label= r'Optimal $\lambda$ training')
+            ax[pos_plot].axvline(x=lambdas['train'][i][np.nanargmin(train_error)], color=colors[0], linestyle='dashed',
+                                 linewidth=0.5,
+                                 label=r'Optimal $\lambda$ training')
             ax[pos_plot].plot(np.array(list(lambdas['train'][i])), np.array(list(errors['train'][i].values())),
                               label='Error training', color=colors[0])
 
             # Validation
-            ax[pos_plot].axvline(x=lambdas['validation'][i][np.nanargmin(validation_error)], color=colors[1], linestyle='dashed', linewidth=0.5,
-                                 label= r'Optimal $\lambda$ Validation')
-            ax[pos_plot].plot(np.array(list(lambdas['validation'][i])), np.array(list(errors['validation'][i].values())), label = 'Error validation',color = colors[1])
+            ax[pos_plot].axvline(x=lambdas['validation'][i][np.nanargmin(validation_error)], color=colors[1],
+                                 linestyle='dashed', linewidth=0.5,
+                                 label=r'Optimal $\lambda$ Validation')
+            ax[pos_plot].plot(np.array(list(lambdas['validation'][i])),
+                              np.array(list(errors['validation'][i].values())), label='Error validation',
+                              color=colors[1])
             # plt.plot(np.array(list(errors_logit['train'][i].values())))
             ax[pos_plot].set_title(i)
             ax[pos_plot].set_xscale("log")
@@ -297,9 +303,9 @@ class Artist:
 
         plt.tight_layout()
         plt.show()
-        self.save_fig(fig = fig, filename = filename, folder= subfolder)
+        self.save_fig(fig=fig, filename=filename, folder=subfolder)
 
-    def regularization_path(self, filename, subfolder, lambdas, theta_estimate,errors, N_labels, key_attrs, color):
+    def regularization_path(self, filename, subfolder, lambdas, theta_estimate, errors, N_labels, key_attrs, color):
         # self = plot
         fig = plt.figure()
         ax = fig.subplots(nrows=self.dim_subplots[0], ncols=self.dim_subplots[1])
@@ -312,8 +318,8 @@ class Artist:
             # Vertical line
             validation_error = np.array(list(errors[i].values()))
             idx = np.nanargmin(validation_error)
-            ax[pos_plot].axvline(x=lambdas[i][idx], color=color, linestyle='dashed', linewidth = 0.5
-                                 , label = r'Optimal $\lambda$')
+            ax[pos_plot].axvline(x=lambdas[i][idx], color=color, linestyle='dashed', linewidth=0.5
+                                 , label=r'Optimal $\lambda$')
 
             theta_keys = list(theta_estimate[i][0].keys())
 
@@ -327,10 +333,10 @@ class Artist:
                         ax[pos_plot].plot(lambdas[i], estimates_attr, color=color, linestyle='solid', linewidth=1)
                         key_attr_plotted = True
                     else:
-                        ax[pos_plot].plot(lambdas[i], estimates_attr, color = color, linestyle = 'solid', linewidth = 1
-                                          , label = r"$\hat{\theta}$" + '(' + l + ')')
+                        ax[pos_plot].plot(lambdas[i], estimates_attr, color=color, linestyle='solid', linewidth=1
+                                          , label=r"$\hat{\theta}$" + '(' + l + ')')
                 else:
-                    ax[pos_plot].plot(lambdas[i], estimates_attr, linestyle = 'dashed', linewidth = 0.2)
+                    ax[pos_plot].plot(lambdas[i], estimates_attr, linestyle='dashed', linewidth=0.2)
                 ax[pos_plot].set_title(j)
                 ax[pos_plot].set_xscale("log")
 
@@ -353,9 +359,10 @@ class Artist:
         fig.tight_layout()
         # fig.subplots_adjust(top=0.9, bottom=0.2)
         plt.show()
-        self.save_fig(fig=fig, filename=filename, folder= subfolder)
+        self.save_fig(fig=fig, filename=filename, folder=subfolder)
 
-    def regularization_consistency(self, filename, subfolder, errors: np.array, theta_true:{}, theta_estimate: {} , N_labels: {}, color):
+    def regularization_consistency(self, filename, subfolder, errors: np.array, theta_true: {}, theta_estimate: {},
+                                   N_labels: {}, color):
 
         # self = plot
         fig = plt.figure()
@@ -368,8 +375,10 @@ class Artist:
             validation_error = np.array(list(errors[i].values()))
             idx = np.nanargmin(validation_error)
 
-            ax[pos_plot].plot(np.array(list(theta_true.values())), label=r"$\theta$", color = color, linestyle='solid', linewidth=1)
-            ax[pos_plot].plot(list(theta_estimate[i][idx].values()), label=r"$\hat{\theta}$", color = color, linestyle='dashed', linewidth=1)
+            ax[pos_plot].plot(np.array(list(theta_true.values())), label=r"$\theta$", color=color, linestyle='solid',
+                              linewidth=1)
+            ax[pos_plot].plot(list(theta_estimate[i][idx].values()), label=r"$\hat{\theta}$", color=color,
+                              linestyle='dashed', linewidth=1)
 
             # set labels
             plt.setp(ax[-1, :], xlabel=r"$i$")
@@ -385,15 +394,16 @@ class Artist:
             pos_plot = int(np.floor(k / self.dim_subplots[0])), int(k % self.dim_subplots[1])
             ax[pos_plot].axis('off')
 
-        #Legend
+        # Legend
         lines, labels = fig.axes[0].get_legend_handles_labels()
         fig.legend(lines, labels, loc='upper center', ncol=2
                    , bbox_to_anchor=[0.52, -0.45]
                    , bbox_transform=BlendedGenericTransform(fig.transFigure, ax.flatten()[-2].transAxes))
         plt.show()
-        self.save_fig(fig=fig, filename=filename, folder= subfolder)
+        self.save_fig(fig=fig, filename=filename, folder=subfolder)
 
-    def regularization_joint_consistency(self, filename, subfolder, errors: np.array, theta_true:{}, theta_estimate: {} , N_labels: {}, colors):
+    def regularization_joint_consistency(self, filename, subfolder, errors: np.array, theta_true: {},
+                                         theta_estimate: {}, N_labels: {}, colors):
 
         # self = plot
         fig = plt.figure()
@@ -404,11 +414,15 @@ class Artist:
             pos_plot = int(np.floor(k / self.dim_subplots[0])), int(k % self.dim_subplots[1])
 
             key_train = list(errors['train'][i].keys())[np.nanargmin(np.array(list(errors['train'][i].values())))]
-            key_validation = list(errors['validation'][i].keys())[np.nanargmin(np.array(list(errors['validation'][i].values())))]
+            key_validation = list(errors['validation'][i].keys())[
+                np.nanargmin(np.array(list(errors['validation'][i].values())))]
 
-            ax[pos_plot].plot(np.array(list(theta_true.values())), label=r"$\theta$", linestyle='solid', linewidth=1, color = 'k')
-            ax[pos_plot].plot(list(theta_estimate['train'][i][key_train].values()), label=r"$\hat{\theta}_{train}$", color = colors[0], linestyle='dashed', linewidth=1)
-            ax[pos_plot].plot(list(theta_estimate['validation'][i][key_validation].values()), label=r"$\hat{\theta}_{validation}$", color=colors[1],
+            ax[pos_plot].plot(np.array(list(theta_true.values())), label=r"$\theta$", linestyle='solid', linewidth=1,
+                              color='k')
+            ax[pos_plot].plot(list(theta_estimate['train'][i][key_train].values()), label=r"$\hat{\theta}_{train}$",
+                              color=colors[0], linestyle='dashed', linewidth=1)
+            ax[pos_plot].plot(list(theta_estimate['validation'][i][key_validation].values()),
+                              label=r"$\hat{\theta}_{validation}$", color=colors[1],
                               linestyle='dashed', linewidth=1)
 
             # set labels
@@ -425,16 +439,16 @@ class Artist:
             pos_plot = int(np.floor(k / self.dim_subplots[0])), int(k % self.dim_subplots[1])
             ax[pos_plot].axis('off')
 
-
-        #Legend
+        # Legend
         lines, labels = fig.axes[0].get_legend_handles_labels()
         fig.legend(lines, labels, loc='upper center', ncol=3
                    , bbox_to_anchor=[0.52, -0.45]
                    , bbox_transform=BlendedGenericTransform(fig.transFigure, ax.flatten()[-2].transAxes))
         plt.show()
-        self.save_fig(fig=fig, filename=filename, folder= subfolder)
+        self.save_fig(fig=fig, filename=filename, folder=subfolder)
 
-    def estimated_vs_true_theta(self, filename, subfolder, theta_est_t:{}, theta_c:{}, theta_true_t:{}, constraints_theta, N_labels: {}, color):
+    def estimated_vs_true_theta(self, filename, subfolder, theta_est_t: {}, theta_c: {}, theta_true_t: {},
+                                constraints_theta, N_labels: {}, color):
 
         # self = plot
         fig, ax = plt.subplots(nrows=self.dim_subplots[0], ncols=self.dim_subplots[1])
@@ -445,9 +459,10 @@ class Artist:
             learned_parameter_t = np.array(theta_est_t[i])
             true_parameter_t = np.array(theta_true_t[i])
 
-            ax[pos_plot].scatter(learned_parameter_t, true_parameter_t, s=1, color = 'k', label = 'estimate')
-            ax[pos_plot].plot([true_parameter_t.min(), true_parameter_t.max()], [true_parameter_t.min(), true_parameter_t.max()],
-                    'k--', lw=1 , color = color, label = 'truth')
+            ax[pos_plot].scatter(learned_parameter_t, true_parameter_t, s=1, color='k', label='estimate')
+            ax[pos_plot].plot([true_parameter_t.min(), true_parameter_t.max()],
+                              [true_parameter_t.min(), true_parameter_t.max()],
+                              'k--', lw=1, color=color, label='truth')
             ax[pos_plot].set_title(j)
             # ax[pos_plot].set_xscale("log")
 
@@ -455,7 +470,6 @@ class Artist:
         for k in range(len(N_labels), self.dim_subplots[0] * self.dim_subplots[1]):
             pos_plot = int(np.floor(k / self.dim_subplots[0])), int(k % self.dim_subplots[1])
             ax[pos_plot].axis('off')
-
 
         # set labels
         plt.setp(ax[-1, :], xlabel=r'$\theta_t$')
@@ -470,7 +484,7 @@ class Artist:
                    , bbox_transform=BlendedGenericTransform(fig.transFigure, ax.flatten()[-2].transAxes))
 
         plt.show()
-        self.save_fig(fig=fig, filename=filename, folder= subfolder)
+        self.save_fig(fig=fig, filename=filename, folder=subfolder)
 
         # fig, ax = plt.subplots()
         # ax.scatter(learned_parameter_t, true_parameter_t)
@@ -492,11 +506,13 @@ class Artist:
                 learned_parameter_c = np.array(theta_c[i])
                 # Value of time
                 learned_parameter_vot = 60 * learned_parameter_t / learned_parameter_c
-                true_parameter_vot = 60 * true_parameter_t / constraints_theta['Z']['c']  # Multiply by 60 to convert to USD per hour
+                true_parameter_vot = 60 * true_parameter_t / constraints_theta['Z'][
+                    'c']  # Multiply by 60 to convert to USD per hour
 
-                ax[pos_plot].plot([true_parameter_vot.min(), true_parameter_vot.max()], [true_parameter_vot.min(), true_parameter_vot.max()], 'k--',
-                        lw=1, color = color, label = 'truth')
-                ax[pos_plot].scatter(learned_parameter_vot, true_parameter_vot, s=1, color = 'k', label = 'estimate')
+                ax[pos_plot].plot([true_parameter_vot.min(), true_parameter_vot.max()],
+                                  [true_parameter_vot.min(), true_parameter_vot.max()], 'k--',
+                                  lw=1, color=color, label='truth')
+                ax[pos_plot].scatter(learned_parameter_vot, true_parameter_vot, s=1, color='k', label='estimate')
                 ax[pos_plot].set_title(j)
 
             # set labels
@@ -540,11 +556,11 @@ class Artist:
             ax[pos_plot].set_title(j)
 
         plt.setp(ax[-1, :], xlabel=r'$\theta_t$')
-        plt.setp(ax[:, 0], ylabel= 'std')
+        plt.setp(ax[:, 0], ylabel='std')
 
         # plt.tight_layout()
         plt.show()
-        self.save_fig(fig=fig, filename=filename, folder= subfolder)
+        self.save_fig(fig=fig, filename=filename, folder=subfolder)
 
         # Plot
         # plt.plot(sdX_vs_theta_N, label='link flows')
@@ -554,7 +570,8 @@ class Artist:
         # plt.set_ylabel('Standard deviation of route flows')
         # plt.show()
 
-    def consistency_nonlinear_link_logit_estimation(self, filename, subfolder, theta_est:{}, display_parameters:{}, vot_est:{}, theta_true:{}, N_labels: {}, n_bootstraps: int):
+    def consistency_nonlinear_link_logit_estimation(self, filename, subfolder, theta_est: {}, display_parameters: {},
+                                                    vot_est: {}, theta_true: {}, N_labels: {}, n_bootstraps: int):
 
         fig, ax = plt.subplots(nrows=self.dim_subplots[0], ncols=self.dim_subplots[1])
 
@@ -569,19 +586,20 @@ class Artist:
         for i, j, k in zip(N_labels.keys(), N_labels.values(), range(0, len(N_labels))):
             pos_plot = int(np.floor(k / self.dim_subplots[0])), int(k % self.dim_subplots[1])
 
-            #x-axis: number of links
+            # x-axis: number of links
             x = np.array(list(theta_est[i].keys()))
 
             if display_parameters['tt']:
-
                 # Travel time
                 y = np.array([theta_est[i][l]['tt']['mean'] for l in theta_est[i].keys()])
                 e = np.array(
                     [theta_est[i][l]['tt']['sd'] for l in theta_est[i].keys()]) / np.sqrt(
                     n_bootstraps)
                 ax[pos_plot].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-                ax[pos_plot].errorbar(x, y, e, linestyle='None', fmt='o',  markersize=3, mfc='blue', label=r'$\hat{\theta_v}$', color = 'blue')
-                ax[pos_plot].plot([min(x), max(x)], [theta_true[i]['tt'], theta_true[i]['tt']], label=r'$\theta_v$', color = 'blue',linestyle='dashed')
+                ax[pos_plot].errorbar(x, y, e, linestyle='None', fmt='o', markersize=3, mfc='blue',
+                                      label=r'$\hat{\theta_v}$', color='blue')
+                ax[pos_plot].plot([min(x), max(x)], [theta_true[i]['tt'], theta_true[i]['tt']], label=r'$\theta_v$',
+                                  color='blue', linestyle='dashed')
                 # plt.setp(ax[(0, 0)], ylabel=r'$\hat{\theta_v}$')
                 y_label = r'$\hat{\theta_v}$'
 
@@ -592,8 +610,10 @@ class Artist:
                     [theta_est[i][l]['c']['sd'] for l in theta_est[i].keys()]) / np.sqrt(
                     n_bootstraps)
                 ax[pos_plot].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-                ax[pos_plot].errorbar(x, y, e, linestyle='None', fmt='o',  markersize=3, mfc='red', label=r'$\hat{\theta_c}$', color = 'red')
-                ax[pos_plot].plot([min(x), max(x)], [theta_true[i]['c'], theta_true[i]['c']], label=r'$\theta_c$', color = 'red', linestyle='dashed')
+                ax[pos_plot].errorbar(x, y, e, linestyle='None', fmt='o', markersize=3, mfc='red',
+                                      label=r'$\hat{\theta_c}$', color='red')
+                ax[pos_plot].plot([min(x), max(x)], [theta_true[i]['c'], theta_true[i]['c']], label=r'$\theta_c$',
+                                  color='red', linestyle='dashed')
                 y_label = r"$\hat{\theta_c}$"
                 # plt.setp(ax[(0, 0)], ylabel=r"$\hat{\theta_c}$")
 
@@ -604,13 +624,15 @@ class Artist:
                 e = np.array([vot_est[i][l]['sd'] for l in theta_est[i].keys()]) / np.sqrt(
                     n_bootstraps)
                 ax[pos_plot].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-                ax[pos_plot].errorbar(x, y, e, linestyle='None', fmt='o',  markersize=3, mfc='black', label=r'$\theta_v/\theta_c$', color = 'black')
-                ax[pos_plot].plot([min(x), max(x)], [theta_true[i]['tt'] / theta_true[i]['c'], theta_true[i]['tt'] / theta_true[i]['c']],
-                                label=r'$\hat{\theta_v}/\hat{\theta_c}$', color = 'black', linestyle= 'dashed')
+                ax[pos_plot].errorbar(x, y, e, linestyle='None', fmt='o', markersize=3, mfc='black',
+                                      label=r'$\theta_v/\theta_c$', color='black')
+                ax[pos_plot].plot([min(x), max(x)],
+                                  [theta_true[i]['tt'] / theta_true[i]['c'], theta_true[i]['tt'] / theta_true[i]['c']],
+                                  label=r'$\hat{\theta_v}/\hat{\theta_c}$', color='black', linestyle='dashed')
                 y_label = r'$\hat{\theta_v}/\hat{\theta_c}$'
                 # plt.setp(ax[(1, 0)], ylabel=r'$\hat{\theta_v}/\hat{\theta_c}$')
 
-            #Set title network
+            # Set title network
             ax[pos_plot].set_title(j)
 
         # Axis labels
@@ -623,12 +645,12 @@ class Artist:
                    , bbox_to_anchor=[0.52, -0.45]
                    , bbox_transform=BlendedGenericTransform(fig.transFigure, ax.flatten()[-2].transAxes))
 
-
         # Axis labels
         plt.show()
-        self.save_fig(fig=fig, filename=filename, folder= subfolder)
+        self.save_fig(fig=fig, filename=filename, folder=subfolder)
 
-    def regularization_error_nonlinear_link_logit_estimation(self, filename, subfolder, errors: {}, N_labels: {}, n_samples: int):
+    def regularization_error_nonlinear_link_logit_estimation(self, filename, subfolder, errors: {}, N_labels: {},
+                                                             n_samples: int):
 
         fig, ax = plt.subplots(nrows=self.dim_subplots[0], ncols=self.dim_subplots[1])
 
@@ -642,14 +664,13 @@ class Artist:
             pos_plot = int(np.floor(k / self.dim_subplots[0])), int(k % self.dim_subplots[1])
 
             # x-axis: number of links
-            x = np.array([r"$\lambda = 0$",r"$\lambda = \lambda^{\star}$"])
+            x = np.array([r"$\lambda = 0$", r"$\lambda = \lambda^{\star}$"])
             y = np.array([errors[i]['noreg']['mean'], errors[i]['reg']['mean']])
             e = np.array(
                 [errors[i]['reg']['mean'], errors[i]['noreg']['sd']]) / np.sqrt(n_samples)
             ax[pos_plot].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
             ax[pos_plot].errorbar(x, y, e, linestyle='None', fmt='o', markersize=3, mfc='red',
                                   label='No regularization', color='red')
-
 
             # # Regularization
             # y = errors[i]['reg']['mean']
@@ -658,12 +679,11 @@ class Artist:
             # ax[pos_plot].errorbar(x, y, e, linestyle='None', fmt='o', markersize=3, mfc='red',
             #                       label= 'Regularization', color='red')
 
-
             # Set title network
             ax[pos_plot].set_title(j)
 
         # Axis labels
-        #plt.setp(ax[-1, :], xlabel="Number of links")
+        # plt.setp(ax[-1, :], xlabel="Number of links")
         plt.setp(ax[:, 0], ylabel=r'RMSE')
 
         # # Legend
@@ -675,7 +695,6 @@ class Artist:
         # Axis labels
         plt.show()
         self.save_fig(fig=fig, filename=filename, folder=subfolder)
-
 
     # def consistency_nonlinear_link_logit_estimation(self, filename, network_name, theta_est:{}, vot_est:{}, theta_true:{}, N_label, n_bootstraps: int):
     #
@@ -736,7 +755,8 @@ class Artist:
     #     plt.show()
     #     self.save_fig(fig=fig, filename=filename, network_name = network_name)
 
-    def error_nonlinear_link_logit_estimation(self, filename, subfolder, theta_est:{}, vot_est:{}, theta_true:{}, N_label, n_samples: int):
+    def error_nonlinear_link_logit_estimation(self, filename, subfolder, theta_est: {}, vot_est: {}, theta_true: {},
+                                              N_label, n_samples: int):
 
         fig, ax = plt.subplots(ncols=2, nrows=2)
 
@@ -752,8 +772,10 @@ class Artist:
             [theta_est[i]['tt']['sd'] for i in theta_est.keys()]) / np.sqrt(
             n_samples)
         ax[(0, 0)].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-        ax[(0, 0)].errorbar(x, y, e, linestyle='None', fmt='o',  markersize=3, mfc='blue', label=r'$\hat{\theta}$', color = 'blue')
-        ax[(0, 0)].plot([min(x), max(x)], [float(theta_true['tt']), float(theta_true['tt'])], label=r'$\theta$', color = 'black')
+        ax[(0, 0)].errorbar(x, y, e, linestyle='None', fmt='o', markersize=3, mfc='blue', label=r'$\hat{\theta}$',
+                            color='blue')
+        ax[(0, 0)].plot([min(x), max(x)], [float(theta_true['tt']), float(theta_true['tt'])], label=r'$\theta$',
+                        color='black')
         plt.setp(ax[(0, 0)], ylabel=r'$\hat{\theta_t}$')
 
         # Cost
@@ -763,8 +785,10 @@ class Artist:
             [theta_est[i]['c']['sd'] for i in theta_est.keys()]) / np.sqrt(
             n_samples)
         ax[(0, 1)].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-        ax[(0, 1)].errorbar(x, y, e, linestyle='None', fmt='o',  markersize=3, mfc='blue', label=r'$\hat{\theta}$', color = 'blue')
-        ax[(0, 1)].plot([min(x), max(x)], [float(theta_true['c']), float(theta_true['c'])], label=r'$\theta$', color = 'black')
+        ax[(0, 1)].errorbar(x, y, e, linestyle='None', fmt='o', markersize=3, mfc='blue', label=r'$\hat{\theta}$',
+                            color='blue')
+        ax[(0, 1)].plot([min(x), max(x)], [float(theta_true['c']), float(theta_true['c'])], label=r'$\theta$',
+                        color='black')
         plt.setp(ax[(0, 1)], ylabel=r"$\hat{\theta_c}$")
 
         # VOT
@@ -773,9 +797,11 @@ class Artist:
         e = np.array([vot_est[i]['sd'] for i in vot_est.keys()]) / np.sqrt(
             n_samples)
         ax[(1, 0)].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-        ax[(1, 0)].errorbar(x, y, e, linestyle='None', fmt='o',  markersize=3, mfc='blue', label=r'$\hat{\theta}$', color = 'blue')
-        ax[(1, 0)].plot([min(x), max(x)], [float(theta_true['tt']) / float(theta_true['c']), float(theta_true['tt']) / float(theta_true['c'])],
-                        label=r'$\theta$', color = 'black')
+        ax[(1, 0)].errorbar(x, y, e, linestyle='None', fmt='o', markersize=3, mfc='blue', label=r'$\hat{\theta}$',
+                            color='blue')
+        ax[(1, 0)].plot([min(x), max(x)], [float(theta_true['tt']) / float(theta_true['c']),
+                                           float(theta_true['tt']) / float(theta_true['c'])],
+                        label=r'$\theta$', color='black')
         plt.setp(ax[(1, 0)], ylabel=r'$\hat{\theta_t}/\hat{\theta_c}$')
 
         ax[(1, 1)].axis('off')
@@ -793,10 +819,10 @@ class Artist:
 
         # Axis labels
         plt.show()
-        self.save_fig(fig=fig, filename=filename, folder= subfolder)
+        self.save_fig(fig=fig, filename=filename, folder=subfolder)
 
-
-    def vot_regularization_path(self, filename, subfolder, lambdas, vot_estimate, theta_true, errors, N_labels, color) -> None:
+    def vot_regularization_path(self, filename, subfolder, lambdas, vot_estimate, theta_true, errors, N_labels,
+                                color) -> None:
         # self = plot
         fig = plt.figure()
         ax = fig.subplots(nrows=self.dim_subplots[0], ncols=self.dim_subplots[1])
@@ -807,7 +833,8 @@ class Artist:
             ax[pos_plot].set_title(i)
             ax[pos_plot].set_xscale("log")
 
-            ax[pos_plot].plot(np.array(list(vot_estimate[i].keys())),np.array(list(vot_estimate[i].values())), label=r"$\hat{\theta_t}^{\star}/\hat{\theta_c}^{\star}$", color=color, linestyle='dashed',
+            ax[pos_plot].plot(np.array(list(vot_estimate[i].keys())), np.array(list(vot_estimate[i].values())),
+                              label=r"$\hat{\theta_t}^{\star}/\hat{\theta_c}^{\star}$", color=color, linestyle='dashed',
                               linewidth=1)
 
             # Vertical line (optimal lambda for validation)
@@ -817,7 +844,8 @@ class Artist:
                                  , label=r'$\lambda^{\star}$')
 
             ax[pos_plot].plot([min(np.array(list(vot_estimate[i].keys()))), max(np.array(list(vot_estimate[i].keys())))]
-                              , [float(theta_true['tt']) / float(theta_true['c']), float(theta_true['tt']) / float(theta_true['c'])],
+                              , [float(theta_true['tt']) / float(theta_true['c']),
+                                 float(theta_true['tt']) / float(theta_true['c'])],
                               label=r'$\theta_t/\theta_c$', color='black')
 
         # Remove empty subplots
@@ -839,14 +867,15 @@ class Artist:
         fig.tight_layout()
         # fig.subplots_adjust(top=0.9, bottom=0.2)
         plt.show()
-        self.save_fig(fig=fig, filename=filename, folder= subfolder)
+        self.save_fig(fig=fig, filename=filename, folder=subfolder)
 
-    def vot_multidays_consistency(self, filename, subfolder, labels, vot_estimates, theta_true, N_labels, colors) -> None:
+    def vot_multidays_consistency(self, filename, subfolder, labels, vot_estimates, theta_true, N_labels,
+                                  colors) -> None:
         # self = plot
         fig = plt.figure()
         ax = fig.subplots(nrows=self.dim_subplots[0], ncols=self.dim_subplots[1])
 
-        curves_labels =  list(labels.keys())
+        curves_labels = list(labels.keys())
         legend_labels = list(labels.values())
 
         for i, j, k in zip(N_labels.keys(), N_labels.values(), range(0, len(N_labels))):
@@ -858,9 +887,13 @@ class Artist:
             # ax[pos_plot].set_ylim(bottom=-0.005)
             # ax[pos_plot].set_xscale("log")
 
-            ax[pos_plot].plot(np.array(list(vot_estimates[curves_labels[0]][i].keys())),np.array(list(vot_estimates[curves_labels[0]][i].values())), label=legend_labels[0], color=colors[0], linestyle='dashed',linewidth=1)
+            ax[pos_plot].plot(np.array(list(vot_estimates[curves_labels[0]][i].keys())),
+                              np.array(list(vot_estimates[curves_labels[0]][i].values())), label=legend_labels[0],
+                              color=colors[0], linestyle='dashed', linewidth=1)
 
-            ax[pos_plot].plot(np.array(list(vot_estimates[curves_labels[1]][i].keys())),np.array(list(vot_estimates[curves_labels[1]][i].values())), label= legend_labels[1], color=colors[1], linestyle='dashed',
+            ax[pos_plot].plot(np.array(list(vot_estimates[curves_labels[1]][i].keys())),
+                              np.array(list(vot_estimates[curves_labels[1]][i].values())), label=legend_labels[1],
+                              color=colors[1], linestyle='dashed',
                               linewidth=1)
 
             # ax[pos_plot].plot(np.array(list(vot_estimates[i].keys())), np.array(list(vot_estimates[i].values())),
@@ -873,7 +906,8 @@ class Artist:
             # ax[pos_plot].axvline(x=lambdas[i][idx], color=color, linestyle='dashed', linewidth=0.5
             #                      , label=r'$\lambda^{\star}$')
 
-            ax[pos_plot].plot([min(np.array(list(vot_estimates[curves_labels[0]][i].keys()))), max(np.array(list(vot_estimates[curves_labels[0]][i].keys())))]
+            ax[pos_plot].plot([min(np.array(list(vot_estimates[curves_labels[0]][i].keys()))),
+                               max(np.array(list(vot_estimates[curves_labels[0]][i].keys())))]
                               , [theta_true[i]['tt'] / theta_true[i]['c'], theta_true[i]['tt'] / theta_true[i]['c']],
                               label=r'$\theta_t/\theta_c$', color='black')
 
@@ -883,7 +917,7 @@ class Artist:
             ax[pos_plot].axis('off')
 
         # set labels
-        plt.setp(ax[-1, :], xlabel= "Days")
+        plt.setp(ax[-1, :], xlabel="Days")
         plt.setp(ax[:, 0], ylabel=r'$\hat{\theta_t}/\hat{\theta_c}$')
 
         # Legend
@@ -896,7 +930,7 @@ class Artist:
         fig.tight_layout()
         # fig.subplots_adjust(top=0.9, bottom=0.2)
         plt.show()
-        self.save_fig(fig=fig, filename=filename, folder= subfolder)
+        self.save_fig(fig=fig, filename=filename, folder=subfolder)
 
     def q_multidays_consistency(self, filename, subfolder, labels, q_estimates, q_true, N_labels, colors) -> None:
         # self = plot
@@ -915,11 +949,14 @@ class Artist:
             # ax[pos_plot].set_xscale("log")
 
             # Error in q estimation
-            q_errors[curves_labels[0]] = [np.round(np.linalg.norm(q_estimate - q_true[i],2),1) for days, q_estimate in q_estimates[curves_labels[0]][i].items()]
+            q_errors[curves_labels[0]] = [np.round(np.linalg.norm(q_estimate - q_true[i], 2), 1) for days, q_estimate in
+                                          q_estimates[curves_labels[0]][i].items()]
             q_errors[curves_labels[1]] = [np.round(np.linalg.norm(q_estimate - q_true[i], 2), 1) for days, q_estimate in
-                                       q_estimates[curves_labels[1]][i].items()]
+                                          q_estimates[curves_labels[1]][i].items()]
 
-            ax[pos_plot].plot(np.array(list(q_estimates[curves_labels[0]][i].keys())),np.array(q_errors[curves_labels[0]])/len(q_errors[curves_labels[0]]), label=legend_labels[0], color=colors[0], linestyle='dashed',linewidth=1)
+            ax[pos_plot].plot(np.array(list(q_estimates[curves_labels[0]][i].keys())),
+                              np.array(q_errors[curves_labels[0]]) / len(q_errors[curves_labels[0]]),
+                              label=legend_labels[0], color=colors[0], linestyle='dashed', linewidth=1)
 
             ax[pos_plot].plot(np.array(list(q_estimates[curves_labels[1]][i].keys())),
                               np.array(q_errors[curves_labels[1]]) / len(q_errors[curves_labels[1]]),
@@ -945,7 +982,7 @@ class Artist:
             ax[pos_plot].axis('off')
 
         # set labels
-        plt.setp(ax[-1, :], xlabel= "Days")
+        plt.setp(ax[-1, :], xlabel="Days")
         plt.setp(ax[:, 0], ylabel=r'$||\hat{Q}-\bar{Q}||_2$')
 
         # Legend
@@ -958,9 +995,10 @@ class Artist:
         fig.tight_layout()
         # fig.subplots_adjust(top=0.9, bottom=0.2)
         plt.show()
-        self.save_fig(fig=fig, filename=filename, folder= subfolder)
+        self.save_fig(fig=fig, filename=filename, folder=subfolder)
 
-    def computational_time_multidays_consistency(self, filename: str, subfolder: str, computational_times: np.array, N_labels: {}, colors: []) -> None:
+    def computational_time_multidays_consistency(self, filename: str, subfolder: str, computational_times: np.array,
+                                                 N_labels: {}, colors: []) -> None:
         # self = plot
         fig = plt.figure()
         ax = fig.subplots(nrows=self.dim_subplots[0], ncols=self.dim_subplots[1])
@@ -973,14 +1011,18 @@ class Artist:
             ax[pos_plot].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
             # ax[pos_plot].set_xscale("log")
 
-            ax[pos_plot].plot(np.array(list(computational_times['end_theta_q'][i].keys())),np.array(list(computational_times['end_theta_q'][i].values())), label=r"Endogenous $Q$ and $\theta$", color=colors[0], linestyle='dashed', linewidth=1)
+            ax[pos_plot].plot(np.array(list(computational_times['end_theta_q'][i].keys())),
+                              np.array(list(computational_times['end_theta_q'][i].values())),
+                              label=r"Endogenous $Q$ and $\theta$", color=colors[0], linestyle='dashed', linewidth=1)
 
             ax[pos_plot].plot(np.array(list(computational_times['end_q'][i].keys())),
-                              np.array(list(computational_times['end_q'][i].values())), label=r"Endogenous $Q$", color=colors[1],
+                              np.array(list(computational_times['end_q'][i].values())), label=r"Endogenous $Q$",
+                              color=colors[1],
                               linestyle='dashed', linewidth=1)
 
             ax[pos_plot].plot(np.array(list(computational_times['end_theta'][i].keys())),
-                              np.array(list(computational_times['end_theta'][i].values())), label=r"Endogenous $\theta$", color=colors[2],
+                              np.array(list(computational_times['end_theta'][i].values())),
+                              label=r"Endogenous $\theta$", color=colors[2],
                               linestyle='dashed', linewidth=1)
 
             # Vertical line (optimal lambda for validation)
@@ -999,7 +1041,7 @@ class Artist:
             ax[pos_plot].axis('off')
 
         # set labels
-        plt.setp(ax[-1, :], xlabel= "Days")
+        plt.setp(ax[-1, :], xlabel="Days")
         plt.setp(ax[:, 0], ylabel=r'Computational time [s]')
 
         # Legend
@@ -1012,8 +1054,7 @@ class Artist:
         fig.tight_layout()
         # fig.subplots_adjust(top=0.9, bottom=0.2)
         plt.show()
-        self.save_fig(fig=fig, filename=filename, folder= subfolder)
-
+        self.save_fig(fig=fig, filename=filename, folder=subfolder)
 
     def q_estimation_convergence(self, filename, subfolder, results_norefined_df, results_refined_df, methods):
 
@@ -1070,7 +1111,6 @@ class Artist:
 
         return fig
 
-
     def benchmark_optimization_methods(self, methods, results_experiment, colors):
 
         fig_loss, ax_loss = plt.subplots(figsize=(4, 4))
@@ -1083,7 +1123,8 @@ class Artist:
         # Loss plot
 
         for method in methods:
-            ax_loss.plot('iter', 'loss', data=results_experiment[results_experiment['method'] == method],label=method, color=colors[counter])
+            ax_loss.plot('iter', 'loss', data=results_experiment[results_experiment['method'] == method], label=method,
+                         color=colors[counter])
             ax_loss.set_ylabel(r"$n^{-1} \  ||x(\hat{\theta})-\bar{x}||_2^2$")
             counter += 1
 
@@ -1108,7 +1149,7 @@ class Artist:
 
         for method in methods:
             ax_vot.plot('iter', 'vot', data=results_experiment[results_experiment['method'] == method], label=method,
-                    color=colors[counter])
+                        color=colors[counter])
             ax_vot.set_ylabel(r'$\hat{\theta_t}/\hat{\theta_c}$')
             counter += 1
 
@@ -1145,345 +1186,345 @@ class Artist:
                     methods: [str],
                     simulated_data: bool = False,
                     folder: str = None,
-                    theta_true = None):
+                    theta_true=None):
 
-     '''
+        '''
      Plot convergence to the true ratio of theta and the reduction of the objective function over iterations
 
      :argument results
 
      '''
 
-     if folder is None:
-         folder = self.folder
+        if folder is None:
+            folder = self.folder
 
-     fig = plt.figure(figsize=(7,6) )
-     # ax = fig.subplots(nrows=self.dim_subplots[0], ncols=self.dim_subplots[1])
+        fig = plt.figure(figsize=(7, 6))
+        # ax = fig.subplots(nrows=self.dim_subplots[0], ncols=self.dim_subplots[1])
 
-     dim_subplots = (2, 2)
+        dim_subplots = (2, 2)
 
-     ax = {}
-     ax[(0, 0)] = plt.subplot(dim_subplots[0], dim_subplots[1], 1)
-     ax[(0, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 2, sharey=ax[(0, 0)])
+        ax = {}
+        ax[(0, 0)] = plt.subplot(dim_subplots[0], dim_subplots[1], 1)
+        ax[(0, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 2, sharey=ax[(0, 0)])
 
-     ax[(1, 0)] = plt.subplot(dim_subplots[0], dim_subplots[1], 3)
-     ax[(1, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 4, sharey=ax[(1, 0)])
+        ax[(1, 0)] = plt.subplot(dim_subplots[0], dim_subplots[1], 3)
+        ax[(1, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 4, sharey=ax[(1, 0)])
+
+        # To write with scienfic notation in y axis
+        class ScalarFormatterForceFormat(ScalarFormatter):
+            def _set_format(self):  # Override function that finds format to use.
+                self.format = "%0.1f"  # Give format here
+
+        # import matplotlib.ticker as mtick
+
+        # Y axis with scientific notation
+        yfmt1 = ScalarFormatterForceFormat()
+        yfmt1.set_powerlimits((0, 0))
+
+        yfmt2 = ScalarFormatterForceFormat()
+        yfmt2.set_powerlimits((0, 0))
+
+        class ScalarFormatterForceFormat(ScalarFormatter):
+            def _set_format(self):  # Override function that finds format to use.
+                self.format = "%1.1f"  # Give format here
+
+        # Y axis with scientific notation
+        yfmt3 = ScalarFormatterForceFormat()
+        yfmt3.set_powerlimits((0, 0))
+
+        yfmt4 = ScalarFormatterForceFormat()
+        yfmt4.set_powerlimits((0, 0))
+
+        # matplotlib.rcParams['text.usetex'] = True
+
+        # i) Theta estimates in the two plots in the top
+
+        if simulated_data and 'theta_c' in list(results_refined_df.keys()):
+            # - No refined
+
+            if len(results_norefined_df['vot']) == 1:
+                ax[(0, 0)].plot(results_norefined_df['iter'], results_norefined_df['vot'], marker='o', markersize=2)
+            else:
+                ax[(0, 0)].plot(results_norefined_df['iter'], results_norefined_df['vot'])
+
+            # ax[(0,0)].set_yticks(np.arange(results_norefined_df['vot'].min(), results_norefined_df['vot'].max(), 0.2))
+            ax[(0, 0)].axhline(0.1667, linestyle='dashed')
+            ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}/\hat{\theta_c}$')
+            # ax[(0, 0)].yaxis.set_major_formatter(OOMFormatter(-4, "%1.1f"))
+            # ax[(0, 0)].yaxis.set_major_formatter(yfmt1)
+            ax[(0, 0)].tick_params(labelbottom=False)
+            # ax[(0, 1)].yaxis.major.formatter._useMathText = True
+
+            # - Refined
+
+            if len(results_refined_df['vot']) == 1:
+                ax[(0, 1)].plot(results_refined_df['iter'], results_refined_df['vot'], marker='o', markersize=2)
+            else:
+                ax[(0, 1)].plot(results_refined_df['iter'], results_refined_df['vot'])
+
+            # ax[(0,1)].set_yticks(np.arange(results_refined_df['vot'].min(), results_refined_df['vot'].max(), 0.2))
+            ax[(0, 1)].axhline(float(theta_true['tt']) / float(theta_true['c']), linestyle='dashed')
+            # ax[(0, 1)].yaxis.set_major_formatter(yfmt2)
+            ax[(0, 1)].tick_params(labelbottom=False)
+            # ax[(0,1)].yaxis.major.formatter._useMathText = True
+
+        # Fresno network where vot may represent trade off between travel time and standard deviation of travel time
+        elif 'vot' in list(results_norefined_df.keys()) and np.count_nonzero(
+                ~np.isnan(results_norefined_df['vot'])) > 0:
+
+            if len(results_norefined_df['vot']) == 1:
+                ax[(0, 0)].plot(results_norefined_df['iter'], results_norefined_df['vot'], marker='o', markersize=2)
+            else:
+                ax[(0, 0)].plot(results_norefined_df['iter'], results_norefined_df['vot'])
+
+            # ax[(0,0)].set_yticks(np.arange(results_norefined_df['vot'].min(), results_norefined_df['vot'].max(), 0.2))
+            ax[(0, 0)].axhline(1, linestyle='dashed')
+            ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}/\theta_{\hat{\sigma}}$')
+            # ax[(0, 0)].yaxis.set_major_formatter(OOMFormatter(-4, "%1.1f"))
+            # ax[(0, 0)].yaxis.set_major_formatter(yfmt1)
+            ax[(0, 0)].tick_params(labelbottom=False)
+            # ax[(0, 1)].yaxis.major.formatter._useMathText = True
+
+            # - Refined
+
+            if len(results_refined_df['vot']) == 1:
+                ax[(0, 1)].plot(results_refined_df['iter'], results_refined_df['vot'], marker='o', markersize=2)
+            else:
+                ax[(0, 1)].plot(results_refined_df['iter'], results_refined_df['vot'])
+
+            # ax[(0,1)].set_yticks(np.arange(results_refined_df['vot'].min(), results_refined_df['vot'].max(), 0.2))
+            ax[(0, 1)].axhline(1, linestyle='dashed')
+            # ax[(0, 1)].yaxis.set_major_formatter(yfmt2)
+            ax[(0, 1)].tick_params(labelbottom=False)
 
 
-     # To write with scienfic notation in y axis
-     class ScalarFormatterForceFormat(ScalarFormatter):
-         def _set_format(self):  # Override function that finds format to use.
-             self.format = "%0.1f"  # Give format here
+        else:  # (no estimation of cost parameter but of travel time parameter)
+            # - No refined
 
-     # import matplotlib.ticker as mtick
+            if len(results_norefined_df['theta_tt']) == 1:
+                ax[(0, 0)].plot(results_norefined_df['iter'], results_norefined_df['theta_tt'], marker='o',
+                                markersize=2)
 
-     # Y axis with scientific notation
-     yfmt1 = ScalarFormatterForceFormat()
-     yfmt1.set_powerlimits((0, 0))
+            else:
+                ax[(0, 0)].plot(results_norefined_df['iter'], results_norefined_df['theta_tt'])
 
-     yfmt2 = ScalarFormatterForceFormat()
-     yfmt2.set_powerlimits((0, 0))
+            # ax[(0,0)].set_yticks(np.arange(results_norefined_df['vot'].min(), results_norefined_df['vot'].max(), 0.2))
+            ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}$')
+            # ax[(0, 0)].set_ticklabels([])
 
-     class ScalarFormatterForceFormat(ScalarFormatter):
-         def _set_format(self):  # Override function that finds format to use.
-             self.format = "%1.1f"  # Give format here
+            ax[(0, 0)].tick_params(labelbottom=False)
 
-     # Y axis with scientific notation
-     yfmt3 = ScalarFormatterForceFormat()
-     yfmt3.set_powerlimits((0, 0))
+            # - Refined
+            if len(results_refined_df['theta_tt']) == 1:
+                ax[(0, 1)].plot(results_refined_df['iter'], results_refined_df['theta_tt'], marker='o', markersize=2)
+            else:
+                ax[(0, 1)].plot(results_refined_df['iter'], results_refined_df['theta_tt'])
 
-     yfmt4 = ScalarFormatterForceFormat()
-     yfmt4.set_powerlimits((0, 0))
+            # ax[(0,1)].set_yticks(np.arange(results_refined_df['vot'].min(), results_refined_df['vot'].max(), 0.2))
+            ax[(0, 1)].tick_params(labelbottom=False)
+            # ax[(0,1)].yaxis.set_major_formatter(yfmt2)
 
-     # matplotlib.rcParams['text.usetex'] = True
+            if theta_true is None or 'tt' not in theta_true.keys():
+                # Fresno case
+                ax[(0, 0)].axhline(0, linestyle='dashed')
+                ax[(0, 1)].axhline(0, linestyle='dashed')
 
-     # i) Theta estimates in the two plots in the top
+            else:
+                ax[(0, 0)].axhline(float(theta_true['tt']), linestyle='dashed')
+                ax[(0, 1)].axhline(float(theta_true['tt']), linestyle='dashed')
 
-     if simulated_data and 'theta_c' in list(results_refined_df.keys()):
-         # - No refined
+        ax[(0, 0)].set_xticks(np.arange(results_norefined_df['iter'].min(), results_norefined_df['iter'].max() + 1,
+                                        int(np.ceil((results_norefined_df['iter'].max() - results_norefined_df[
+                                            'iter'].min()) / 10))))
 
-         if len(results_norefined_df['vot']) == 1:
-            ax[(0,0)].plot(results_norefined_df['iter'], results_norefined_df['vot'],marker='o', markersize = 2)
-         else:
-            ax[(0, 0)].plot(results_norefined_df['iter'], results_norefined_df['vot'])
+        ax[(0, 1)].set_xticks(np.arange(results_refined_df['iter'].min(), results_refined_df['iter'].max() + 1,
+                                        int(np.ceil((results_refined_df['iter'].max() - results_refined_df[
+                                            'iter'].min()) / 10))))
+        plt.setp(ax[(0, 1)].get_yticklabels(), visible=False)
 
-         # ax[(0,0)].set_yticks(np.arange(results_norefined_df['vot'].min(), results_norefined_df['vot'].max(), 0.2))
-         ax[(0,0)].axhline(0.1667, linestyle='dashed')
-         ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}/\hat{\theta_c}$')
-         # ax[(0, 0)].yaxis.set_major_formatter(OOMFormatter(-4, "%1.1f"))
-         # ax[(0, 0)].yaxis.set_major_formatter(yfmt1)
-         ax[(0, 0)].tick_params(labelbottom=False)
-         # ax[(0, 1)].yaxis.major.formatter._useMathText = True
+        # ii) Objective function values
 
-         # - Refined
-
-         if len(results_refined_df['vot']) == 1:
-            ax[(0,1)].plot(results_refined_df['iter'], results_refined_df['vot'],marker='o', markersize = 2)
-         else:
-            ax[(0,1)].plot(results_refined_df['iter'], results_refined_df['vot'])
-
-         # ax[(0,1)].set_yticks(np.arange(results_refined_df['vot'].min(), results_refined_df['vot'].max(), 0.2))
-         ax[(0,1)].axhline(float(theta_true['tt'])/float(theta_true['c']), linestyle='dashed')
-         # ax[(0, 1)].yaxis.set_major_formatter(yfmt2)
-         ax[(0, 1)].tick_params(labelbottom=False)
-         # ax[(0,1)].yaxis.major.formatter._useMathText = True
-
-    # Fresno network where vot may represent trade off between travel time and standard deviation of travel time
-     elif 'vot' in list(results_norefined_df.keys()) and np.count_nonzero(~np.isnan(results_norefined_df['vot']))>0:
-
-         if len(results_norefined_df['vot']) == 1:
-             ax[(0, 0)].plot(results_norefined_df['iter'], results_norefined_df['vot'], marker='o', markersize=2)
-         else:
-             ax[(0, 0)].plot(results_norefined_df['iter'], results_norefined_df['vot'])
-
-         # ax[(0,0)].set_yticks(np.arange(results_norefined_df['vot'].min(), results_norefined_df['vot'].max(), 0.2))
-         ax[(0, 0)].axhline(1, linestyle='dashed')
-         ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}/\theta_{\hat{\sigma}}$')
-         # ax[(0, 0)].yaxis.set_major_formatter(OOMFormatter(-4, "%1.1f"))
-         # ax[(0, 0)].yaxis.set_major_formatter(yfmt1)
-         ax[(0, 0)].tick_params(labelbottom=False)
-         # ax[(0, 1)].yaxis.major.formatter._useMathText = True
-
-         # - Refined
-
-         if len(results_refined_df['vot']) == 1:
-             ax[(0, 1)].plot(results_refined_df['iter'], results_refined_df['vot'], marker='o', markersize=2)
-         else:
-             ax[(0, 1)].plot(results_refined_df['iter'], results_refined_df['vot'])
-
-         # ax[(0,1)].set_yticks(np.arange(results_refined_df['vot'].min(), results_refined_df['vot'].max(), 0.2))
-         ax[(0, 1)].axhline(1, linestyle='dashed')
-         # ax[(0, 1)].yaxis.set_major_formatter(yfmt2)
-         ax[(0, 1)].tick_params(labelbottom=False)
-
-
-     else: # (no estimation of cost parameter but of travel time parameter)
         # - No refined
 
-        if len(results_norefined_df['theta_tt']) == 1:
-            ax[(0,0)].plot(results_norefined_df['iter'], results_norefined_df['theta_tt'], marker='o', markersize=2)
-
+        if len(results_norefined_df['objective']) == 1:
+            ax[(1, 0)].plot(results_norefined_df['iter'], results_norefined_df['objective'], marker='o', markersize=2)
         else:
-            ax[(0,0)].plot(results_norefined_df['iter'], results_norefined_df['theta_tt'])
+            ax[(1, 0)].plot(results_norefined_df['iter'], results_norefined_df['objective'])
 
-        # ax[(0,0)].set_yticks(np.arange(results_norefined_df['vot'].min(), results_norefined_df['vot'].max(), 0.2))
+        # ax[(1,0)].set_xticks(np.arange(0*results_norefined_df['iter'].min(), results_norefined_df['iter'].max()+1, results_norefined_df['iter'].max()/10))
+
+        # if results_norefined_df['objective'].min() != results_norefined_df['objective'].max():
+        #     ax[(1,0)].set_ylim(results_norefined_df['objective'].min(), results_norefined_df['objective'].max())
+
+        ax[(1, 0)].set_ylabel(r"$ n^{-1} \ ||(x(\hat{\theta})-\bar{x}||_2^2 $")
+        ax[(1, 0)].set_xlabel("iterations (" + methods[0] + ")")
+        # ax[(1, 0)].yaxis.set_major_formatter(yfmt3)
+
+        # - Refined
+        if len(results_refined_df['objective']) == 1:
+            ax[(1, 1)].plot(results_refined_df['iter'], results_refined_df['objective'], marker='o', markersize=2)
+        else:
+            ax[(1, 1)].plot(results_refined_df['iter'], results_refined_df['objective'])
+
+        ax[(1, 0)].set_xticks(np.arange(results_norefined_df['iter'].min(), results_norefined_df['iter'].max() + 1, int(
+            np.ceil((results_norefined_df['iter'].max() - results_norefined_df['iter'].min()) / 10))))
+
+        ax[(1, 1)].set_xticks(np.arange(results_refined_df['iter'].min(), results_refined_df['iter'].max() + 1, int(
+            np.ceil((results_refined_df['iter'].max() - results_refined_df['iter'].min()) / 10))))
+        plt.setp(ax[(1, 1)].get_yticklabels(), visible=False)
+
+        # if results_refined_df['objective'].min() != results_refined_df['objective'].max():
+        #     ax[(1,1)].set_ylim(results_refined_df['objective'].min(), results_refined_df['objective'].max())
+
+        ax[(1, 1)].set_xlabel("iterations (" + methods[1] + ")")
+        # ax[(1, 1)].yaxis.set_major_formatter(yfmt4)
+
+        for axi in fig.get_axes():
+            axi.tick_params(axis='y', labelsize=14)
+            axi.tick_params(axis='x', labelsize=14)
+            axi.xaxis.label.set_size(14)
+            axi.yaxis.label.set_size(14)
+
+        for axi in [ax[(1, 0)], ax[(1, 1)]]:
+            yfmt = ScalarFormatterForceFormat()
+            yfmt.set_powerlimits((0, 0))
+            axi.yaxis.set_major_formatter(yfmt)
+
+        fig.tight_layout()
+
+        if folder is not None:
+            fig.savefig(folder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
+
+        return fig
+
+    def convergence_networks_experiment(self,
+                                        results: Union[Dict, pd.DataFrame],
+                                        filename: str,
+                                        methods: [str],
+                                        colors,
+                                        labels,
+                                        folder: str = None,
+                                        theta_true=None):
+
+        '''
+     Plot convergence to the true ratio of theta and the reduction of the objective function over iterations
+
+     :argument results
+
+     '''
+
+        if folder is None:
+            folder = self.folder
+
+        dim_subplots = (2, 2)
+
+        fig = plt.figure(figsize=(7, 6))
+        # ax = fig.subplots(nrows=self.dim_subplots[0], ncols=self.dim_subplots[1])
+        ax = {}
+        ax[(0, 0)] = plt.subplot(dim_subplots[0], dim_subplots[1], 1)
+        ax[(0, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 2, sharey=ax[(0, 0)])
+        # ax[(0, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 2)
+
+        ax[(1, 0)] = plt.subplot(dim_subplots[0], dim_subplots[1], 3)
+        ax[(1, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 4, sharey=ax[(1, 0)])
+        # ax[(1, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 4)
+
+        # matplotlib.rcParams['text.usetex'] = True
+
+        # i) Theta estimates in the two plots in the top
+
+        # - No refined
+
+        for network, color, label in zip(results.keys(), colors, labels):
+            results_norefined_df = results[network][results[network]['stage'] == 'norefined']
+
+            ax[(0, 0)].plot(results_norefined_df['iter'], results_norefined_df['theta_tt'], color=color, label=label)
+
+        ax[(0, 0)].axhline(float(theta_true['tt']), linestyle='dashed')
         ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}$')
         # ax[(0, 0)].set_ticklabels([])
 
         ax[(0, 0)].tick_params(labelbottom=False)
 
         # - Refined
-        if len(results_refined_df['theta_tt']) == 1:
-            ax[(0, 1)].plot(results_refined_df['iter'], results_refined_df['theta_tt'], marker='o', markersize=2)
-        else:
-            ax[(0, 1)].plot(results_refined_df['iter'], results_refined_df['theta_tt'])
+        for network, color, label in zip(results.keys(), colors, labels):
+            results_refined_df = results[network][results[network]['stage'] == 'refined']
+            ax[(0, 1)].plot(results_refined_df['iter'], results_refined_df['theta_tt'], color=color)
 
-
-        # ax[(0,1)].set_yticks(np.arange(results_refined_df['vot'].min(), results_refined_df['vot'].max(), 0.2))
+        ax[(0, 1)].axhline(float(theta_true['tt']), linestyle='dashed')
         ax[(0, 1)].tick_params(labelbottom=False)
+        # ax[(0, 1)].yaxis.set_ticklabels([])
+        # plt.setp(ax[(0, 1)].get_yticklabels(), visible=False)
         # ax[(0,1)].yaxis.set_major_formatter(yfmt2)
 
-        if theta_true is None or 'tt' not in theta_true.keys():
-            #Fresno case
-            ax[(0, 0)].axhline(0, linestyle='dashed')
-            ax[(0, 1)].axhline(0, linestyle='dashed')
+        ax[(0, 0)].set_xticks(np.arange(results_norefined_df['iter'].min(), results_norefined_df['iter'].max() + 1,
+                                        int(np.ceil((results_norefined_df['iter'].max() - results_norefined_df[
+                                            'iter'].min()) / 10))))
 
-        else:
-            ax[(0, 0)].axhline(float(theta_true['tt']), linestyle='dashed')
-            ax[(0, 1)].axhline(float(theta_true['tt']), linestyle='dashed')
+        ax[(0, 1)].set_xticks(np.arange(results_refined_df['iter'].min(), results_refined_df['iter'].max() + 1,
+                                        int(np.ceil((results_refined_df['iter'].max() - results_refined_df[
+                                            'iter'].min()) / 10))))
 
-     ax[(0,0)].set_xticks(np.arange(results_norefined_df['iter'].min(), results_norefined_df['iter'].max()+1, int(np.ceil((results_norefined_df['iter'].max()-results_norefined_df['iter'].min())/10))))
+        # ii) Objective function values
 
-     ax[(0,1)].set_xticks(np.arange(results_refined_df['iter'].min(), results_refined_df['iter'].max()+1, int(np.ceil((results_refined_df['iter'].max()-results_refined_df['iter'].min())/10))))
-     plt.setp(ax[(0, 1)].get_yticklabels(), visible=False)
+        # - No refined
+        for network, color, label in zip(results.keys(), colors, labels):
+            results_norefined_df = results[network][results[network]['stage'] == 'norefined']
 
+            ax[(1, 0)].plot(results_norefined_df['iter'], results_norefined_df['objective'], color=color, label=label)
 
-     # ii) Objective function values
+        # if results_norefined_df['objective'].min() != results_norefined_df['objective'].max():
+        #     ax[(1,0)].set_ylim(results_norefined_df['objective'].min(), results_norefined_df['objective'].max())
 
-     # - No refined
+        ax[(1, 0)].axhline(0, linestyle='dashed')
 
-     if len(results_norefined_df['objective']) == 1:
-         ax[(1,0)].plot(results_norefined_df['iter'], results_norefined_df['objective'], marker='o', markersize=2)
-     else:
-         ax[(1,0)].plot(results_norefined_df['iter'], results_norefined_df['objective'])
+        ax[(1, 0)].set_ylabel(r"$ n^{-1} \ ||(x(\hat{\theta})-\bar{x}||_2^2 $")
+        ax[(1, 0)].set_xlabel("iterations (" + methods[0] + ")")
+        # ax[(1, 0)].yaxis.set_major_formatter(yfmt3)
 
-     # ax[(1,0)].set_xticks(np.arange(0*results_norefined_df['iter'].min(), results_norefined_df['iter'].max()+1, results_norefined_df['iter'].max()/10))
+        # - Refined
+        for network, color, label in zip(results.keys(), colors, labels):
+            results_refined_df = results[network][results[network]['stage'] == 'refined']
 
-     # if results_norefined_df['objective'].min() != results_norefined_df['objective'].max():
-     #     ax[(1,0)].set_ylim(results_norefined_df['objective'].min(), results_norefined_df['objective'].max())
+            ax[(1, 1)].plot(results_refined_df['iter'], results_refined_df['objective'], color=color, label=label)
 
-     ax[(1, 0)].set_ylabel(r"$ n^{-1} \ ||(x(\hat{\theta})-\bar{x}||_2^2 $")
-     ax[(1, 0)].set_xlabel("iterations (" + methods[0] + ")")
-     # ax[(1, 0)].yaxis.set_major_formatter(yfmt3)
+        ax[(1, 0)].set_xticks(np.arange(results_norefined_df['iter'].min(), results_norefined_df['iter'].max() + 1, int(
+            np.ceil((results_norefined_df['iter'].max() - results_norefined_df['iter'].min()) / 10))))
 
+        ax[(1, 1)].set_xticks(np.arange(results_refined_df['iter'].min(), results_refined_df['iter'].max() + 1, int(
+            np.ceil((results_refined_df['iter'].max() - results_refined_df['iter'].min()) / 10))))
 
-     # - Refined
-     if len(results_refined_df['objective']) == 1:
-         ax[(1,1)].plot(results_refined_df['iter'], results_refined_df['objective'], marker='o', markersize=2)
-     else:
-         ax[(1,1)].plot(results_refined_df['iter'], results_refined_df['objective'])
+        # if results_refined_df['objective'].min() != results_refined_df['objective'].max():
+        #     ax[(1,1)].set_ylim(results_refined_df['objective'].min(), results_refined_df['objective'].max())
 
+        ax[(1, 1)].axhline(0, linestyle='dashed')
 
-     ax[(1, 0)].set_xticks(np.arange(results_norefined_df['iter'].min(), results_norefined_df['iter'].max() + 1, int(
-         np.ceil((results_norefined_df['iter'].max() - results_norefined_df['iter'].min()) / 10))))
+        ax[(1, 1)].set_xlabel("iterations (" + methods[1] + ")")
+        # plt.setp(ax[(1, 1)].get_yticklabels(), visible=False)
+        # ax[(1, 1)].yaxis.set_ticklabels([])
+        # ax[(1, 1)].yaxis.set_major_formatter(yfmt4)
 
-     ax[(1, 1)].set_xticks(np.arange(results_refined_df['iter'].min(), results_refined_df['iter'].max() + 1, int(
-         np.ceil((results_refined_df['iter'].max() - results_refined_df['iter'].min()) / 10))))
-     plt.setp(ax[(1, 1)].get_yticklabels(), visible=False)
+        # Change color style to white and black in box plots
+        for axi in [ax[(0, 0)], ax[(0, 1)], ax[(1, 0)], ax[(1, 1)]]:
+            axi.tick_params(axis='y', labelsize=12)
+            axi.tick_params(axis='x', labelsize=12)
+            axi.xaxis.label.set_size(12)
+            axi.yaxis.label.set_size(12)
 
-     # if results_refined_df['objective'].min() != results_refined_df['objective'].max():
-     #     ax[(1,1)].set_ylim(results_refined_df['objective'].min(), results_refined_df['objective'].max())
+        # Legend
+        lines, labels = ax[(1, 1)].get_legend_handles_labels()
+        # g.fig.legend(handles=handles, labels=labels, loc='lower center', ncol=4)
+        fig.legend(lines, labels, loc='upper center', ncol=4, prop={'size': 12}
+                   , bbox_to_anchor=[0.52, -0.25]
+                   , bbox_transform=BlendedGenericTransform(fig.transFigure, ax[(1, 1)].transAxes))
 
-     ax[(1, 1)].set_xlabel("iterations (" + methods[1] + ")")
-     # ax[(1, 1)].yaxis.set_major_formatter(yfmt4)
+        fig.tight_layout()
 
-     for axi in fig.get_axes():
-         axi.tick_params(axis='y', labelsize=14)
-         axi.tick_params(axis='x', labelsize=14)
-         axi.xaxis.label.set_size(14)
-         axi.yaxis.label.set_size(14)
-
-     for axi in [ax[(1,0)],ax[(1,1)]]:
-         yfmt = ScalarFormatterForceFormat()
-         yfmt.set_powerlimits((0, 0))
-         axi.yaxis.set_major_formatter(yfmt)
-
-     fig.tight_layout()
-
-     if folder is not None:
         fig.savefig(folder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
 
-     return fig
+        plt.show()
 
-    def convergence_networks_experiment(self,
-                                        results: Union[Dict,pd.DataFrame],
-                                        filename: str,
-                                        methods: [str],
-                                        colors,
-                                        labels,
-                                        folder: str = None,
-                                        theta_true = None):
-
-     '''
-     Plot convergence to the true ratio of theta and the reduction of the objective function over iterations
-
-     :argument results
-
-     '''
-
-     if folder is None:
-         folder = self.folder
-
-     dim_subplots = (2, 2)
-
-     fig = plt.figure(figsize=(7,6))
-     # ax = fig.subplots(nrows=self.dim_subplots[0], ncols=self.dim_subplots[1])
-     ax = {}
-     ax[(0, 0)] = plt.subplot(dim_subplots[0], dim_subplots[1], 1)
-     ax[(0, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 2, sharey=ax[(0, 0)])
-     # ax[(0, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 2)
-
-     ax[(1, 0)] = plt.subplot(dim_subplots[0],dim_subplots[1], 3)
-     ax[(1, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 4, sharey=ax[(1, 0)])
-     # ax[(1, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 4)
-
-     # matplotlib.rcParams['text.usetex'] = True
-
-     # i) Theta estimates in the two plots in the top
-
-    # - No refined
-
-     for network, color, label in zip(results.keys(), colors, labels):
-
-        results_norefined_df = results[network][results[network]['stage'] == 'norefined']
-
-        ax[(0,0)].plot(results_norefined_df['iter'], results_norefined_df['theta_tt'], color = color, label = label)
-
-     ax[(0,0)].axhline(float(theta_true['tt']), linestyle='dashed')
-     ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}$')
-     # ax[(0, 0)].set_ticklabels([])
-
-     ax[(0, 0)].tick_params(labelbottom=False)
-
-     # - Refined
-     for network, color, label in zip(results.keys(), colors, labels):
-
-        results_refined_df = results[network][results[network]['stage'] == 'refined']
-        ax[(0, 1)].plot(results_refined_df['iter'], results_refined_df['theta_tt'], color = color)
-
-     ax[(0, 1)].axhline(float(theta_true['tt']), linestyle='dashed')
-     ax[(0, 1)].tick_params(labelbottom=False)
-     # ax[(0, 1)].yaxis.set_ticklabels([])
-     # plt.setp(ax[(0, 1)].get_yticklabels(), visible=False)
-     # ax[(0,1)].yaxis.set_major_formatter(yfmt2)
-
-     ax[(0,0)].set_xticks(np.arange(results_norefined_df['iter'].min(), results_norefined_df['iter'].max()+1, int(np.ceil((results_norefined_df['iter'].max()-results_norefined_df['iter'].min())/10))))
-
-     ax[(0,1)].set_xticks(np.arange(results_refined_df['iter'].min(), results_refined_df['iter'].max()+1, int(np.ceil((results_refined_df['iter'].max()-results_refined_df['iter'].min())/10))))
-
-
-     # ii) Objective function values
-
-     # - No refined
-     for network, color, label in zip(results.keys(), colors, labels):
-
-        results_norefined_df = results[network][results[network]['stage'] == 'norefined']
-
-        ax[(1,0)].plot(results_norefined_df['iter'], results_norefined_df['objective'], color = color, label = label)
-
-     # if results_norefined_df['objective'].min() != results_norefined_df['objective'].max():
-     #     ax[(1,0)].set_ylim(results_norefined_df['objective'].min(), results_norefined_df['objective'].max())
-
-     ax[(1, 0)].axhline(0, linestyle='dashed')
-
-     ax[(1, 0)].set_ylabel(r"$ n^{-1} \ ||(x(\hat{\theta})-\bar{x}||_2^2 $")
-     ax[(1, 0)].set_xlabel("iterations (" + methods[0] + ")")
-     # ax[(1, 0)].yaxis.set_major_formatter(yfmt3)
-
-
-     # - Refined
-     for network, color, label in zip(results.keys(), colors, labels):
-         results_refined_df = results[network][results[network]['stage'] == 'refined']
-
-         ax[(1,1)].plot(results_refined_df['iter'], results_refined_df['objective'], color = color, label = label)
-
-     ax[(1, 0)].set_xticks(np.arange(results_norefined_df['iter'].min(), results_norefined_df['iter'].max() + 1, int(
-         np.ceil((results_norefined_df['iter'].max() - results_norefined_df['iter'].min()) / 10))))
-
-     ax[(1, 1)].set_xticks(np.arange(results_refined_df['iter'].min(), results_refined_df['iter'].max() + 1, int(
-         np.ceil((results_refined_df['iter'].max() - results_refined_df['iter'].min()) / 10))))
-
-     # if results_refined_df['objective'].min() != results_refined_df['objective'].max():
-     #     ax[(1,1)].set_ylim(results_refined_df['objective'].min(), results_refined_df['objective'].max())
-
-     ax[(1, 1)].axhline(0, linestyle='dashed')
-
-     ax[(1, 1)].set_xlabel("iterations (" + methods[1] + ")")
-     # plt.setp(ax[(1, 1)].get_yticklabels(), visible=False)
-     # ax[(1, 1)].yaxis.set_ticklabels([])
-     # ax[(1, 1)].yaxis.set_major_formatter(yfmt4)
-
-     # Change color style to white and black in box plots
-     for axi in [ax[(0, 0)], ax[(0, 1)], ax[(1, 0)], ax[(1, 1)]]:
-         axi.tick_params(axis='y', labelsize=12)
-         axi.tick_params(axis='x', labelsize=12)
-         axi.xaxis.label.set_size(12)
-         axi.yaxis.label.set_size(12)
-
-     # Legend
-     lines, labels = ax[(1, 1)].get_legend_handles_labels()
-     # g.fig.legend(handles=handles, labels=labels, loc='lower center', ncol=4)
-     fig.legend(lines, labels, loc='upper center', ncol=4, prop={'size': 12}
-                , bbox_to_anchor=[0.52, -0.25]
-                , bbox_transform=BlendedGenericTransform(fig.transFigure,  ax[(1, 1)].transAxes))
-
-     fig.tight_layout()
-
-     fig.savefig(folder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
-
-     plt.show()
-
-     return fig
+        return fig
 
     def convergence_network_experiment(self,
                                        results_df: Dict,
@@ -1504,7 +1545,7 @@ class Artist:
         if folder is None:
             folder = self.folder
 
-        fig = plt.figure(figsize=(7,6))
+        fig = plt.figure(figsize=(7, 6))
 
         dim_subplots = (2, 2)
 
@@ -1528,10 +1569,10 @@ class Artist:
                             results_norefined_df['theta_tt'] / results_norefined_df['theta_c'], color=color,
                             label=label)
 
-            ax[(0, 0)].axvline(results_norefined_df['objective'].argmin()+1, linestyle='dotted', color=color)
+            ax[(0, 0)].axvline(results_norefined_df['objective'].argmin() + 1, linestyle='dotted', color=color)
             ax[(1, 0)].axvline(results_norefined_df['objective'].argmin() + 1, linestyle='dotted', color=color)
 
-        ax[(0, 0)].axhline(float(theta_true['tt']) / float(theta_true['c']), linestyle='dashed', color = 'black')
+        ax[(0, 0)].axhline(float(theta_true['tt']) / float(theta_true['c']), linestyle='dashed', color='black')
 
         ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}/\hat{\theta_c}$')
         # ax[(0, 0)].set_ticklabels([])
@@ -1545,11 +1586,12 @@ class Artist:
             ax[(0, 1)].plot(results_refined_df['iter'],
                             results_refined_df['theta_tt'] / results_refined_df['theta_c'], color=color,
                             label=label)
-            ax[(0, 1)].axvline(results_refined_df['objective'].argmin() + len(results_refined_df)+1, linestyle='dotted', color=color)
+            ax[(0, 1)].axvline(results_refined_df['objective'].argmin() + len(results_refined_df) + 1,
+                               linestyle='dotted', color=color)
             ax[(1, 1)].axvline(results_refined_df['objective'].argmin() + len(results_refined_df) + 1,
                                linestyle='dotted', color=color)
 
-        ax[(0, 1)].axhline(float(theta_true['tt'])/float(theta_true['c']), linestyle='dashed', color='black')
+        ax[(0, 1)].axhline(float(theta_true['tt']) / float(theta_true['c']), linestyle='dashed', color='black')
         ax[(0, 1)].tick_params(labelbottom=False)
         # ax[(0, 1)].yaxis.set_ticklabels([])
         plt.setp(ax[(0, 1)].get_yticklabels(), visible=False)
@@ -1623,146 +1665,136 @@ class Artist:
         return fig
 
     def convergence_experiment_yang(self,
-                                    results_df: Union[Dict,pd.DataFrame],
+                                    results_df: Union[Dict, pd.DataFrame],
                                     colors,
                                     labels,
                                     filename: str,
                                     methods: [str],
                                     folder: str = None,
-                                    theta_true = None):
+                                    theta_true=None):
 
-     '''
+        '''
      Plot convergence to the true ratio of theta and the reduction of the objective function over iterations
 
      :argument results
 
      '''
 
-     if folder is None:
-         folder = self.folder
+        if folder is None:
+            folder = self.folder
 
-     fig = plt.figure(figsize=(7,6))
-     # ax = fig.subplots(nrows=self.dim_subplots[0], ncols=self.dim_subplots[1])
-     ax = {}
-     dim_subplots = (2, 2)
+        fig = plt.figure(figsize=(7, 6))
+        # ax = fig.subplots(nrows=self.dim_subplots[0], ncols=self.dim_subplots[1])
+        ax = {}
+        dim_subplots = (2, 2)
 
-     ax[(0, 0)] = plt.subplot(dim_subplots[0], dim_subplots[1], 1)
-     ax[(0, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 2, sharey=ax[(0, 0)])
+        ax[(0, 0)] = plt.subplot(dim_subplots[0], dim_subplots[1], 1)
+        ax[(0, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 2, sharey=ax[(0, 0)])
 
-     ax[(1, 0)] = plt.subplot(dim_subplots[0], dim_subplots[1], 3)
-     ax[(1, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 4, sharey=ax[(1, 0)])
+        ax[(1, 0)] = plt.subplot(dim_subplots[0], dim_subplots[1], 3)
+        ax[(1, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 4, sharey=ax[(1, 0)])
 
-     # matplotlib.rcParams['text.usetex'] = True
+        # matplotlib.rcParams['text.usetex'] = True
 
+        # i) Theta estimates in the two plots in the top
 
+        # - No refined
 
-     # i) Theta estimates in the two plots in the top
+        for scenario, color, label in zip(results_df.keys(), colors, labels):
+            results_norefined_df = results_df[scenario][results_df[scenario]['stage'] == 'norefined']
 
-    # - No refined
+            ax[(0, 0)].plot(results_norefined_df['iter'], results_norefined_df['theta_tt'], color=color, label=label)
 
-     for scenario,color, label in zip(results_df.keys(),colors, labels):
+        ax[(0, 0)].axhline(float(theta_true['tt']), linestyle='dashed', color='black')
+        ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}$')
+        # ax[(0, 0)].set_ticklabels([])
 
-        results_norefined_df = results_df[scenario][results_df[scenario]['stage'] == 'norefined']
+        ax[(0, 0)].tick_params(labelbottom=False)
 
-        ax[(0,0)].plot(results_norefined_df['iter'], results_norefined_df['theta_tt'], color = color, label = label)
+        trans = transforms.blended_transform_factory(
+            ax[(0, 0)].get_yticklabels()[0].get_transform(), ax[(0, 0)].transData)
+        # ax[(0,0)].text(0, float(theta_true['tt']), "{:.0f}".format(float(theta_true['tt'])), transform=trans,ha="right", va="center", fontdict=None)
 
-     ax[(0,0)].axhline(float(theta_true['tt']), linestyle='dashed', color = 'black')
-     ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}$')
-     # ax[(0, 0)].set_ticklabels([])
+        # - Refined
+        for scenario, color, label in zip(results_df.keys(), colors, labels):
+            results_refined_df = results_df[scenario][results_df[scenario]['stage'] == 'refined']
+            ax[(0, 1)].plot(results_refined_df['iter'], results_refined_df['theta_tt'], color=color, label=label)
 
-     ax[(0, 0)].tick_params(labelbottom=False)
+        ax[(0, 1)].axhline(float(theta_true['tt']), linestyle='dashed', color='black')
+        ax[(0, 1)].tick_params(labelbottom=False)
+        # ax[(0, 1)].yaxis.set_ticklabels([])
+        # plt.setp(ax[(0, 1)].get_yticklabels(), visible=False)
 
-     trans = transforms.blended_transform_factory(
-         ax[(0,0)].get_yticklabels()[0].get_transform(), ax[(0,0)].transData)
-     # ax[(0,0)].text(0, float(theta_true['tt']), "{:.0f}".format(float(theta_true['tt'])), transform=trans,ha="right", va="center", fontdict=None)
+        # ax[(0,1)].yaxis.set_major_formatter(yfmt2)
 
-     # - Refined
-     for scenario,color, label in zip(results_df.keys(),colors, labels):
+        ax[(0, 0)].set_xticks(np.arange(results_norefined_df['iter'].min(), results_norefined_df['iter'].max() + 1, int(
+            np.ceil((results_norefined_df['iter'].max() - results_norefined_df['iter'].min()) / 10))))
 
-        results_refined_df = results_df[scenario][results_df[scenario]['stage'] == 'refined']
-        ax[(0, 1)].plot(results_refined_df['iter'], results_refined_df['theta_tt'], color = color, label = label)
+        ax[(0, 1)].set_xticks(np.arange(results_refined_df['iter'].min(), results_refined_df['iter'].max() + 1, int(
+            np.ceil((results_refined_df['iter'].max() - results_refined_df['iter'].min()) / 10))))
 
-     ax[(0, 1)].axhline(float(theta_true['tt']), linestyle='dashed', color = 'black')
-     ax[(0, 1)].tick_params(labelbottom=False)
-     # ax[(0, 1)].yaxis.set_ticklabels([])
-     # plt.setp(ax[(0, 1)].get_yticklabels(), visible=False)
+        # ax[(0, 0)].set_yticks([-15, -10, -5, -1])
 
+        # ii) Objective function values
 
-     # ax[(0,1)].yaxis.set_major_formatter(yfmt2)
+        # - No refined
+        for scenario, color, label in zip(results_df.keys(), colors, labels):
+            results_norefined_df = results_df[scenario][results_df[scenario]['stage'] == 'norefined']
 
+            ax[(1, 0)].plot(results_norefined_df['iter'], results_norefined_df['objective'], color=color, label=label)
 
-     ax[(0, 0)].set_xticks(np.arange(results_norefined_df['iter'].min(), results_norefined_df['iter'].max() + 1, int(
-         np.ceil((results_norefined_df['iter'].max() - results_norefined_df['iter'].min()) / 10))))
+        # if results_norefined_df['objective'].min() != results_norefined_df['objective'].max():
+        #     ax[(1,0)].set_ylim(results_norefined_df['objective'].min(), results_norefined_df['objective'].max())
 
-     ax[(0, 1)].set_xticks(np.arange(results_refined_df['iter'].min(), results_refined_df['iter'].max() + 1, int(
-         np.ceil((results_refined_df['iter'].max() - results_refined_df['iter'].min()) / 10))))
+        ax[(1, 0)].axhline(0, linestyle='dashed', color='black')
 
-     # ax[(0, 0)].set_yticks([-15, -10, -5, -1])
+        ax[(1, 0)].set_ylabel(r"$ n^{-1} \ ||(x(\hat{\theta})-\bar{x}||_2^2 $")
+        ax[(1, 0)].set_xlabel("iterations (" + methods[0] + ")")
+        # ax[(1, 0)].yaxis.set_major_formatter(yfmt3)
 
+        ax[(1, 0)].set_xticks(np.arange(results_norefined_df['iter'].min(), results_norefined_df['iter'].max() + 1, int(
+            np.ceil((results_norefined_df['iter'].max() - results_norefined_df['iter'].min()) / 10))))
 
-     # ii) Objective function values
+        # - Refined
+        for scenario, color, label in zip(results_df.keys(), colors, labels):
+            results_refined_df = results_df[scenario][results_df[scenario]['stage'] == 'refined']
 
-     # - No refined
-     for scenario,color, label in zip(results_df.keys(),colors, labels):
+            ax[(1, 1)].plot(results_refined_df['iter'], results_refined_df['objective'], color=color, label=label)
 
-        results_norefined_df = results_df[scenario][results_df[scenario]['stage'] == 'norefined']
+        ax[(1, 1)].axhline(0, linestyle='dashed', color='black')
 
-        ax[(1,0)].plot(results_norefined_df['iter'], results_norefined_df['objective'], color = color, label = label)
+        ax[(1, 1)].set_xticks(np.arange(results_refined_df['iter'].min(), results_refined_df['iter'].max() + 1, int(
+            np.ceil((results_refined_df['iter'].max() - results_refined_df['iter'].min()) / 10))))
 
-     # if results_norefined_df['objective'].min() != results_norefined_df['objective'].max():
-     #     ax[(1,0)].set_ylim(results_norefined_df['objective'].min(), results_norefined_df['objective'].max())
+        ax[(1, 1)].set_xlabel("iterations (" + methods[1] + ")")
+        # plt.setp(ax[(1, 1)].get_yticklabels(), visible=False)
+        # ax[(1, 1)].yaxis.set_ticklabels([])
+        # ax[(1, 1)].yaxis.set_major_formatter(yfmt4)
 
-     ax[(1, 0)].axhline(0, linestyle='dashed',color = 'black')
+        # Change color style to white and black in box plots
+        for axi in [ax[(0, 0)], ax[(0, 1)], ax[(1, 0)], ax[(1, 1)]]:
+            axi.tick_params(axis='y', labelsize=12)
+            axi.tick_params(axis='x', labelsize=12)
+            axi.xaxis.label.set_size(12)
+            axi.yaxis.label.set_size(12)
 
-     ax[(1, 0)].set_ylabel(r"$ n^{-1} \ ||(x(\hat{\theta})-\bar{x}||_2^2 $")
-     ax[(1, 0)].set_xlabel("iterations (" + methods[0] + ")")
-     # ax[(1, 0)].yaxis.set_major_formatter(yfmt3)
+        for axi in [ax[(1, 0)], ax[(1, 1)]]:
+            yfmt = ScalarFormatterForceFormat()
+            yfmt.set_powerlimits((0, 0))
+            axi.yaxis.set_major_formatter(yfmt)
 
-     ax[(1, 0)].set_xticks(np.arange(results_norefined_df['iter'].min(), results_norefined_df['iter'].max() + 1, int(
-         np.ceil((results_norefined_df['iter'].max() - results_norefined_df['iter'].min()) / 10))))
+        # Legend
+        lines, labels = ax[(1, 1)].get_legend_handles_labels()
+        # g.fig.legend(handles=handles, labels=labels, loc='lower center', ncol=4)
+        fig.legend(lines, labels, loc='upper center', ncol=2, prop={'size': 12}
+                   , bbox_to_anchor=[0.52, -0.25]
+                   , bbox_transform=BlendedGenericTransform(fig.transFigure, ax[(1, 1)].transAxes))
 
+        fig.tight_layout()
 
-     # - Refined
-     for scenario,color, label in zip(results_df.keys(),colors, labels):
-         results_refined_df = results_df[scenario][results_df[scenario]['stage'] == 'refined']
+        fig.savefig(folder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
 
-         ax[(1,1)].plot(results_refined_df['iter'], results_refined_df['objective'], color = color, label = label)
-
-     ax[(1, 1)].axhline(0, linestyle='dashed',color = 'black')
-
-     ax[(1, 1)].set_xticks(np.arange(results_refined_df['iter'].min(), results_refined_df['iter'].max() + 1, int(
-         np.ceil((results_refined_df['iter'].max() - results_refined_df['iter'].min()) / 10))))
-
-     ax[(1, 1)].set_xlabel("iterations (" + methods[1] + ")")
-     #plt.setp(ax[(1, 1)].get_yticklabels(), visible=False)
-     # ax[(1, 1)].yaxis.set_ticklabels([])
-     # ax[(1, 1)].yaxis.set_major_formatter(yfmt4)
-
-     # Change color style to white and black in box plots
-     for axi in [ax[(0, 0)], ax[(0, 1)], ax[(1, 0)], ax[(1, 1)]]:
-         axi.tick_params(axis='y', labelsize=12)
-         axi.tick_params(axis='x', labelsize=12)
-         axi.xaxis.label.set_size(12)
-         axi.yaxis.label.set_size(12)
-
-     for axi in [ax[(1,0)],ax[(1,1)]]:
-         yfmt = ScalarFormatterForceFormat()
-         yfmt.set_powerlimits((0, 0))
-         axi.yaxis.set_major_formatter(yfmt)
-
-     # Legend
-     lines, labels = ax[(1, 1)].get_legend_handles_labels()
-     # g.fig.legend(handles=handles, labels=labels, loc='lower center', ncol=4)
-     fig.legend(lines, labels, loc='upper center', ncol=2, prop={'size': 12}
-                , bbox_to_anchor=[0.52, -0.25]
-                , bbox_transform=BlendedGenericTransform(fig.transFigure, ax[(1, 1)].transAxes))
-
-     fig.tight_layout()
-
-     fig.savefig(folder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
-
-     return fig
-
+        return fig
 
     def monotonocity_traffic_count_functions(self,
                                              filename,
@@ -1782,21 +1814,19 @@ class Artist:
 
         # ax.plot(traffic_count_links_df_plot)
 
-        traffic_count_links_df_plot.plot(ax = ax, legend=False)
+        traffic_count_links_df_plot.plot(ax=ax, legend=False)
         # ax.legend()
-
 
         # plt.show()
 
-        #TODO: Add horizontal lines for the true traffic counts. Interpolate curves so they are smoother
+        # TODO: Add horizontal lines for the true traffic counts. Interpolate curves so they are smoother
 
         # ax.axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
 
-        plt.setp(ax, xlabel=r"$\hat{\theta}$", ylabel = r"$\hat{x(\theta)}$")
+        plt.setp(ax, xlabel=r"$\hat{\theta}$", ylabel=r"$\hat{x(\theta)}$")
 
         # Set font sizes
         for axi in reversed(fig.get_axes()):
-
             axi.tick_params(axis='y', labelsize=12)
             axi.tick_params(axis='x', labelsize=12)
             axi.xaxis.label.set_size(12)
@@ -1810,14 +1840,13 @@ class Artist:
         # Legend
         lines, labels = ax.get_legend_handles_labels()
         # g.fig.legend(handles=handles, labels=labels, loc='lower center', ncol=4)
-        fig.legend(lines, labels, loc='upper center', ncol = 5, prop={'size': 12}
+        fig.legend(lines, labels, loc='upper center', ncol=5, prop={'size': 12}
                    , bbox_to_anchor=[0.55, -0.15]
-                   , bbox_transform= BlendedGenericTransform(fig.transFigure, ax.transAxes))
+                   , bbox_transform=BlendedGenericTransform(fig.transFigure, ax.transAxes))
 
         # fig.legend()
         # plt.legend()
         fig.tight_layout()
-
 
         fig.savefig(folder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
 
@@ -1829,7 +1858,7 @@ class Artist:
                                                           x_range,
                                                           theta_true,
                                                           colors,
-                                                          labels,                                             folder: str = None):
+                                                          labels, folder: str = None):
 
         if folder is None:
             folder = self.folder
@@ -1838,7 +1867,7 @@ class Artist:
 
         dim_subplots = (2, 2)
 
-        fig, ax = plt.subplots(nrows=dim_subplots[0], ncols=dim_subplots[1], figsize=(7,6))
+        fig, ax = plt.subplots(nrows=dim_subplots[0], ncols=dim_subplots[1], figsize=(7, 6))
         # fig.suptitle("Analysis of  (strict) quasiconvexity of L2 norm"
         #              "\n(theta_true = " + str(theta_true) + ")")
 
@@ -1847,7 +1876,6 @@ class Artist:
         # ax[(0, 0)].set_title("\n\n")
         # y_vals = f_vals
 
-
         for i, j, k, color, label in zip(f_vals.keys(), f_vals.values(), range(0, len(f_vals)), colors, labels):
             pos_plot = int(np.floor(k / dim_subplots[0])), int(k % dim_subplots[1])
             ax[pos_plot].plot(x_range, j, color=color, label=label)
@@ -1855,13 +1883,12 @@ class Artist:
             ax[pos_plot].axhline(y=0, color=color, linestyle='dashed', linewidth=0.5)
             # ax[(0, 0)].set_ylabel(r"$n^{-1} \  ||x(\hat{\theta})-\bar{x}||_2^2$")
 
-        ax[(0,0)].set_xticklabels([])
-        ax[(0,1)].set_xticklabels([])
+        ax[(0, 0)].set_xticklabels([])
+        ax[(0, 1)].set_xticklabels([])
 
-        ax[(1, 0)].set_xticks(np.arange(int(round(min(x_range))), int(round(max(x_range)))+0.1, 5))
+        ax[(1, 0)].set_xticks(np.arange(int(round(min(x_range))), int(round(max(x_range))) + 0.1, 5))
 
-        ax[(1, 1)].set_xticks(np.arange(int(round(min(x_range))), int(round(max(x_range)))+0.1, 5))
-
+        ax[(1, 1)].set_xticks(np.arange(int(round(min(x_range))), int(round(max(x_range))) + 0.1, 5))
 
         # set labels
         plt.setp(ax[-1, :], xlabel=r"$\hat{\theta}_t$")
@@ -1898,14 +1925,14 @@ class Artist:
                                                      hessian_f_vals,
                                                      x_range,
                                                      theta_true,
-                                                     alpha_bh = 0,                                             folder: str = None):
+                                                     alpha_bh=0, folder: str = None):
 
         if folder is None:
             folder = self.folder
 
         # matplotlib.rcParams['text.usetex'] = True
 
-        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(7,6))
+        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(7, 6))
         # fig.suptitle("Analysis of  (strict) quasiconvexity of L2 norm"
         #              "\n(theta_true = " + str(theta_true) + ")")
 
@@ -1930,8 +1957,6 @@ class Artist:
         ax[(0, 1)].set_ylabel(r"$n^{-1} \ \nabla_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)$")
         ax[(0, 1)].set_xticklabels([])
 
-
-
         # ax[(0, 2)].set_title("Sign Gradient L2-norm")
         # y_vals = [np.sign(np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1))) for x_val in x_range]
         y_vals = np.sign(y_vals)
@@ -1939,7 +1964,7 @@ class Artist:
         ax[(1, 0)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
         ax[(1, 0)].plot(x_range, y_vals, color='red')
         ax[(1, 0)].set_ylabel(r"$n^{-1} \ \textmd{sign} (\nabla_{\theta} ||x(\hat{\theta})-\bar{x}||_2^2 )$")
-        ax[(1, 0)].set_xticks(np.arange(int(round(min(x_range))), int(round(max(x_range)))+0.1, 5))
+        ax[(1, 0)].set_xticks(np.arange(int(round(min(x_range))), int(round(max(x_range))) + 0.1, 5))
         # ax[(1, 0)].set_xticklabels([])
 
         # Hessian L2-norm
@@ -1960,15 +1985,14 @@ class Artist:
 
         # Sign Hessian L2-norm
 
-        y_vals =  np.sign(hessian_f_vals)
+        y_vals = np.sign(hessian_f_vals)
         # y_vals = hessian_f_vals
         # y_vals = np.sign(y_vals)
         ax[(1, 1)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
         ax[(1, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
         ax[(1, 1)].plot(x_range, y_vals, color='red', )
         ax[(1, 1)].set_ylabel(r"$n^{-1} \  \textmd{sign} (\nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)) $")
-        ax[(1, 1)].set_xticks(np.arange(int(round(min(x_range))), int(round(max(x_range)))+0.1, 5))
-
+        ax[(1, 1)].set_xticks(np.arange(int(round(min(x_range))), int(round(max(x_range))) + 0.1, 5))
 
         # ax[(0, 2)].set_title("Hessian L2-norm")
         # y_vals = [np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1)) for x_val in x_range]
@@ -2002,14 +2026,9 @@ class Artist:
             axi.xaxis.label.set_size(12)
             axi.yaxis.label.set_size(12)
 
-
         # set labels
         plt.setp(ax[-1, :], xlabel=r"$\hat{\theta}$")
         # plt.setp(ax[:, 0], ylabel=r"$\theta_i$")
-
-
-
-
 
         fig.tight_layout()
 
@@ -2023,18 +2042,18 @@ class Artist:
                                                      colors,
                                                      labels,
                                                      folder: str = None,
-                                                     xticks = None):
+                                                     xticks=None):
 
         if folder is None:
             folder = self.folder
 
         # matplotlib.rcParams['text.usetex'] = True
 
-        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(7,6) )
+        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(7, 6))
         # fig.suptitle("Analysis of  (strict) quasiconvexity of L2 norm"
         #              "\n(theta_true = " + str(theta_true) + ")")
 
-        #Attributes
+        # Attributes
         attrs = list(results_df['attr'].unique())
 
         # Plot objective function over an interval
@@ -2064,12 +2083,10 @@ class Artist:
             ax[(0, 1)].plot(x_range, y_vals, color=color, label=label)
             ax[(0, 1)].axvline(x=theta_true[attr], color=color, linestyle='dashed', linewidth=0.5)
 
-
         # ax[(0, 2)].set_title("Sign Gradient L2-norm")
         # y_vals = [np.sign(np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1))) for x_val in x_range]
         ax[(1, 0)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
         ax[(1, 0)].set_ylabel(r"$n^{-1} \ \textmd{sign} (\nabla_{\theta} ||x(\hat{\theta})-\bar{x}||_2^2 )$")
-
 
         for attr, color, label in zip(attrs, colors, labels):
             y_vals = np.sign(results_df[results_df['attr'] == attr]['grad_f_vals'])
@@ -2102,12 +2119,10 @@ class Artist:
         ax[(1, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
         ax[(1, 1)].set_ylabel(r"$n^{-1} \  \textmd{sign} (\nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)) $")
 
-
         for attr, color, label in zip(attrs, colors, labels):
             y_vals = np.sign(results_df[results_df['attr'] == attr]['hessian_f_vals'])
             ax[(1, 1)].plot(x_range, y_vals, color=color, label=label)
             ax[(1, 1)].axvline(x=theta_true[attr], color=color, linestyle='dashed', linewidth=0.5)
-
 
         # ax[(0, 2)].set_title("Hessian L2-norm")
         # y_vals = [np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1)) for x_val in x_range]
@@ -2181,7 +2196,7 @@ class Artist:
                                       folder: str = None,
                                       grad_f_vals=None,
                                       hessian_f_vals=None,
-                                      color = None):
+                                      color=None):
 
         if folder is None:
             folder = self.folder
@@ -2191,7 +2206,7 @@ class Artist:
         if color is None:
             color = 'red'
 
-        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(7,6))
+        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(7, 6))
         # fig.suptitle("Analysis of  (strict) quasiconvexity of L2 norm"
         #              "\n(theta_true = " + str(theta_true) + ")")
 
@@ -2208,7 +2223,6 @@ class Artist:
         # r"$\hat{\theta}$"
 
         if grad_f_vals is not None:
-
             # ax[(0, 1)].set_title("Gradient L2-norm")
             # y_vals = [np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1)) for x_val in x_range]
             y_vals = grad_f_vals
@@ -2247,14 +2261,13 @@ class Artist:
             # Sign Hessian L2-norm
 
         if hessian_f_vals is not None:
-            y_vals =  np.sign(hessian_f_vals)
+            y_vals = np.sign(hessian_f_vals)
             # y_vals = hessian_f_vals
             # y_vals = np.sign(y_vals)
             ax[(1, 1)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
             ax[(1, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
             ax[(1, 1)].plot(x_range, y_vals, color=color, )
             ax[(1, 1)].set_ylabel(r"$n^{-1} \  \textmd{sign} (\nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)) $")
-
 
         # ax[(0, 2)].set_title("Hessian L2-norm")
         # y_vals = [np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1)) for x_val in x_range]
@@ -2304,17 +2317,17 @@ class Artist:
     def consistency_experiment(self,
                                results_experiment,
                                alpha,
-                               sd_x = None,
-                               folder = None,
-                               range_initial_values = None,
-                               summary_only = True,
-                               silent_mode = True):
+                               sd_x=None,
+                               folder=None,
+                               range_initial_values=None,
+                               summary_only=True,
+                               silent_mode=True):
 
         assert 'method' in results_experiment.keys()
 
         theta_true = pd.Series(
-            data = results_experiment['theta_true'].values,
-            index = results_experiment['attr']).drop_duplicates()
+            data=results_experiment['theta_true'].values,
+            index=results_experiment['attr']).drop_duplicates()
 
         methods = results_experiment[['method']].drop_duplicates().values.flatten().tolist()
 
@@ -2334,55 +2347,56 @@ class Artist:
         # x) Summary plot (computation time, ci_width, average bias and proportion of false positives/negatives
         # matplotlib.rcParams['text.usetex'] = False
 
-        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(7,6))
+        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(7, 6))
 
         # 1) bias in estimates
         sns.boxplot(x="method", y="bias", data=results_experiment[results_experiment.attr != 'vot'], ax=ax[(0, 0)],
                     showfliers=False, color='white')
-        ax[(0, 0)].set_ylabel('bias' + r"$(\hat{\theta})$")
+        ax[(0, 0)].set_ylabel('bias ' + r"$(\hat{\theta})$")
         if range_initial_values is not None:
             ax[(0, 0)].set(ylim=range_initial_values)
 
         # 2) Bias in value of time
         sns.boxplot(x="method", y="bias",
                     data=results_experiment[results_experiment.attr == 'vot'],
-                    showfliers=False,ax=ax[(0, 1)], color='white')
-        ax[(0, 1)].set_ylabel('bias' + r"$(\hat{\theta}_t/\hat{\theta}_c)$")
+                    showfliers=False, ax=ax[(0, 1)], color='white')
+        ax[(0, 1)].set_ylabel('bias ' + r"$(\hat{\theta}_t/\hat{\theta}_c)$")
         # if range_initial_values is not None:
         #     ax[(0, 1)].set(ylim=range_initial_values)
-        ax[(0, 1)].set(ylim=(-0.2,0.2))
+        ax[(0, 1)].set(ylim=(-0.2, 0.2))
 
         if false_negatives:
-
             # 3) False negatives
             sns.barplot(x="method", y="fn",
-                        data=results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fn')],
-                        ax=ax[(1, 0)], color = 'white',errcolor="black", edgecolor="black",linewidth=1.5, errwidth=1.5)
+                        data=results_experiment[
+                            (results_experiment.attr != 'vot') & (results_experiment.f_type == 'fn')],
+                        ax=ax[(1, 0)], color='white', errcolor="black", edgecolor="black", linewidth=1.5, errwidth=1.5)
 
-            ax[(1, 0)].set_yticks(np.arange(0, 1+0.1, 0.2))
+            ax[(1, 0)].set_yticks(np.arange(0, 1 + 0.1, 0.2))
             ax[(1, 0)].axhline(0, linestyle='--', color='gray')
             ax[(1, 0)].set(ylim=(0, 1.05))
-            ax[(1, 0)].set_ylabel('false negatives [%]')
+            ax[(1, 0)].set_ylabel('false negatives')
 
         if false_positives:
 
             # 4) False positives
             sns.barplot(x="method", y="fp",
-                        data= results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fp')],
-                        ax=ax[(1, 1)], color = 'white',errcolor="black", edgecolor="black",linewidth=1.5, errwidth=1.5)
+                        data=results_experiment[
+                            (results_experiment.attr != 'vot') & (results_experiment.f_type == 'fp')],
+                        ax=ax[(1, 1)], color='white', errcolor="black", edgecolor="black", linewidth=1.5, errwidth=1.5)
             # sns.catplot(x="level", y="fn", hue = 'kind', kind = 'point'
             #     , data=results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fp')], ax=ax[(1, 1)], color = 'white',errcolor="black", edgecolor="black",linewidth=1.5, errwidth=1.5)
-            ax[(1, 1)].set_yticks(np.arange(0, 1+0.1, 0.2))
+            ax[(1, 1)].set_yticks(np.arange(0, 1 + 0.1, 0.2))
             ax[(1, 1)].set(ylim=(0, 1.05))
-            ax[(1, 1)].set_ylabel('false positives [%]')
+            ax[(1, 1)].set_ylabel('false positives')
 
         elif sd_x is not None:
 
             # NRMSE
             sns.barplot(x="method", y="nrmse", data=results_experiment, color="white",
-                        errcolor = "black", edgecolor = "black", linewidth = 1.5, errwidth = 1.5, ax=ax[(1, 1)])
+                        errcolor="black", edgecolor="black", linewidth=1.5, errwidth=1.5, ax=ax[(1, 1)])
             ax[(1, 1)].set_yticks(np.arange(0, 1 + 0.1, 0.2))
-            ax[(1, 1)].set(ylim=(0, 1 ))
+            ax[(1, 1)].set(ylim=(0, 1))
             ax[(1, 1)].set_ylabel("nrmse")
 
 
@@ -2395,13 +2409,16 @@ class Artist:
             ax[(1, 1)].axhline(0, linestyle='--', color='gray')
 
         # Change color style to white and black in box plots
-        for axi in [ax[(0, 0)],ax[(0, 1)]]:
+        for axi in [ax[(0, 0)], ax[(0, 1)]]:
             for i, box in enumerate(axi.patches):
                 box.set_edgecolor('black')
                 box.set_facecolor('white')
 
             plt.setp(axi.patches, edgecolor='k', facecolor='w')
             plt.setp(axi.lines, color='k')
+
+            plt.setp(axi.artists, edgecolor='black', facecolor='white')
+
 
         ax[(0, 0)].axhline(0, linestyle='--', color='gray')
         ax[(0, 1)].axhline(0, linestyle='--', color='gray')
@@ -2459,13 +2476,11 @@ class Artist:
             plt.cla()
             plt.close()
 
-
-
         # (i) Facet of box plots for distribution of  parameter estimates and among estimation methods
 
         g = sns.catplot(
             data=results_experiment[results_experiment.attr != 'vot'], x='method', y='theta', palette="Set1",
-            col='attr', kind='box', col_wrap=2, sharey=False, sharex=False, showfliers=False, height=2, color= '#abc9ea',
+            col='attr', kind='box', col_wrap=2, sharey=False, sharex=False, showfliers=False, height=2, color='#abc9ea',
         )
 
         def horizontal_theta_true_line(x, **kwargs):
@@ -2496,17 +2511,14 @@ class Artist:
 
         # fig.savefig(self.folder + '/' + network_name + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
 
-
-
         # (ii) Facet of box plots for distribution of bias in parameter estimates and estimation methods.
 
         # bias computation
         # results_experiment['theta_true'] = 0
 
-
         g = sns.catplot(
             data=results_experiment[results_experiment.attr != 'vot'], x='attr', y='bias', palette="Set1",
-            col='method', kind='box', col_wrap=2, sharey=True, sharex=False, showfliers=False, height=2, color= '#abc9ea'
+            col='method', kind='box', col_wrap=2, sharey=True, sharex=False, showfliers=False, height=2, color='#abc9ea'
         )
 
         def horizontal_theta_true_line(x, **kwargs):
@@ -2521,7 +2533,7 @@ class Artist:
         # titles = methods
         # for ax, title in zip(g.axes.flatten(), titles):
         #     ax.set_title(title)
-            # ax.tick_params(labelbottom=True)
+        # ax.tick_params(labelbottom=True)
         # plt.ylabel()
 
         g.fig.tight_layout()
@@ -2587,8 +2599,8 @@ class Artist:
         results_experiment_plot = results_experiment_plot.melt(['attr', 'method'], var_name='cols', value_name='vals')
         results_experiment_plot['cols'] = results_experiment_plot['method']
 
-        g = sns.displot(results_experiment_plot, col='cols', hue="attr", x="vals", palette="Set1", kde = True, legend = True
-                          , height=2, col_wrap=2, facet_kws={'sharey': False, 'sharex': False})
+        g = sns.displot(results_experiment_plot, col='cols', hue="attr", x="vals", palette="Set1", kde=True, legend=True
+                        , height=2, col_wrap=2, facet_kws={'sharey': False, 'sharex': False})
 
         # plt.show()
 
@@ -2609,7 +2621,7 @@ class Artist:
         g.set_axis_labels("t-value", "freq")
 
         # titles = ['no refined opt', 'refined opt', 'combined opt']
-        titles = methods # ['ngd', 'gn', 'ngd+gn']
+        titles = methods  # ['ngd', 'gn', 'ngd+gn']
         for ax, title in zip(g.axes.flatten(), titles):
             ax.set_title(title)
             # ax.tick_params(labelbottom=True)
@@ -2662,8 +2674,6 @@ class Artist:
             plt.cla()
             plt.close()
 
-
-
         # (vi) Distribution of pvalues
 
         g = sns.catplot(
@@ -2695,8 +2705,6 @@ class Artist:
             plt.cla()
             plt.close()
 
-
-
         # vii) False positives and negatives
 
         h0 = 0
@@ -2727,16 +2735,15 @@ class Artist:
         fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(4, 2.5))
 
         if 'fp' in list(set(results_experiment.f_type.values)):
-
             sns.barplot(x="method", y="fp",
-                        data=results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fp')]
+                        data=results_experiment[
+                            (results_experiment.attr != 'vot') & (results_experiment.f_type == 'fp')]
                         , ax=ax[(1)])
 
-
         if 'fn' in list(set(results_experiment.f_type.values)):
-
             sns.barplot(x="method", y="fn",
-                        data=results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fn')]
+                        data=results_experiment[
+                            (results_experiment.attr != 'vot') & (results_experiment.f_type == 'fn')]
                         , ax=ax[(0)])
 
         for axi in fig.get_axes():
@@ -2762,8 +2769,6 @@ class Artist:
             plt.clf()
             plt.cla()
             plt.close()
-
-
 
         # (viii) Confidence intervals
 
@@ -2793,11 +2798,7 @@ class Artist:
             plt.cla()
             plt.close()
 
-
-
         # matplotlib.rcParams['text.usetex'] = True
-
-
 
         # matplotlib.rcParams['text.usetex'] = True
 
@@ -2808,13 +2809,13 @@ class Artist:
                           folder: str = None,
                           range_initial_values=None,
                           summary_only=True,
-                          silent_mode = True):
+                          silent_mode=True):
 
         assert 'level' in results_experiment.keys()
 
         theta_true = pd.Series(
-            data = results_experiment['theta_true'].values,
-            index = results_experiment['attr']).drop_duplicates()
+            data=results_experiment['theta_true'].values,
+            index=results_experiment['attr']).drop_duplicates()
 
         levels = results_experiment[['level']].drop_duplicates().values.flatten().tolist()
 
@@ -2825,11 +2826,12 @@ class Artist:
 
         # matplotlib.rcParams['text.usetex'] = False
 
-        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(7,6))
+        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(7, 6))
 
         # 1) bias in estimates
-        sns.boxplot(x="level", y="bias", data=results_experiment[results_experiment.attr != 'vot'], color="white",ax=ax[(0, 0)],showfliers=False)
-        ax[(0, 0)].set_ylabel('bias' + r"$(\hat{\theta})$")
+        sns.boxplot(x="level", y="bias", data=results_experiment[results_experiment.attr != 'vot'], color="white",
+                    ax=ax[(0, 0)], showfliers=False)
+        ax[(0, 0)].set_ylabel('bias ' + r"$(\hat{\theta})$")
         if range_initial_values is not None:
             ax[(0, 0)].set(ylim=range_initial_values)
         # ax[(1, 0)].set_ylabel('bias ' + r"$(\hat{\theta} - \theta)$")
@@ -2855,11 +2857,10 @@ class Artist:
         # 2) NRMSE
 
         sns.barplot(x="level", y="nrmse", data=results_experiment, color="white",
-                    errcolor = "black", edgecolor = "black", linewidth = 1.5, errwidth = 1.5, ax=ax[(0, 1)])
+                    errcolor="black", edgecolor="black", linewidth=1.5, errwidth=1.5, ax=ax[(0, 1)])
         ax[(0, 1)].set_yticks(np.arange(0, 1 + 0.1, 0.2))
         ax[(0, 1)].set(ylim=(0, 1))
         ax[(0, 1)].set_ylabel("nrmse")
-
 
         # 3) False negatives
         sns.pointplot(x="level", y="fn",
@@ -2868,20 +2869,22 @@ class Artist:
                       scale=0.7, capsize=.2)
 
         ax[(1, 0)].axhline(0, linestyle='--', color='gray')
-        ax[(1, 0)].set_yticks(np.arange(0, 1+0.1, 0.2))
+        ax[(1, 0)].set_yticks(np.arange(0, 1 + 0.1, 0.2))
         ax[(1, 0)].set(ylim=(-0.05, 1.05))
-        ax[(1, 0)].set_ylabel('false negatives [%]')
+        ax[(1, 0)].set_ylabel('false negatives')
 
         if 'fp' in list(set(results_experiment.f_type.values)):
             # 4) False positives
             sns.pointplot(x="level", y="fp",
-                          data=results_experiment[(results_experiment.attr != 'vot') & (results_experiment.f_type == 'fp')],
-                          ax=ax[(1, 1)], color='black', errcolor="black", edgecolor="black", linewidth=1.5, errwidth=1.5,
+                          data=results_experiment[
+                              (results_experiment.attr != 'vot') & (results_experiment.f_type == 'fp')],
+                          ax=ax[(1, 1)], color='black', errcolor="black", edgecolor="black", linewidth=1.5,
+                          errwidth=1.5,
                           scale=0.7, capsize=.2)
 
-            ax[(1, 1)].set_yticks(np.arange(0, 1+0.1, 0.2))
+            ax[(1, 1)].set_yticks(np.arange(0, 1 + 0.1, 0.2))
             ax[(1, 1)].set(ylim=(-0.05, 1.05))
-            ax[(1, 1)].set_ylabel('false positives [%]')
+            ax[(1, 1)].set_ylabel('false positives')
 
         # Change color style to white and black in box plots
         for axi in [ax[(0, 0)]]:
@@ -2892,6 +2895,8 @@ class Artist:
             plt.setp(axi.patches, edgecolor='black', facecolor='white')
             plt.setp(axi.lines, color='black')
 
+            plt.setp(axi.artists, edgecolor='black', facecolor='white')
+
         ax[(0, 0)].axhline(0, linestyle='--', color='gray')
         ax[(0, 1)].axhline(sd_x, linestyle='--', color='gray')
         ax[(1, 0)].axhline(0, linestyle='--', color='gray')
@@ -2900,7 +2905,6 @@ class Artist:
         fig.tight_layout()
 
         self.save_fig(fig, folder, 'inference_summary')
-
 
         if summary_only:
             return
@@ -3165,21 +3169,17 @@ class Artist:
 
         fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(4, 2.5))
 
-
-
         if 'fp' in list(set(results_experiment.f_type.values)):
             sns.barplot(x="level", y="fp",
                         data=results_experiment[
                             (results_experiment.attr != 'vot') & (results_experiment.f_type == 'fp')]
                         , ax=ax[(1)])
 
-
         if 'fn' in list(set(results_experiment.f_type.values)):
             sns.barplot(x="level", y="fn",
                         data=results_experiment[
                             (results_experiment.attr != 'vot') & (results_experiment.f_type == 'fn')]
                         , ax=ax[(0)])
-
 
         for axi in fig.get_axes():
             # plt.setp(axi.xaxis.get_majorticklabels(), rotation=90)
@@ -3234,19 +3234,18 @@ class Artist:
             plt.close()
 
 
-
 def draw_networkx_digraph_edge_labels(G, pos,
-                              edge_labels=None,
-                              label_pos=0.5,
-                              font_size=10,
-                              font_color='k',
-                              font_family='sans-serif',
-                              font_weight='normal',
-                              alpha=None,
-                              bbox=None,
-                              ax=None,
-                              rotate=True,
-                              **kwds):
+                                      edge_labels=None,
+                                      label_pos=0.5,
+                                      font_size=10,
+                                      font_color='k',
+                                      font_family='sans-serif',
+                                      font_weight='normal',
+                                      alpha=None,
+                                      bbox=None,
+                                      ax=None,
+                                      rotate=True,
+                                      **kwds):
     """Modify networkX to Draw edge labels so it properly draw and put labels for DIgraph with bidrectional edges. Not working for multidigraphs
 
     Parameters
@@ -3326,17 +3325,17 @@ def draw_networkx_digraph_edge_labels(G, pos,
     if ax is None:
         ax = plt.gca()
     if edge_labels is None:
-        labels = nx.get_edge_attributes(G,'rad')
+        labels = nx.get_edge_attributes(G, 'rad')
         # labels = {u[0]: v[3] for u, v in zip(G.edges,G.edges(data=True))}
     else:
         labels = edge_labels
     text_items = {}
     for (n1, n2, p), label in labels.items():
 
-        label = np.round(label,1)
+        label = np.round(label, 1)
 
-        (x1, y1) = pos[n1] #+ (label['rad'],label['rad'])
-        (x2, y2) = pos[n2] #+ (label['rad'],label['rad'])
+        (x1, y1) = pos[n1]  # + (label['rad'],label['rad'])
+        (x2, y2) = pos[n2]  # + (label['rad'],label['rad'])
         _norm = ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
         (x, y) = (x1 * label_pos + x2 * (1.0 - label_pos),
                   y1 * label_pos + y2 * (1.0 - label_pos))
@@ -3345,13 +3344,12 @@ def draw_networkx_digraph_edge_labels(G, pos,
         # source: https://math.stackexchange.com/questions/995659/given-two-points-find-another-point-a-perpendicular-distance-away-from-the-midp
 
         # Understand what radians means in terms of distance to locate more accurately the link label from the middle points between nodes
-        d = label*_norm/np.pi
+        d = label * _norm / np.pi
         # d = np.sqrt(label)
-        (x, y) = (x - d * (y1-y2)/_norm, y - d * (x2-x1)/_norm)
+        (x, y) = (x - d * (y1 - y2) / _norm, y - d * (x2 - x1) / _norm)
 
         # x += offset * (y2 - y1) / _norm
         # y += offset * -(x2 - x1) / _norm
-
 
         # rotate = False
         if rotate:

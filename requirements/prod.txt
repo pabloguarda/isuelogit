@@ -1,9 +1,4 @@
-# List of packages for production
-
 wheel ==0.33.6
-
-pyspark == 3.0
-findspark == 2.0.1
 
 numpy == 1.21.5
 pandas == 1.3.5
@@ -27,3 +22,6 @@ shapely == 1.8.1.post1
 sortedcontainers==2.4.0
 requests==2.27.1
 bs4 == 0.0.1
+
+#pyspark == 3.0
+#findspark == 2.0.1

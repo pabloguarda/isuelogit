@@ -1,0 +1,153 @@
+action: GLOB, msg: packaging
+cwd: /Users/pablo/OneDrive/data-science/github/isuelogit
+cmd: /Users/pablo/OneDrive/data-science/github/isuelogit/venv-isuelogit/bin/python setup.py sdist --formats=zip --dist-dir .tox/dist
+running sdist
+running egg_info
+/Users/pablo/OneDrive/data-science/github/isuelogit/venv-isuelogit/lib/python3.7/site-packages/setuptools/_distutils/dist.py:275: UserWarning: Unknown distribution option: 'test_requires'
+  warnings.warn(msg)
+warning: no files found matching '*.txt'
+warning: no previously-included files matching '__pycache__' found under directory '*'
+warning: no files found matching '*.jpg' under directory 'docs'
+warning: no files found matching '*.png' under directory 'docs'
+warning: no files found matching '*.gif' under directory 'docs'
+writing manifest file 'src/isuelogit.egg-info/SOURCES.txt'
+running check
+creating isuelogit-0.1.0
+creating isuelogit-0.1.0/docs
+creating isuelogit-0.1.0/src
+creating isuelogit-0.1.0/src/extra
+creating isuelogit-0.1.0/src/isuelogit
+creating isuelogit-0.1.0/src/isuelogit.egg-info
+creating isuelogit-0.1.0/tests
+copying AUTHORS.rst -> isuelogit-0.1.0
+copying CONTRIBUTING.rst -> isuelogit-0.1.0
+copying HISTORY.rst -> isuelogit-0.1.0
+copying LICENSE -> isuelogit-0.1.0
+copying MANIFEST.in -> isuelogit-0.1.0
+copying README.rst -> isuelogit-0.1.0
+copying setup.cfg -> isuelogit-0.1.0
+copying setup.py -> isuelogit-0.1.0
+copying docs/Makefile -> isuelogit-0.1.0/docs
+copying docs/authors.rst -> isuelogit-0.1.0/docs
+copying docs/conf.py -> isuelogit-0.1.0/docs
+copying docs/contributing.rst -> isuelogit-0.1.0/docs
+copying docs/history.rst -> isuelogit-0.1.0/docs
+copying docs/index.rst -> isuelogit-0.1.0/docs
+copying docs/installation.rst -> isuelogit-0.1.0/docs
+copying docs/make.bat -> isuelogit-0.1.0/docs
+copying docs/modules.rst -> isuelogit-0.1.0/docs
+copying docs/readme.rst -> isuelogit-0.1.0/docs
+copying docs/usage.rst -> isuelogit-0.1.0/docs
+copying src/extra/__init__.py -> isuelogit-0.1.0/src/extra
+copying src/extra/agents.py -> isuelogit-0.1.0/src/extra
+copying src/extra/ai.py -> isuelogit-0.1.0/src/extra
+copying src/extra/beijing.py -> isuelogit-0.1.0/src/extra
+copying src/extra/chunks.py -> isuelogit-0.1.0/src/extra
+copying src/extra/cognition.py -> isuelogit-0.1.0/src/extra
+copying src/extra/extensions.py -> isuelogit-0.1.0/src/extra
+copying src/extra/infrastructure.py -> isuelogit-0.1.0/src/extra
+copying src/extra/main.py -> isuelogit-0.1.0/src/extra
+copying src/extra/pastar.py -> isuelogit-0.1.0/src/extra
+copying src/extra/simulation.py -> isuelogit-0.1.0/src/extra
+copying src/extra/system.py -> isuelogit-0.1.0/src/extra
+copying src/extra/ui.py -> isuelogit-0.1.0/src/extra
+copying src/extra/wip.py -> isuelogit-0.1.0/src/extra
+copying src/isuelogit/__init__.py -> isuelogit-0.1.0/src/isuelogit
+copying src/isuelogit/config.py -> isuelogit-0.1.0/src/isuelogit
+copying src/isuelogit/descriptive_statistics.py -> isuelogit-0.1.0/src/isuelogit
+copying src/isuelogit/equilibrium.py -> isuelogit-0.1.0/src/isuelogit
+copying src/isuelogit/estimation.py -> isuelogit-0.1.0/src/isuelogit
+copying src/isuelogit/etl.py -> isuelogit-0.1.0/src/isuelogit
+copying src/isuelogit/experiments.py -> isuelogit-0.1.0/src/isuelogit
+copying src/isuelogit/factory.py -> isuelogit-0.1.0/src/isuelogit
+copying src/isuelogit/geographer.py -> isuelogit-0.1.0/src/isuelogit
+copying src/isuelogit/links.py -> isuelogit-0.1.0/src/isuelogit
+copying src/isuelogit/mytypes.py -> isuelogit-0.1.0/src/isuelogit
+copying src/isuelogit/networks.py -> isuelogit-0.1.0/src/isuelogit
+copying src/isuelogit/nodes.py -> isuelogit-0.1.0/src/isuelogit
+copying src/isuelogit/paths.py -> isuelogit-0.1.0/src/isuelogit
+copying src/isuelogit/printer.py -> isuelogit-0.1.0/src/isuelogit
+copying src/isuelogit/reader.py -> isuelogit-0.1.0/src/isuelogit
+copying src/isuelogit/utils.py -> isuelogit-0.1.0/src/isuelogit
+copying src/isuelogit/visualization.py -> isuelogit-0.1.0/src/isuelogit
+copying src/isuelogit/writer.py -> isuelogit-0.1.0/src/isuelogit
+copying src/isuelogit.egg-info/PKG-INFO -> isuelogit-0.1.0/src/isuelogit.egg-info
+copying src/isuelogit.egg-info/SOURCES.txt -> isuelogit-0.1.0/src/isuelogit.egg-info
+copying src/isuelogit.egg-info/dependency_links.txt -> isuelogit-0.1.0/src/isuelogit.egg-info
+copying src/isuelogit.egg-info/entry_points.txt -> isuelogit-0.1.0/src/isuelogit.egg-info
+copying src/isuelogit.egg-info/not-zip-safe -> isuelogit-0.1.0/src/isuelogit.egg-info
+copying src/isuelogit.egg-info/requires.txt -> isuelogit-0.1.0/src/isuelogit.egg-info
+copying src/isuelogit.egg-info/top_level.txt -> isuelogit-0.1.0/src/isuelogit.egg-info
+copying tests/__init__.py -> isuelogit-0.1.0/tests
+copying tests/test_isuelogit.py -> isuelogit-0.1.0/tests
+creating '.tox/dist/isuelogit-0.1.0.zip' and adding 'isuelogit-0.1.0' to it
+adding 'isuelogit-0.1.0'
+adding 'isuelogit-0.1.0/tests'
+adding 'isuelogit-0.1.0/docs'
+adding 'isuelogit-0.1.0/src'
+adding 'isuelogit-0.1.0/PKG-INFO'
+adding 'isuelogit-0.1.0/LICENSE'
+adding 'isuelogit-0.1.0/CONTRIBUTING.rst'
+adding 'isuelogit-0.1.0/MANIFEST.in'
+adding 'isuelogit-0.1.0/setup.py'
+adding 'isuelogit-0.1.0/HISTORY.rst'
+adding 'isuelogit-0.1.0/AUTHORS.rst'
+adding 'isuelogit-0.1.0/setup.cfg'
+adding 'isuelogit-0.1.0/README.rst'
+adding 'isuelogit-0.1.0/tests/__init__.py'
+adding 'isuelogit-0.1.0/tests/test_isuelogit.py'
+adding 'isuelogit-0.1.0/docs/index.rst'
+adding 'isuelogit-0.1.0/docs/contributing.rst'
+adding 'isuelogit-0.1.0/docs/Makefile'
+adding 'isuelogit-0.1.0/docs/conf.py'
+adding 'isuelogit-0.1.0/docs/modules.rst'
+adding 'isuelogit-0.1.0/docs/usage.rst'
+adding 'isuelogit-0.1.0/docs/make.bat'
+adding 'isuelogit-0.1.0/docs/history.rst'
+adding 'isuelogit-0.1.0/docs/installation.rst'
+adding 'isuelogit-0.1.0/docs/authors.rst'
+adding 'isuelogit-0.1.0/docs/readme.rst'
+adding 'isuelogit-0.1.0/src/isuelogit.egg-info'
+adding 'isuelogit-0.1.0/src/extra'
+adding 'isuelogit-0.1.0/src/isuelogit'
+adding 'isuelogit-0.1.0/src/isuelogit.egg-info/PKG-INFO'
+adding 'isuelogit-0.1.0/src/isuelogit.egg-info/not-zip-safe'
+adding 'isuelogit-0.1.0/src/isuelogit.egg-info/SOURCES.txt'
+adding 'isuelogit-0.1.0/src/isuelogit.egg-info/entry_points.txt'
+adding 'isuelogit-0.1.0/src/isuelogit.egg-info/requires.txt'
+adding 'isuelogit-0.1.0/src/isuelogit.egg-info/top_level.txt'
+adding 'isuelogit-0.1.0/src/isuelogit.egg-info/dependency_links.txt'
+adding 'isuelogit-0.1.0/src/extra/simulation.py'
+adding 'isuelogit-0.1.0/src/extra/beijing.py'
+adding 'isuelogit-0.1.0/src/extra/system.py'
+adding 'isuelogit-0.1.0/src/extra/ui.py'
+adding 'isuelogit-0.1.0/src/extra/infrastructure.py'
+adding 'isuelogit-0.1.0/src/extra/ai.py'
+adding 'isuelogit-0.1.0/src/extra/__init__.py'
+adding 'isuelogit-0.1.0/src/extra/cognition.py'
+adding 'isuelogit-0.1.0/src/extra/agents.py'
+adding 'isuelogit-0.1.0/src/extra/pastar.py'
+adding 'isuelogit-0.1.0/src/extra/extensions.py'
+adding 'isuelogit-0.1.0/src/extra/wip.py'
+adding 'isuelogit-0.1.0/src/extra/main.py'
+adding 'isuelogit-0.1.0/src/extra/chunks.py'
+adding 'isuelogit-0.1.0/src/isuelogit/etl.py'
+adding 'isuelogit-0.1.0/src/isuelogit/geographer.py'
+adding 'isuelogit-0.1.0/src/isuelogit/equilibrium.py'
+adding 'isuelogit-0.1.0/src/isuelogit/config.py'
+adding 'isuelogit-0.1.0/src/isuelogit/paths.py'
+adding 'isuelogit-0.1.0/src/isuelogit/estimation.py'
+adding 'isuelogit-0.1.0/src/isuelogit/__init__.py'
+adding 'isuelogit-0.1.0/src/isuelogit/links.py'
+adding 'isuelogit-0.1.0/src/isuelogit/visualization.py'
+adding 'isuelogit-0.1.0/src/isuelogit/factory.py'
+adding 'isuelogit-0.1.0/src/isuelogit/reader.py'
+adding 'isuelogit-0.1.0/src/isuelogit/networks.py'
+adding 'isuelogit-0.1.0/src/isuelogit/experiments.py'
+adding 'isuelogit-0.1.0/src/isuelogit/utils.py'
+adding 'isuelogit-0.1.0/src/isuelogit/descriptive_statistics.py'
+adding 'isuelogit-0.1.0/src/isuelogit/mytypes.py'
+adding 'isuelogit-0.1.0/src/isuelogit/writer.py'
+adding 'isuelogit-0.1.0/src/isuelogit/nodes.py'
+adding 'isuelogit-0.1.0/src/isuelogit/printer.py'
+removing 'isuelogit-0.1.0' (and everything under it)
