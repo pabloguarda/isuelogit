@@ -528,7 +528,7 @@ class LevenbergMarquardt(SecondOrderMethod):
 
         return theta
 
-
+L
 class LevenbergMarquardtRevised(LevenbergMarquardt):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
