@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from mytypes import Union, Dict
 
-
 import matplotlib
 import pylab
 
@@ -64,6 +63,9 @@ class Artist:
             # plt.rcParams['figure.dpi'] = 30
             # plt.rcParams['savefig.dpi'] = 30
             plt.rcParams['mathtext.default'] = 'regular'
+        else:
+            matplotlib.rcParams['text.usetex'] = False
+
 
 
     @property
@@ -1193,7 +1195,7 @@ class Artist:
      yfmt4 = ScalarFormatterForceFormat()
      yfmt4.set_powerlimits((0, 0))
 
-     matplotlib.rcParams['text.usetex'] = True
+     # matplotlib.rcParams['text.usetex'] = True
 
      # i) Theta estimates in the two plots in the top
 
@@ -1385,7 +1387,7 @@ class Artist:
      ax[(1, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 4, sharey=ax[(1, 0)])
      # ax[(1, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 4)
 
-     matplotlib.rcParams['text.usetex'] = True
+     # matplotlib.rcParams['text.usetex'] = True
 
      # i) Theta estimates in the two plots in the top
 
@@ -1513,7 +1515,7 @@ class Artist:
         ax[(1, 0)] = plt.subplot(dim_subplots[0], dim_subplots[1], 3)
         ax[(1, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 4, sharey=ax[(1, 0)])
 
-        matplotlib.rcParams['text.usetex'] = True
+        # matplotlib.rcParams['text.usetex'] = True
 
         # i) Theta estimates in the two plots in the top
 
@@ -1770,7 +1772,7 @@ class Artist:
         if folder is None:
             folder = self.folder
 
-        matplotlib.rcParams['text.usetex'] = True
+        # matplotlib.rcParams['text.usetex'] = True
 
         fig, ax = plt.subplots(figsize=(5, 4))
 
@@ -1832,7 +1834,7 @@ class Artist:
         if folder is None:
             folder = self.folder
 
-        matplotlib.rcParams['text.usetex'] = True
+        # matplotlib.rcParams['text.usetex'] = True
 
         dim_subplots = (2, 2)
 
@@ -1901,7 +1903,7 @@ class Artist:
         if folder is None:
             folder = self.folder
 
-        matplotlib.rcParams['text.usetex'] = True
+        # matplotlib.rcParams['text.usetex'] = True
 
         fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(7,6))
         # fig.suptitle("Analysis of  (strict) quasiconvexity of L2 norm"
@@ -2026,7 +2028,7 @@ class Artist:
         if folder is None:
             folder = self.folder
 
-        matplotlib.rcParams['text.usetex'] = True
+        # matplotlib.rcParams['text.usetex'] = True
 
         fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(7,6) )
         # fig.suptitle("Analysis of  (strict) quasiconvexity of L2 norm"
@@ -2184,7 +2186,7 @@ class Artist:
         if folder is None:
             folder = self.folder
 
-        matplotlib.rcParams['text.usetex'] = True
+        # matplotlib.rcParams['text.usetex'] = True
 
         if color is None:
             color = 'red'
@@ -2330,7 +2332,7 @@ class Artist:
             false_negatives = True
 
         # x) Summary plot (computation time, ci_width, average bias and proportion of false positives/negatives
-        matplotlib.rcParams['text.usetex'] = False
+        # matplotlib.rcParams['text.usetex'] = False
 
         fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(7,6))
 
@@ -2766,7 +2768,7 @@ class Artist:
         # (viii) Confidence intervals
 
         # Issue with underscores https://github.com/lmfit/lmfit-py/issues/373
-        matplotlib.rcParams['text.usetex'] = False
+        # matplotlib.rcParams['text.usetex'] = False
         # fig, ax = plt.subplots(figsize=(4, 4))
         #
         # sns.barplot(x="method", y="width_confint", data=results_experiment)
@@ -2821,7 +2823,7 @@ class Artist:
 
         # x) Summary plot (computation time, ci_width, average bias and proportion of false positives/negatives
 
-        matplotlib.rcParams['text.usetex'] = False
+        # matplotlib.rcParams['text.usetex'] = False
 
         fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(7,6))
 
@@ -3206,7 +3208,7 @@ class Artist:
         # (viii) Confidence intervals
 
         # Issue with underscores https://github.com/lmfit/lmfit-py/issues/373
-        matplotlib.rcParams['text.usetex'] = False
+        # matplotlib.rcParams['text.usetex'] = False
         # fig, ax = plt.subplots(figsize=(4, 4))
         #
         # sns.barplot(x="level", y="width_confint", data=results_experiment)
