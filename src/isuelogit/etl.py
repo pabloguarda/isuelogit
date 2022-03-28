@@ -28,21 +28,360 @@ import datetime
 # SPARK (environment setup)
 #=============================================================================
 
-class SparkReader:
 
-    # Loading spark sub libraries
-    import findspark
-    import pyspark
-
-    from pyspark.sql.types import StructType, StructField, DateType, IntegerType, TimestampType, DoubleType, \
-        BooleanType, StringType
-
-    from pyspark.sql import SQLContext
-    from pyspark.sql import SparkSession
-
-    # from pyspark.sql.functions import *
-    from pyspark.sql import functions as F
+class DataReader:
     
+    def __init__(self, setup_spark = False, network_key:str = None):
+
+        self._setup_spark = setup_spark
+
+        if setup_spark:
+            
+            self.spark_reader = SparkReader()
+
+            # Set number of cores
+            # https://stackoverflow.com/questions/21791723/why-is-spark-not-using-all-cores-on-local-machine
+            # sc, sqlContext = self.setup_spark_context(n_cores=1, ram_memory=1)
+            # # sc = self.setup_spark_context()
+
+        self.set_default_options()
+
+        if network_key == 'Fresno':
+            self.set_default_options_fresno()
+
+    def read_pems_counts_data(self, **kwargs):
+        return self.spark_reader.read_pems_counts_data(**kwargs)
+
+    def read_pems_counts_by_period(self, **kwargs):
+        return self.spark_reader.read_pems_counts_by_period(**kwargs)
+    
+    def selected_period_filter(self, **kwargs):
+        return self.spark_reader.selected_period_filter(**kwargs)
+
+    def read_inrix_data(self, **kwargs):
+        return self.spark_reader.read_inrix_data(**kwargs)
+
+    def generate_inrix_data_by_segment(self, **kwargs):
+        return self.spark_reader.generate_inrix_data_by_segment(**kwargs)
+
+    def write_partition_inrix_data(self, **kwargs):
+        self.spark_reader.write_partition_inrix_data(**kwargs)
+
+    def read_traffic_incidents(self, **kwargs):
+        return self.spark_reader.read_traffic_incidents(**kwargs)
+        
+
+    def set_default_options(self):
+
+        self.options = Options()
+
+
+    def set_default_options_fresno(self):
+
+        options = {}
+
+        options['selected_date'] = None
+        options['selected_hour'] = None
+        options['selected_year'] = None
+        options['selected_month'] = None
+        options['selected_day_month'] = None
+
+        # - Matching GIS layers with inrix instead of the network links.
+        options['inrix_matching'] = {'census': False, 'incidents': False, 'bus_stops': False, 'streets_intersections': False}
+
+        # - Buffer (in feets, which is the unit of the CA crs)
+        options['buffer_size'] = {'inrix': 0, 'bus_stops': 0, 'incidents': 0, 'streets_intersections': 0}
+        options['tt_units'] = 'minutes'
+        options['update_ff_tt_inrix'] = False
+
+        options['data_processing'] = {'inrix_segments': False, 'inrix_data': False, 'census': False,
+                                      'incidents': False, 'bus_stops': False, 'streets_intersections': False}
+
+        options['write_inrix_daily_data'] = False
+        options['read_inrix_daily_data'] = True
+
+        # - Periods (6 periods of 15 minutes each for Fresno)
+        options['od_periods'] = []
+
+        options['selected_period_incidents'] = {}
+
+        self.update_options(**options)
+
+    def get_updated_options(self, **kwargs):
+        return copy.deepcopy(self.options.get_updated_options(new_options=kwargs))
+
+    def update_options(self,**kwargs):
+        self.options = self.get_updated_options(**kwargs)
+
+    def select_period(self,
+                      date,
+                      hour) -> None:
+
+        self.options['selected_date'] = date
+
+        # Period selected for data analysis
+        self.options['selected_hour'] = hour
+
+        self.options['selected_date_datetime'] = datetime.date.fromisoformat(
+            self.options['selected_date'])
+
+        # Get year, day of month, month and day of week using datetime package functionalities
+        self.options['selected_year'] = self.options['selected_date_datetime'].year
+        self.options['selected_day_month'] = self.options['selected_date_datetime'].day
+        self.options['selected_month'] = self.options['selected_date_datetime'].month
+        self.options['selected_day_week'] = int(
+            self.options['selected_date_datetime'].strftime('%w')) + 1
+
+        # Note: for consistency with spark, the weekday number from datetime was changed a bit
+        # https://stackoverflow.com/questions/9847213/how-do-i-get-the-day-of-week-given-a-date
+
+        print('\nSelected date is ' + self.options['selected_date'] + ', ' + self.options[
+            'selected_date_datetime'].strftime('%A') + ' at ' + str(self.options['selected_hour']) + ':00')
+
+        # Examples:
+
+        # October 1, 2020 is Thursday (day_week = 5).
+        # self.options['selected_year'] = 2020
+        # self.options['selected_date'] = '2020-10-01'
+        # print('\nSelected period is October 1, 2020, Thursday at ' + str(self.options['selected_hour']) + ':00' )
+
+        # October 1, 2019 is Tuesday  (day_week = 3).
+        # self.options['selected_year'] = 2019
+        # self.options['selected_date'] = '2019-10-01'
+        # print('\nSelected period is October 1, 2019, Tuesday at ' + str(self.options['selected_hour']) + ':00' )
+
+        self.options['selected_period_inrix'] = \
+            {'year': [self.options['selected_year']],
+             'month': [self.options['selected_month']],
+             'day_month': [self.options['selected_day_month']],
+             'hour': [self. options['selected_hour'] - 1,
+                      self.options['selected_hour']]}
+
+        self.options['selected_period_inrix'] = {}
+
+        # config.estimation_options['selected_period_inrix'] = \
+        #     {'year': [config.estimation_options['selected_year']], 'month': [config.estimation_options['selected_month']]}
+        # config.estimation_options['selected_period_inrix'] = \
+        #     {'year': [config.estimation_options['selected_year']], 'month': [config.estimation_options['selected_month']], 'day_week': config.estimation_options['selected_day_week'], 'hour': [config.estimation_options['selected_hour']]}
+
+    def download_pems_data(self, path_download, years):
+
+        # Download pems data (Note that 2001 data have 0 for all rows so that info is useless)
+
+        # TODO: add the option to download data from specific date, months and years, and district.
+        # Meanwhile I manually download data from Oct 2020 and 2019 but script is working
+
+        # isuelogit.utils.download_pems_data(path_download = os.getcwd() + '/data/public/pems/counts/raw'
+        #                    , years = [str(e) for e in range(2019, 2021)]
+        #                    )
+
+        # TODO: Use a separate process to download the data.
+
+        # TODO: write script to download station metadata. An alternative is provide the type of data in the current download method. Meanwhile I downloaded manually the earliest file for 2019 (d04_text_meta_2021_01_29). I should download data from all stations in california, as it is not clear what it is the mapping between counties and districts. Districts is an internal defition from Caltrans.
+
+        # District and counties list https://en.wikipedia.org/wiki/California_Department_of_Transportation
+        # Fresno is district 6.
+
+
+        url = "http://pems.dot.ca.gov"
+        payload = {'username': 'pabloguarda@cmu.edu', 'password': 'PaulCmu1087*'}
+        target_url = 'http://pems.dot.ca.gov/?srq=clearinghouse&district_id=4&geotag=null&yy={year}&type=station_5min&returnformat=text'
+
+        # The current link structure is a bit different:
+        # http://pems.dot.ca.gov/?dnode=Clearinghouse&type=station_5min&district_id=4&submit=Submit
+
+        data_page_list = list()
+        with requests.Session() as s:
+            con = s.post(url, data=payload, verify=False)
+            for year in years:
+                tmp_page = s.get(target_url.format(year=year))
+                data_page_list.append(tmp_page)
+
+        def get_download_url_dict(url_dict, j):
+            data = j['data']
+            for month in data.keys():
+                tmp_list = data[month]
+                for e in tmp_list:
+                    url_dict[e['file_name']] = e['url']
+
+        url_dict = dict()
+        for data_page in data_page_list:
+            page_text = data_page.text
+            j = json.loads(page_text)
+            try:
+                get_download_url_dict(url_dict, j)
+            except:
+                continue
+
+        save_path = path_download
+        sorted_file = sorted(list(url_dict.keys()))
+
+        assert os.path.exists(save_path), 'path of folder to download data does not exist'
+
+        with requests.Session() as s:
+            con = s.post(url, data=payload, verify=False)
+            for name in sorted_file:
+                try:
+                    tail_url = url_dict[name]
+                    print("Now processing:", name, tail_url)
+                    r = s.get(url + tail_url, stream=True)
+                    if r.status_code == 200:
+                        with open(os.path.join(save_path, name), 'wb') as f:
+                            r.raw.decode_content = True
+                            shutil.copyfileobj(r.raw, f)
+                except:
+                    print("FAIL:", name, tail_url)
+
+    def merge_inrix_data(self,
+                         links: Links,
+                         speed_df,
+                         options: {}) -> None:
+
+        print('Merging INRIX data of speeds and travel times with network links')
+
+        for link in links:
+
+            ## Default value for speed avg is the link free flow speed (mi/h)
+            # Default value is 0
+            link.Z_dict['speed_avg'] = 0 #.Z_dict['ff_speed']
+            link.Z_dict['speed_ref_avg'] = 0 #link.Z_dict['ff_speed']
+            link.Z_dict['speed_hist_avg'] = 0 # link.Z_dict['ff_speed']
+            link.Z_dict['tt_avg'] = 0 # link.Z_dict['ff_traveltime']
+
+
+            # Note: length is in miles according to Sean's files
+
+            # Default value for the standard deviation of speed is 0 (it is assumed that a segment not part of inrix, it is a segment with low congestion)
+            link.Z_dict['speed_max'] = 0
+            link.Z_dict['speed_sd'] = 0
+            link.Z_dict['speed_cv'] = 0
+            link.Z_dict['speed_hist_sd'] = 0
+            link.Z_dict['speed_ref_sd'] = 0
+
+            link.Z_dict['tt_sd'] = 0
+            link.Z_dict['tt_var'] = 0
+
+            link.Z_dict['tt_cv'] = 0
+
+            link.Z_dict['tt_sd_adj'] = 0
+
+            link.Z_dict['road_closures'] = 0
+
+            if link.inrix_id is not None:
+                # speed_segment_sdf = speed_sdf.where(self.F.col("segment_id").isin([link.inrix_id]))
+                inrix_features = speed_df.loc[speed_df.segment_id == int(link.inrix_id)]
+
+                if len(inrix_features) > 0:
+
+                    # print(inrix_features['speed_avg'])
+                    # print(link.inrix_id)
+                    link.inrix_features = {
+                        'speed_max': float(inrix_features['speed_max'])
+                        , 'speed_avg': float(inrix_features['speed_avg'])
+                        , 'speed_sd': float(inrix_features['speed_sd'])
+                        , 'speed_cv': float(inrix_features['speed_cv'])
+
+                        , 'speed_ref_avg': float(inrix_features['speed_ref_avg'])
+                        , 'speed_ref_sd': float(inrix_features['speed_ref_sd'])
+
+                        , 'speed_hist_avg': float(inrix_features['speed_hist_avg'])
+                        , 'speed_hist_sd': float(inrix_features['speed_hist_sd'])
+
+                        , 'traveltime_avg': float(inrix_features['traveltime_avg'])
+                        , 'traveltime_sd': float(inrix_features['traveltime_sd'])
+                        , 'traveltime_var': float(inrix_features['traveltime_var'])
+                        , 'traveltime_cv': float(inrix_features['traveltime_cv'])
+
+                        , 'road_closure_avg': float(inrix_features['road_closure_avg'])
+                        , 'road_closure_any': float(inrix_features['road_closure_any'])
+
+                    }
+
+                # link.inrix_features = inrix_features[]
+
+                    # For travel time, I should consider a normalization
+
+                    link.Z_dict['speed_max'] = link.inrix_features['speed_max']
+                    link.Z_dict['speed_avg'] = link.inrix_features['speed_avg']
+                    link.Z_dict['speed_sd'] = link.inrix_features['speed_sd']
+
+                    link.Z_dict['speed_ref_avg'] = link.inrix_features['speed_ref_avg']
+                    link.Z_dict['speed_ref_sd'] = link.inrix_features['speed_ref_sd']
+
+                    link.Z_dict['speed_hist_avg'] = link.inrix_features['speed_hist_avg']
+                    link.Z_dict['speed_hist_sd'] = link.inrix_features['speed_hist_sd']
+
+                    link.Z_dict['tt_cv'] = link.inrix_features['traveltime_cv']
+                    link.Z_dict['speed_cv'] = link.inrix_features['speed_cv']
+
+                    if options['tt_units'] == 'seconds':
+                        tt_factor = 60
+
+                    if options['tt_units'] == 'minutes':
+                        tt_factor = 1
+
+                    link.Z_dict['tt_avg'] = tt_factor*link.inrix_features['traveltime_avg']
+                    link.Z_dict['tt_sd'] = tt_factor*link.inrix_features['traveltime_sd']
+                    link.Z_dict['tt_var'] = tt_factor**2 * link.inrix_features['traveltime_var']
+
+                    #Road closures are an interesting features from INRIX data but they occur 0.01% of the time.
+                    link.Z_dict['road_closures'] = link.inrix_features['road_closure_any']
+
+
+        # # Filter rows from segment ids that were matched with network links
+        #
+        # speed_sdf.where(self.F.col("segment_id").isin(["CB", "CI", "CR"]))
+        #
+        # speed_sdf.show()
+        # speed_sdf.count()
+        #
+        # speed_sdf.select('segment_id')
+
+    def read_bus_stops_txt(self, filepath: str) -> pd.DataFrame:
+
+        stops_df = pd.read_csv(filepath, header=0, delimiter=',')
+
+        # stop_id,stop_code,stop_name,stop_desc,stop_lat,stop_lon,zone_id,stop_url,location_type,parent_station,stop_timezone,wheelchair_boarding
+
+        return stops_df
+
+    def read_spatiotemporal_data_fresno(self,
+                                        *args,
+                                        **kwargs):
+        network = kwargs.pop('network', None)
+
+        self.update_options(**kwargs)
+
+        if self._setup_spark is False:
+            self._sc, self._sqlContext = self.setup_spark_context()
+            self.clear_sql_cache()
+            self._setup_spark = True
+
+
+        return read_spatiotemporal_data_fresno(data_analyst = self,
+                                               network = network,
+                                               **self.options)
+
+
+class SparkReader:
+    # Loading spark sub libraries
+
+    try:
+        import findspark
+        import pyspark
+
+        from pyspark.sql.types import StructType, StructField, DateType, IntegerType, TimestampType, DoubleType, \
+            BooleanType, StringType
+
+        from pyspark.sql import SQLContext
+        from pyspark.sql import SparkSession
+
+        # from pyspark.sql.functions import *
+        from pyspark.sql import functions as F
+
+    except ImportError:
+        pass
+
     def __init__(self):
 
         # Setup spark context
@@ -242,12 +581,12 @@ class SparkReader:
             delta_minutes = selected_period['duration'] - delta_hours * 60
 
             count_interval_sdf = counts_sdf.filter((counts_sdf.hour >= selected_period['hour']) & (
-                        counts_sdf.hour <= selected_period['hour'] + delta_hours))
+                    counts_sdf.hour <= selected_period['hour'] + delta_hours))
 
             if delta_minutes > 0:
                 count_interval_sdf = count_interval_sdf.filter(
                     (count_interval_sdf.hour >= selected_period['hour'] + delta_hours) & (
-                                count_interval_sdf.minute <= delta_minutes))
+                            count_interval_sdf.minute <= delta_minutes))
 
         else:
             count_interval_sdf = counts_sdf
@@ -610,7 +949,7 @@ class SparkReader:
                 path = output_folderpath + str(target_date) + '.csv'
 
                 filtered_data.toPandas().to_csv(path, index=False)
-                
+
     def read_traffic_incidents(self, filepath: str, selected_period: {}) -> pd.DataFrame:
 
         print('\nReading traffic incidents data')
@@ -619,7 +958,8 @@ class SparkReader:
 
         # traffic_incidents_df = pd.read_csv(filepath)
 
-        selected_columns = ['Severity', 'Start_Time', 'End_Time', 'Start_Lat', 'Start_Lng', 'End_Lat', 'End_Lng', 'County']
+        selected_columns = ['Severity', 'Start_Time', 'End_Time', 'Start_Lat', 'Start_Lng', 'End_Lat', 'End_Lng',
+                            'County']
 
         # selected_columns_schema = [ \
         #     self.StructField('Severity', self.StringType(), True), \
@@ -637,7 +977,7 @@ class SparkReader:
 
         incidents_sdf = incidents_sdf.filter(incidents_sdf.County == 'Fresno')
 
-        incidents_sdf = incidents_sdf\
+        incidents_sdf = incidents_sdf \
             .withColumn('year', self.F.year(incidents_sdf.Start_Time)) \
             .withColumn('month', self.F.month(incidents_sdf.Start_Time)) \
             .withColumn('day_month', self.F.dayofmonth(incidents_sdf.Start_Time)) \
@@ -663,357 +1003,19 @@ class SparkReader:
         #
         # if 'minute' in selected_period.keys():
 
-
         # if 'hour' in selected_period.keys():
         #
         #     count_interval_sdf = incidents_sdf.filter(
         #         (incidents_sdf.year == selected_time['hour']) & (counts_sdf.hour <= selected_time['hour'] + duration))
 
-
-
-        #incidents_sdf.groupBy('year').count().show()
-        #incidents_sdf.count()
+        # incidents_sdf.groupBy('year').count().show()
+        # incidents_sdf.count()
 
         incidents_df = incidents_period_sdf.toPandas()
 
         # printer.enablePrint()
 
         return incidents_df
-
-
-
-class DataReader:
-    
-    def __init__(self, setup_spark = False, network_key:str = None):
-
-        self._setup_spark = setup_spark
-
-        if setup_spark:
-            
-            self.spark_reader = SparkReader()
-
-            # Set number of cores
-            # https://stackoverflow.com/questions/21791723/why-is-spark-not-using-all-cores-on-local-machine
-            # sc, sqlContext = self.setup_spark_context(n_cores=1, ram_memory=1)
-            # # sc = self.setup_spark_context()
-
-        self.set_default_options()
-
-        if network_key == 'Fresno':
-            self.set_default_options_fresno()
-
-    def read_pems_counts_data(self, **kwargs):
-        return self.spark_reader.read_pems_counts_data(**kwargs)
-
-    def read_pems_counts_by_period(self, **kwargs):
-        return self.spark_reader.read_pems_counts_by_period(**kwargs)
-    
-    def selected_period_filter(self, **kwargs):
-        return self.spark_reader.selected_period_filter(**kwargs)
-
-    def read_inrix_data(self, **kwargs):
-        return self.spark_reader.read_inrix_data(**kwargs)
-
-    def generate_inrix_data_by_segment(self, **kwargs):
-        return self.spark_reader.generate_inrix_data_by_segment(**kwargs)
-
-    def write_partition_inrix_data(self, **kwargs):
-        self.spark_reader.write_partition_inrix_data(**kwargs)
-
-    def read_traffic_incidents(self, **kwargs):
-        return self.spark_reader.read_traffic_incidents(**kwargs)
-        
-
-    def set_default_options(self):
-
-        self.options = Options()
-
-
-    def set_default_options_fresno(self):
-
-        options = {}
-
-        options['selected_date'] = None
-        options['selected_hour'] = None
-        options['selected_year'] = None
-        options['selected_month'] = None
-        options['selected_day_month'] = None
-
-        # - Matching GIS layers with inrix instead of the network links.
-        options['inrix_matching'] = {'census': False, 'incidents': False, 'bus_stops': False, 'streets_intersections': False}
-
-        # - Buffer (in feets, which is the unit of the CA crs)
-        options['buffer_size'] = {'inrix': 0, 'bus_stops': 0, 'incidents': 0, 'streets_intersections': 0}
-        options['tt_units'] = 'minutes'
-        options['update_ff_tt_inrix'] = False
-
-        options['data_processing'] = {'inrix_segments': False, 'inrix_data': False, 'census': False,
-                                      'incidents': False, 'bus_stops': False, 'streets_intersections': False}
-
-        options['write_inrix_daily_data'] = False
-        options['read_inrix_daily_data'] = True
-
-        # - Periods (6 periods of 15 minutes each for Fresno)
-        options['od_periods'] = []
-
-        options['selected_period_incidents'] = {}
-
-        self.update_options(**options)
-
-    def get_updated_options(self, **kwargs):
-        return copy.deepcopy(self.options.get_updated_options(new_options=kwargs))
-
-    def update_options(self,**kwargs):
-        self.options = self.get_updated_options(**kwargs)
-
-    def select_period(self,
-                      date,
-                      hour) -> None:
-
-        self.options['selected_date'] = date
-
-        # Period selected for data analysis
-        self.options['selected_hour'] = hour
-
-        self.options['selected_date_datetime'] = datetime.date.fromisoformat(
-            self.options['selected_date'])
-
-        # Get year, day of month, month and day of week using datetime package functionalities
-        self.options['selected_year'] = self.options['selected_date_datetime'].year
-        self.options['selected_day_month'] = self.options['selected_date_datetime'].day
-        self.options['selected_month'] = self.options['selected_date_datetime'].month
-        self.options['selected_day_week'] = int(
-            self.options['selected_date_datetime'].strftime('%w')) + 1
-
-        # Note: for consistency with spark, the weekday number from datetime was changed a bit
-        # https://stackoverflow.com/questions/9847213/how-do-i-get-the-day-of-week-given-a-date
-
-        print('\nSelected date is ' + self.options['selected_date'] + ', ' + self.options[
-            'selected_date_datetime'].strftime('%A') + ' at ' + str(self.options['selected_hour']) + ':00')
-
-        # Examples:
-
-        # October 1, 2020 is Thursday (day_week = 5).
-        # self.options['selected_year'] = 2020
-        # self.options['selected_date'] = '2020-10-01'
-        # print('\nSelected period is October 1, 2020, Thursday at ' + str(self.options['selected_hour']) + ':00' )
-
-        # October 1, 2019 is Tuesday  (day_week = 3).
-        # self.options['selected_year'] = 2019
-        # self.options['selected_date'] = '2019-10-01'
-        # print('\nSelected period is October 1, 2019, Tuesday at ' + str(self.options['selected_hour']) + ':00' )
-
-        self.options['selected_period_inrix'] = \
-            {'year': [self.options['selected_year']],
-             'month': [self.options['selected_month']],
-             'day_month': [self.options['selected_day_month']],
-             'hour': [self. options['selected_hour'] - 1,
-                      self.options['selected_hour']]}
-
-        self.options['selected_period_inrix'] = {}
-
-        # config.estimation_options['selected_period_inrix'] = \
-        #     {'year': [config.estimation_options['selected_year']], 'month': [config.estimation_options['selected_month']]}
-        # config.estimation_options['selected_period_inrix'] = \
-        #     {'year': [config.estimation_options['selected_year']], 'month': [config.estimation_options['selected_month']], 'day_week': config.estimation_options['selected_day_week'], 'hour': [config.estimation_options['selected_hour']]}
-
-    def download_pems_data(self, path_download, years):
-
-        # Download pems data (Note that 2001 data have 0 for all rows so that info is useless)
-
-        # TODO: add the option to download data from specific date, months and years, and district.
-        # Meanwhile I manually download data from Oct 2020 and 2019 but script is working
-
-        # isuelogit.utils.download_pems_data(path_download = os.getcwd() + '/data/public/pems/counts/raw'
-        #                    , years = [str(e) for e in range(2019, 2021)]
-        #                    )
-
-        # TODO: Use a separate process to download the data.
-
-        # TODO: write script to download station metadata. An alternative is provide the type of data in the current download method. Meanwhile I downloaded manually the earliest file for 2019 (d04_text_meta_2021_01_29). I should download data from all stations in california, as it is not clear what it is the mapping between counties and districts. Districts is an internal defition from Caltrans.
-
-        # District and counties list https://en.wikipedia.org/wiki/California_Department_of_Transportation
-        # Fresno is district 6.
-
-
-        url = "http://pems.dot.ca.gov"
-        payload = {'username': 'pabloguarda@cmu.edu', 'password': 'PaulCmu1087*'}
-        target_url = 'http://pems.dot.ca.gov/?srq=clearinghouse&district_id=4&geotag=null&yy={year}&type=station_5min&returnformat=text'
-
-        # The current link structure is a bit different:
-        # http://pems.dot.ca.gov/?dnode=Clearinghouse&type=station_5min&district_id=4&submit=Submit
-
-        data_page_list = list()
-        with requests.Session() as s:
-            con = s.post(url, data=payload, verify=False)
-            for year in years:
-                tmp_page = s.get(target_url.format(year=year))
-                data_page_list.append(tmp_page)
-
-        def get_download_url_dict(url_dict, j):
-            data = j['data']
-            for month in data.keys():
-                tmp_list = data[month]
-                for e in tmp_list:
-                    url_dict[e['file_name']] = e['url']
-
-        url_dict = dict()
-        for data_page in data_page_list:
-            page_text = data_page.text
-            j = json.loads(page_text)
-            try:
-                get_download_url_dict(url_dict, j)
-            except:
-                continue
-
-        save_path = path_download
-        sorted_file = sorted(list(url_dict.keys()))
-
-        assert os.path.exists(save_path), 'path of folder to download data does not exist'
-
-        with requests.Session() as s:
-            con = s.post(url, data=payload, verify=False)
-            for name in sorted_file:
-                try:
-                    tail_url = url_dict[name]
-                    print("Now processing:", name, tail_url)
-                    r = s.get(url + tail_url, stream=True)
-                    if r.status_code == 200:
-                        with open(os.path.join(save_path, name), 'wb') as f:
-                            r.raw.decode_content = True
-                            shutil.copyfileobj(r.raw, f)
-                except:
-                    print("FAIL:", name, tail_url)
-
-    def merge_inrix_data(self,
-                         links: Links,
-                         speed_df,
-                         options: {}) -> None:
-
-        print('Merging INRIX data of speeds and travel times with network links')
-
-        for link in links:
-
-            ## Default value for speed avg is the link free flow speed (mi/h)
-            # Default value is 0
-            link.Z_dict['speed_avg'] = 0 #.Z_dict['ff_speed']
-            link.Z_dict['speed_ref_avg'] = 0 #link.Z_dict['ff_speed']
-            link.Z_dict['speed_hist_avg'] = 0 # link.Z_dict['ff_speed']
-            link.Z_dict['tt_avg'] = 0 # link.Z_dict['ff_traveltime']
-
-
-            # Note: length is in miles according to Sean's files
-
-            # Default value for the standard deviation of speed is 0 (it is assumed that a segment not part of inrix, it is a segment with low congestion)
-            link.Z_dict['speed_max'] = 0
-            link.Z_dict['speed_sd'] = 0
-            link.Z_dict['speed_cv'] = 0
-            link.Z_dict['speed_hist_sd'] = 0
-            link.Z_dict['speed_ref_sd'] = 0
-
-            link.Z_dict['tt_sd'] = 0
-            link.Z_dict['tt_var'] = 0
-
-            link.Z_dict['tt_cv'] = 0
-
-            link.Z_dict['tt_sd_adj'] = 0
-
-            link.Z_dict['road_closures'] = 0
-
-            if link.inrix_id is not None:
-                # speed_segment_sdf = speed_sdf.where(self.F.col("segment_id").isin([link.inrix_id]))
-                inrix_features = speed_df.loc[speed_df.segment_id == int(link.inrix_id)]
-
-                if len(inrix_features) > 0:
-
-                    # print(inrix_features['speed_avg'])
-                    # print(link.inrix_id)
-                    link.inrix_features = {
-                        'speed_max': float(inrix_features['speed_max'])
-                        , 'speed_avg': float(inrix_features['speed_avg'])
-                        , 'speed_sd': float(inrix_features['speed_sd'])
-                        , 'speed_cv': float(inrix_features['speed_cv'])
-
-                        , 'speed_ref_avg': float(inrix_features['speed_ref_avg'])
-                        , 'speed_ref_sd': float(inrix_features['speed_ref_sd'])
-
-                        , 'speed_hist_avg': float(inrix_features['speed_hist_avg'])
-                        , 'speed_hist_sd': float(inrix_features['speed_hist_sd'])
-
-                        , 'traveltime_avg': float(inrix_features['traveltime_avg'])
-                        , 'traveltime_sd': float(inrix_features['traveltime_sd'])
-                        , 'traveltime_var': float(inrix_features['traveltime_var'])
-                        , 'traveltime_cv': float(inrix_features['traveltime_cv'])
-
-                        , 'road_closure_avg': float(inrix_features['road_closure_avg'])
-                        , 'road_closure_any': float(inrix_features['road_closure_any'])
-
-                    }
-
-                # link.inrix_features = inrix_features[]
-
-                    # For travel time, I should consider a normalization
-
-                    link.Z_dict['speed_max'] = link.inrix_features['speed_max']
-                    link.Z_dict['speed_avg'] = link.inrix_features['speed_avg']
-                    link.Z_dict['speed_sd'] = link.inrix_features['speed_sd']
-
-                    link.Z_dict['speed_ref_avg'] = link.inrix_features['speed_ref_avg']
-                    link.Z_dict['speed_ref_sd'] = link.inrix_features['speed_ref_sd']
-
-                    link.Z_dict['speed_hist_avg'] = link.inrix_features['speed_hist_avg']
-                    link.Z_dict['speed_hist_sd'] = link.inrix_features['speed_hist_sd']
-
-                    link.Z_dict['tt_cv'] = link.inrix_features['traveltime_cv']
-                    link.Z_dict['speed_cv'] = link.inrix_features['speed_cv']
-
-                    if options['tt_units'] == 'seconds':
-                        tt_factor = 60
-
-                    if options['tt_units'] == 'minutes':
-                        tt_factor = 1
-
-                    link.Z_dict['tt_avg'] = tt_factor*link.inrix_features['traveltime_avg']
-                    link.Z_dict['tt_sd'] = tt_factor*link.inrix_features['traveltime_sd']
-                    link.Z_dict['tt_var'] = tt_factor**2 * link.inrix_features['traveltime_var']
-
-                    #Road closures are an interesting features from INRIX data but they occur 0.01% of the time.
-                    link.Z_dict['road_closures'] = link.inrix_features['road_closure_any']
-
-
-        # # Filter rows from segment ids that were matched with network links
-        #
-        # speed_sdf.where(self.F.col("segment_id").isin(["CB", "CI", "CR"]))
-        #
-        # speed_sdf.show()
-        # speed_sdf.count()
-        #
-        # speed_sdf.select('segment_id')
-
-    def read_bus_stops_txt(self, filepath: str) -> pd.DataFrame:
-
-        stops_df = pd.read_csv(filepath, header=0, delimiter=',')
-
-        # stop_id,stop_code,stop_name,stop_desc,stop_lat,stop_lon,zone_id,stop_url,location_type,parent_station,stop_timezone,wheelchair_boarding
-
-        return stops_df
-
-    def read_spatiotemporal_data_fresno(self,
-                                        *args,
-                                        **kwargs):
-        network = kwargs.pop('network', None)
-
-        self.update_options(**kwargs)
-
-        if self._setup_spark is False:
-            self._sc, self._sqlContext = self.setup_spark_context()
-            self.clear_sql_cache()
-            self._setup_spark = True
-
-
-        return read_spatiotemporal_data_fresno(data_analyst = self,
-                                               network = network,
-                                               **self.options)
 
 
 def load_pems_stations_ids(network):
