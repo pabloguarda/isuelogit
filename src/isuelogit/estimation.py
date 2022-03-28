@@ -532,7 +532,7 @@ class LevenbergMarquardt(SecondOrderMethod):
 class LevenbergMarquardtRevised(LevenbergMarquardt):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.key = 'lm-revised'
+        self.key = 'lm-rev'
         # SecondOrderMethod.__init__(key='lm-revised', **kwargs)
 
     def update_parameters(self, theta, lambda_lm, jacobian, delta_y):
