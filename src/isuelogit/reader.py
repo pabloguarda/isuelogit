@@ -8,6 +8,8 @@ if TYPE_CHECKING:
     from .mytypes import Nodes, Paths, Matrix,TNetwork, DiTNetwork, MultiDiTNetwork
 
 from bs4 import BeautifulSoup
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
 import requests
 import re
 import urllib
