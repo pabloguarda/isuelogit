@@ -43,7 +43,7 @@ class NetworkExperiment(Reporter):
 
         super().__init__(**kwargs)
 
-        self.make_dirs(foldername= kwargs.get('foldername'))
+        self.make_dirs(folderpath= kwargs.get('folderpath'))
 
         self.artist = visualization.Artist(folder_plots=self.dirs['experiment_folder'])
 
@@ -115,27 +115,26 @@ class NetworkExperiment(Reporter):
 
         return results_df
 
-    def make_dirs(self, foldername = None):
+    def make_dirs(self, folderpath = None):
         '''
 
         Store results into log file and store a folder with a summary of the estimation
         Create a network_name to store the estimates of the current experiment
 
         Args:
-            foldername:
+            folderpath:
 
         Returns:
 
         '''
 
-        if foldername is None:
-            foldername = self.network.key
+        # if folderpath is None:
+        #     folderpath = self.network.key
 
         if not self.experiment_started:
 
             # Create a subfolder based on starting date
-            self.dirs['experiment_folder'] = \
-                config.dirs['output_folder'] + 'experiments/' + foldername + '/' + self.options['date']
+            self.dirs['experiment_folder'] = folderpath + '/' + self.options['date']
 
             if not os.path.exists(self.dirs['experiment_folder']):
                 os.makedirs(self.dirs['experiment_folder'])
@@ -341,7 +340,7 @@ class NetworksExperiment(NetworkExperiment):
                  **kwargs
                  ):
 
-        kwargs['foldername'] = 'small-networks'
+        kwargs['folderpath'] = 'small-networks'
         # kwargs['network'] = kwargs['networks'][0]
 
         super().__init__(**kwargs)
@@ -496,7 +495,7 @@ class PseudoconvexityExperiment(NetworkExperiment):
 
         # TODO: Redesign this code such that it is common with the pseudoconvexity experiment for small networks. Maybe I will need to have a Multi and Single Network Experiment
 
-        self.make_dirs(foldername=self.network.key.lower())
+        self.make_dirs(folderpath=self.network.key.lower())
 
         if features_labels is None:
             features_labels = features
@@ -866,31 +865,31 @@ class CountsExperiment(ConvergenceExperiment):
         #     # Add level with no error to check convergence but it does not visualize it
         #     levels.insert(0, 0)
 
-        with block_output(show_stdout=replicate_report, show_stderr=replicate_report):
+        for replicate in range(1, replicates + 1):
 
-            for replicate in range(1, replicates + 1):
+            if replicate_report or show_replicate_plot:
+                print('\nReplicate', replicate)
+            elif not replicate_report:
+                printIterationBar(replicate, replicates, prefix='Replicates:', length=20)
 
-                if replicate_report or show_replicate_plot:
-                    print('\nReplicate', replicate)
-                elif not replicate_report:
-                    printIterationBar(replicate, replicates, prefix='Replicates:', length=20)
+            self.create_replicate_folder(replicate=replicate)
 
-                self.create_replicate_folder(replicate=replicate)
+            # Initilization of initial estimate
+            if range_initial_values is not None:
+                self.utility_function.random_initializer(range_initial_values)
+            else:
+                self.utility_function.zero_initializer()
 
-                # Initilization of initial estimate
-                if range_initial_values is not None:
-                    self.utility_function.random_initializer(range_initial_values)
-                else:
-                    self.utility_function.zero_initializer()
+            initial_values = copy.deepcopy(self.utility_function.initial_values)
 
-                initial_values = copy.deepcopy(self.utility_function.initial_values)
+            results_replicate = pd.DataFrame({})
 
-                results_replicate = pd.DataFrame({})
+            # Generate new random features and load them in the network
+            self.network.load_features_data(linkdata=self.generate_random_link_features(
+                n_sparse_features=n_sparse_features,
+                normalization={'mean': False, 'std': False}))
 
-                # Generate new random features and load them in the network
-                self.network.load_features_data(linkdata=self.generate_random_link_features(
-                    n_sparse_features=n_sparse_features,
-                    normalization={'mean': False, 'std': False}))
+            with block_output(show_stdout=replicate_report, show_stderr=replicate_report):
 
                 # Generate synthetic traffic counts
                 counts_replicate, _ = self.linkdata_generator.simulate_counts(
@@ -1373,7 +1372,7 @@ class ConvergenceExperiments(ConvergenceExperiment):
                  networks,
                  **kwargs):
 
-        kwargs['foldername'] = 'small-networks'
+        kwargs['folderpath'] = 'small-networks'
 
         super().__init__(**kwargs)
 
@@ -1481,7 +1480,7 @@ class BiasReferenceODExperiment(ConvergenceExperiment):
                  *args,
                  **kwargs):
 
-        kwargs['foldername'] = 'small-networks'
+        kwargs['folderpath'] = 'small-networks'
 
         super().__init__(*args, **kwargs)
 
