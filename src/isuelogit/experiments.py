@@ -1372,7 +1372,7 @@ class ConvergenceExperiments(ConvergenceExperiment):
                  networks,
                  **kwargs):
 
-        kwargs['folderpath'] = 'small-networks'
+        # kwargs['folderpath'] = 'small-networks'
 
         super().__init__(**kwargs)
 
@@ -1480,7 +1480,7 @@ class BiasReferenceODExperiment(ConvergenceExperiment):
                  *args,
                  **kwargs):
 
-        kwargs['folderpath'] = 'small-networks'
+        # kwargs['folderpath'] = 'small-networks'
 
         super().__init__(*args, **kwargs)
 
