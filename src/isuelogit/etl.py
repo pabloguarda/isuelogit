@@ -38,6 +38,7 @@ class DataReader:
         if setup_spark:
             
             self.spark_reader = SparkReader()
+            self._setup_spark = True
 
             # Set number of cores
             # https://stackoverflow.com/questions/21791723/why-is-spark-not-using-all-cores-on-local-machine
@@ -53,6 +54,11 @@ class DataReader:
         return self.spark_reader.read_pems_counts_data(**kwargs)
 
     def read_pems_counts_by_period(self, **kwargs):
+
+        if self._setup_spark is False:
+            self.spark_reader = SparkReader()
+            self._setup_spark = True
+
         return self.spark_reader.read_pems_counts_by_period(**kwargs)
     
     def selected_period_filter(self, **kwargs):
@@ -346,15 +352,13 @@ class DataReader:
         return stops_df
 
     def read_spatiotemporal_data_fresno(self,
-                                        *args,
                                         **kwargs):
         network = kwargs.pop('network', None)
 
         self.update_options(**kwargs)
 
         if self._setup_spark is False:
-            self._sc, self._sqlContext = self.setup_spark_context()
-            self.clear_sql_cache()
+            self.spark_reader = SparkReader()
             self._setup_spark = True
 
 
@@ -609,11 +613,6 @@ class SparkReader:
         returns:
         Aggregated counts data in the selected period by station id
         """
-
-        if self._setup_spark is False:
-            self._sc, self._sqlContext = self.setup_spark_context()
-            self.clear_sql_cache()
-            self._setup_spark = True
 
         count_interval_sdf = self.read_pems_counts_data(filepath, selected_period)
 
