@@ -28,7 +28,7 @@ from utils import Options
 class Reporter(ABC):
 
     def __init__(self,
-                 foldername=None,
+                 folderpath: str,
                  seed: int = None,
                  network=None,
                  utility_function = None,
@@ -66,7 +66,7 @@ class Reporter(ABC):
         self.options['seed'] = self.seed
 
         # Create report folders
-        self.make_dirs(foldername)
+        self.make_dirs(folderpath = folderpath)
 
     # @abstractmethod
     # def set_default_options(self):
@@ -82,25 +82,24 @@ class Reporter(ABC):
         self.update_options(**kwargs)
         # self.options = self.options.get_updated_options()
 
-    def make_dirs(self, foldername = None):
+    def make_dirs(self, folderpath):
         '''
 
         Store results into log file and store a folder with a summary of the estimation
         Create a network_name to store the estimates of the current experiment
 
         Args:
-            foldername:
+            folderpath:
 
         Returns:
 
         '''
 
-        if foldername is None:
-            foldername = self.network.key
+        # if folderpath is None:
+        #     folderpath = self.network.key
 
         # Create a subfolder based on starting date
-        self.dirs['estimation_folder'] = \
-            config.dirs['output_folder'] + 'estimations/' + foldername + '/' + self.options['date']
+        self.dirs['estimation_folder'] = folderpath + '/' + self.options['date']
 
         if not os.path.exists(self.dirs['estimation_folder']):
             os.makedirs(self.dirs['estimation_folder'])
