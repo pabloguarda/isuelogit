@@ -13,7 +13,7 @@ def set_main_dir(dir = None):
 
     if dir is None:
         # Set working directory
-        os.chdir(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        # os.chdir(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
         dir = os.getcwd()
 
     # print('main dir:', dir)
