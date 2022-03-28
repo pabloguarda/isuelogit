@@ -8,16 +8,8 @@ if TYPE_CHECKING:
 
 import matplotlib
 import pylab
-from matplotlib import rc
-
-matplotlib.rcParams['text.usetex'] = True
-# rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
-# rc('text', usetex=True)
 
 import matplotlib.pyplot as plt
-# plt.rcParams['figure.dpi'] = 30
-# plt.rcParams['savefig.dpi'] = 30
-plt.rcParams['mathtext.default'] = 'regular'
 
 from matplotlib.transforms import BlendedGenericTransform
 import matplotlib.transforms as transforms
@@ -58,10 +50,20 @@ class OOMFormatter(matplotlib.ticker.ScalarFormatter):
 class Artist:
     def __init__(self,
                  folder_plots = None,
-                 dim_subplots = None):
+                 dim_subplots = None,
+                 tex = True):
 
         self._folder = folder_plots
         self._dim_subplots = dim_subplots
+
+        if tex:
+            from matplotlib import rc
+            matplotlib.rcParams['text.usetex'] = True
+            # rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
+            # rc('text', usetex=True)
+            # plt.rcParams['figure.dpi'] = 30
+            # plt.rcParams['savefig.dpi'] = 30
+            plt.rcParams['mathtext.default'] = 'regular'
 
 
     @property
@@ -1350,7 +1352,7 @@ class Artist:
         fig.savefig(folder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
 
      return fig
-    
+
     def convergence_networks_experiment(self,
                                         results: Union[Dict,pd.DataFrame],
                                         filename: str,
