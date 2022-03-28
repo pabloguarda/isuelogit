@@ -973,10 +973,10 @@ def read_tntp_od(network_name: str,
 
         index = np.arange(zones) + 1
 
-        write_folderpath = config.dirs['output_folder'] + 'network-data/Q/'
+        write_folderpath = '' # 'network-data/Q/'
 
-        if not os.path.exists(write_folderpath):
-            os.makedirs(write_folderpath)
+        # if not os.path.exists(write_folderpath):
+        #     os.makedirs(write_folderpath)
 
         write_filepath = write_folderpath + network_name + '_demand' + '.omx'
 
