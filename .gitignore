@@ -12,7 +12,7 @@ requirements/extra.txt
 # Pycharm internal files
 .idea/
 .eggs/
-cache/.tox/
+cache/
 
 #Python cache
 .pytest_cache/
@@ -44,6 +44,7 @@ src/isuelogit.egg-info/
 .travis.yml
 README.rst
 docs/
+.tox/
 tox.ini
 History.rst
 
