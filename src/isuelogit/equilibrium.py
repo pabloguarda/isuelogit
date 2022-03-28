@@ -3,17 +3,16 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from mytypes import Links, Matrix, ColumnVector, Links, Features\
-        , ParametersDict, Paths, Options, Option, Vector, Optional, List
+    from mytypes import Links, Matrix, ColumnVector, Features, Paths, Options, Option, Vector, Optional, List
 
-from printer import block_output, printProgressBar
+from printer import block_output
 
 from itertools import combinations
 
-from paths import compute_path_size_factors, k_path_generation_nx, get_paths_from_paths_od
+from paths import compute_path_size_factors
 from networks import TNetwork
-from estimation import UtilityFunction, compute_paths_probabilities
-from utils import get_matrix_from_dict_attrs_values, v_normalization, no_zeros,almost_zero, Options
+from estimation import UtilityFunction
+from utils import v_normalization,almost_zero, Options
 
 import math
 import time
@@ -21,12 +20,8 @@ import heapq
 import numpy as np
 import os
 from scipy import optimize
-from scipy.stats import entropy
 from abc import ABC, abstractmethod
 import copy
-
-import numdifftools as nd
-
 
 class Equilibrator(ABC):
 
