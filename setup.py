@@ -10,11 +10,11 @@ def read_requirements(filename):
         return fp.read().strip().splitlines()
 
 
-with open('README.rst') as readme_file:
-    readme = readme_file.read()
-
-with open('HISTORY.rst') as history_file:
-    history = history_file.read()
+# with open('README.rst') as readme_file:
+#     readme = readme_file.read()
+#
+# with open('HISTORY.rst') as history_file:
+#     history = history_file.read()
 
 setup_requirements = ['pytest-runner', ]
 
@@ -40,7 +40,7 @@ setup(
         ],
     },
     license="MIT license",
-    long_description=readme + '\n\n' + history,
+    # long_description=readme + '\n\n' + history,
     include_package_data=True,
     keywords='network modelling, discrete choice modelling, pseudo-convex optimization',
     name='isuelogit',
