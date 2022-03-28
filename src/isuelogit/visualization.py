@@ -57,6 +57,7 @@ class Artist:
 
         self._folder = folder_plots
         self._dim_subplots = dim_subplots
+        self.fontsize = 10
 
         if tex:
             from matplotlib import rc
@@ -65,9 +66,10 @@ class Artist:
             # rc('text', usetex=True)
             # plt.rcParams['figure.dpi'] = 30
             # plt.rcParams['savefig.dpi'] = 30
-            plt.rcParams['mathtext.default'] = 'regular'
         else:
             matplotlib.rcParams['text.usetex'] = False
+
+        plt.rcParams['mathtext.default'] = 'regular'
 
     @property
     def folder(self):
@@ -491,7 +493,7 @@ class Artist:
         # ax.plot([true_parameter_t.min(), true_parameter_t.max()], [true_parameter_t.min(), true_parameter_t.max()], 'k--', lw=4)
         # ax.set_xlabel('True theta')
         # ax.set_ylabel('Learned theta')
-        # ax.set_title(filename + '\n Travel time parameter')
+        # ax.set_title(filename + '\n Travel time coefficient')
         # plt.show()
 
         if constraints_theta['Z']['c'] != 0:
@@ -1084,7 +1086,7 @@ class Artist:
         # if results_norefined_df['objective'].min() != results_norefined_df['objective'].max():
         #     ax[(1,0)].set_ylim(results_norefined_df['objective'].min(), results_norefined_df['objective'].max())
 
-        ax[(0, 0)].set_ylabel(r"$ n^{-1} \ ||(\hat{q}-q||_2^2 $")
+        ax[(0, 0)].set_ylabel(r"$ ||(\hat{q}-q||_2^2 $")
         ax[(0, 0)].set_xlabel("iterations (" + methods[0] + ")")
         # ax[(1, 0)].yaxis.set_major_formatter(yfmt3)
 
@@ -1125,7 +1127,7 @@ class Artist:
         for method in methods:
             ax_loss.plot('iter', 'loss', data=results_experiment[results_experiment['method'] == method], label=method,
                          color=colors[counter])
-            ax_loss.set_ylabel(r"$n^{-1} \  ||x(\hat{\theta})-\bar{x}||_2^2$")
+            ax_loss.set_ylabel(r"$ ||x(\hat{\theta})-\bar{x}||_2^2$")
             counter += 1
 
         ax_loss.set_xlabel("iterations")
@@ -1249,7 +1251,8 @@ class Artist:
 
             # ax[(0,0)].set_yticks(np.arange(results_norefined_df['vot'].min(), results_norefined_df['vot'].max(), 0.2))
             ax[(0, 0)].axhline(0.1667, linestyle='dashed')
-            ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}/\hat{\theta_c}$')
+            # ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}/\hat{\theta_c}$')
+            ax[(0, 0)].set_ylabel("Value of time")
             # ax[(0, 0)].yaxis.set_major_formatter(OOMFormatter(-4, "%1.1f"))
             # ax[(0, 0)].yaxis.set_major_formatter(yfmt1)
             ax[(0, 0)].tick_params(labelbottom=False)
@@ -1279,7 +1282,8 @@ class Artist:
 
             # ax[(0,0)].set_yticks(np.arange(results_norefined_df['vot'].min(), results_norefined_df['vot'].max(), 0.2))
             ax[(0, 0)].axhline(1, linestyle='dashed')
-            ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}/\theta_{\hat{\sigma}}$')
+            # ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}/\theta_{\hat{\sigma}}$')
+            ax[(0, 0)].set_ylabel("Value of travel time reliability")
             # ax[(0, 0)].yaxis.set_major_formatter(OOMFormatter(-4, "%1.1f"))
             # ax[(0, 0)].yaxis.set_major_formatter(yfmt1)
             ax[(0, 0)].tick_params(labelbottom=False)
@@ -1298,7 +1302,7 @@ class Artist:
             ax[(0, 1)].tick_params(labelbottom=False)
 
 
-        else:  # (no estimation of cost parameter but of travel time parameter)
+        else:  # (no estimation of cost parameter but of travel time coefficient)
             # - No refined
 
             if len(results_norefined_df['theta_tt']) == 1:
@@ -1309,7 +1313,8 @@ class Artist:
                 ax[(0, 0)].plot(results_norefined_df['iter'], results_norefined_df['theta_tt'])
 
             # ax[(0,0)].set_yticks(np.arange(results_norefined_df['vot'].min(), results_norefined_df['vot'].max(), 0.2))
-            ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}$')
+            # ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}$')
+            ax[(0, 0)].set_ylabel("Travel time coefficient")
             # ax[(0, 0)].set_ticklabels([])
 
             ax[(0, 0)].tick_params(labelbottom=False)
@@ -1356,7 +1361,8 @@ class Artist:
         # if results_norefined_df['objective'].min() != results_norefined_df['objective'].max():
         #     ax[(1,0)].set_ylim(results_norefined_df['objective'].min(), results_norefined_df['objective'].max())
 
-        ax[(1, 0)].set_ylabel(r"$ n^{-1} \ ||(x(\hat{\theta})-\bar{x}||_2^2 $")
+        # ax[(1, 0)].set_ylabel(r"$ ||(x(\hat{\theta})-\bar{x}||_2^2 $")
+        ax[(1, 0)].set_ylabel("Objective function")
         ax[(1, 0)].set_xlabel("iterations (" + methods[0] + ")")
         # ax[(1, 0)].yaxis.set_major_formatter(yfmt3)
 
@@ -1380,10 +1386,10 @@ class Artist:
         # ax[(1, 1)].yaxis.set_major_formatter(yfmt4)
 
         for axi in fig.get_axes():
-            axi.tick_params(axis='y', labelsize=14)
-            axi.tick_params(axis='x', labelsize=14)
-            axi.xaxis.label.set_size(14)
-            axi.yaxis.label.set_size(14)
+            axi.tick_params(axis='y', labelsize=self.fontsize)
+            axi.tick_params(axis='x', labelsize=self.fontsize)
+            axi.xaxis.label.set_size(self.fontsize)
+            axi.yaxis.label.set_size(self.fontsize)
 
         for axi in [ax[(1, 0)], ax[(1, 1)]]:
             yfmt = ScalarFormatterForceFormat()
@@ -1441,7 +1447,8 @@ class Artist:
             ax[(0, 0)].plot(results_norefined_df['iter'], results_norefined_df['theta_tt'], color=color, label=label)
 
         ax[(0, 0)].axhline(float(theta_true['tt']), linestyle='dashed')
-        ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}$')
+        # ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}$')
+        ax[(0, 0)].set_ylabel("Travel time coefficient")
         # ax[(0, 0)].set_ticklabels([])
 
         ax[(0, 0)].tick_params(labelbottom=False)
@@ -1478,7 +1485,8 @@ class Artist:
 
         ax[(1, 0)].axhline(0, linestyle='dashed')
 
-        ax[(1, 0)].set_ylabel(r"$ n^{-1} \ ||(x(\hat{\theta})-\bar{x}||_2^2 $")
+        # ax[(1, 0)].set_ylabel(r"$ ||(x(\hat{\theta})-\bar{x}||_2^2 $")
+        ax[(1, 0)].set_ylabel("Objective function")
         ax[(1, 0)].set_xlabel("iterations (" + methods[0] + ")")
         # ax[(1, 0)].yaxis.set_major_formatter(yfmt3)
 
@@ -1506,15 +1514,15 @@ class Artist:
 
         # Change color style to white and black in box plots
         for axi in [ax[(0, 0)], ax[(0, 1)], ax[(1, 0)], ax[(1, 1)]]:
-            axi.tick_params(axis='y', labelsize=12)
-            axi.tick_params(axis='x', labelsize=12)
-            axi.xaxis.label.set_size(12)
-            axi.yaxis.label.set_size(12)
+            axi.tick_params(axis='y', labelsize=self.fontsize)
+            axi.tick_params(axis='x', labelsize=self.fontsize)
+            axi.xaxis.label.set_size(self.fontsize)
+            axi.yaxis.label.set_size(self.fontsize)
 
         # Legend
         lines, labels = ax[(1, 1)].get_legend_handles_labels()
         # g.fig.legend(handles=handles, labels=labels, loc='lower center', ncol=4)
-        fig.legend(lines, labels, loc='upper center', ncol=4, prop={'size': 12}
+        fig.legend(lines, labels, loc='upper center', ncol=4, prop={'size': self.fontsize}
                    , bbox_to_anchor=[0.52, -0.25]
                    , bbox_transform=BlendedGenericTransform(fig.transFigure, ax[(1, 1)].transAxes))
 
@@ -1574,7 +1582,8 @@ class Artist:
 
         ax[(0, 0)].axhline(float(theta_true['tt']) / float(theta_true['c']), linestyle='dashed', color='black')
 
-        ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}/\hat{\theta_c}$')
+        ax[(0, 0)].set_ylabel("Value of time")
+        # ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}/\hat{\theta_c}$')
         # ax[(0, 0)].set_ticklabels([])
 
         ax[(0, 0)].tick_params(labelbottom=False)
@@ -1614,7 +1623,9 @@ class Artist:
         # if results_norefined_df['objective'].min() != results_norefined_df['objective'].max():
         #     ax[(1,0)].set_ylim(results_norefined_df['objective'].min(), results_norefined_df['objective'].max())
 
-        ax[(1, 0)].set_ylabel(r"$ n^{-1} \ ||(x(\hat{\theta})-\bar{x}||_2^2 $")
+        # ax[(1, 0)].set_ylabel(r"$ ||(x(\hat{\theta})-\bar{x}||_2^2 $")
+
+        ax[(1, 0)].set_ylabel("Objective function")
         ax[(1, 0)].set_xlabel("iterations (" + methods[0] + ")")
         # ax[(1, 0)].yaxis.set_major_formatter(yfmt3)
 
@@ -1639,10 +1650,10 @@ class Artist:
         # ax[(1, 1)].yaxis.set_major_formatter(yfmt4)
 
         for axi in [ax[(0, 0)], ax[(0, 1)], ax[(1, 0)], ax[(1, 1)]]:
-            axi.tick_params(axis='y', labelsize=12)
-            axi.tick_params(axis='x', labelsize=12)
-            axi.xaxis.label.set_size(12)
-            axi.yaxis.label.set_size(12)
+            axi.tick_params(axis='y', labelsize=self.fontsize)
+            axi.tick_params(axis='x', labelsize=self.fontsize)
+            axi.xaxis.label.set_size(self.fontsize)
+            axi.yaxis.label.set_size(self.fontsize)
 
         for axi in [ax[(1, 0)], ax[(1, 1)]]:
             yfmt = ScalarFormatterForceFormat()
@@ -1652,7 +1663,7 @@ class Artist:
         # Legend
         lines, labels = ax[(1, 1)].get_legend_handles_labels()
         # g.fig.legend(handles=handles, labels=labels, loc='lower center', ncol=4)
-        fig.legend(lines, labels, loc='upper center', ncol=2, prop={'size': 12}
+        fig.legend(lines, labels, loc='upper center', ncol=2, prop={'size': self.fontsize}
                    , bbox_to_anchor=[0.52, -0.25]
                    , bbox_transform=BlendedGenericTransform(fig.transFigure, ax[(1, 1)].transAxes))
 
@@ -1706,7 +1717,8 @@ class Artist:
             ax[(0, 0)].plot(results_norefined_df['iter'], results_norefined_df['theta_tt'], color=color, label=label)
 
         ax[(0, 0)].axhline(float(theta_true['tt']), linestyle='dashed', color='black')
-        ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}$')
+        # ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}$')
+        ax[(0, 0)].set_ylabel("Travel time coefficient")
         # ax[(0, 0)].set_ticklabels([])
 
         ax[(0, 0)].tick_params(labelbottom=False)
@@ -1748,7 +1760,8 @@ class Artist:
 
         ax[(1, 0)].axhline(0, linestyle='dashed', color='black')
 
-        ax[(1, 0)].set_ylabel(r"$ n^{-1} \ ||(x(\hat{\theta})-\bar{x}||_2^2 $")
+        # ax[(1, 0)].set_ylabel(r"$ ||(x(\hat{\theta})-\bar{x}||_2^2 $")
+        ax[(1, 0)].set_ylabel("Objective function")
         ax[(1, 0)].set_xlabel("iterations (" + methods[0] + ")")
         # ax[(1, 0)].yaxis.set_major_formatter(yfmt3)
 
@@ -1773,10 +1786,10 @@ class Artist:
 
         # Change color style to white and black in box plots
         for axi in [ax[(0, 0)], ax[(0, 1)], ax[(1, 0)], ax[(1, 1)]]:
-            axi.tick_params(axis='y', labelsize=12)
-            axi.tick_params(axis='x', labelsize=12)
-            axi.xaxis.label.set_size(12)
-            axi.yaxis.label.set_size(12)
+            axi.tick_params(axis='y', labelsize=self.fontsize)
+            axi.tick_params(axis='x', labelsize=self.fontsize)
+            axi.xaxis.label.set_size(self.fontsize)
+            axi.yaxis.label.set_size(self.fontsize)
 
         for axi in [ax[(1, 0)], ax[(1, 1)]]:
             yfmt = ScalarFormatterForceFormat()
@@ -1786,7 +1799,7 @@ class Artist:
         # Legend
         lines, labels = ax[(1, 1)].get_legend_handles_labels()
         # g.fig.legend(handles=handles, labels=labels, loc='lower center', ncol=4)
-        fig.legend(lines, labels, loc='upper center', ncol=2, prop={'size': 12}
+        fig.legend(lines, labels, loc='upper center', ncol=2, prop={'size': self.fontsize}
                    , bbox_to_anchor=[0.52, -0.25]
                    , bbox_transform=BlendedGenericTransform(fig.transFigure, ax[(1, 1)].transAxes))
 
@@ -1823,14 +1836,23 @@ class Artist:
 
         # ax.axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
 
-        plt.setp(ax, xlabel=r"$\hat{\theta}$", ylabel=r"$\hat{x(\theta)}$")
+        # plt.setp(ax, xlabel=r"$\hat{\theta}$", ylabel=r"$\hat{x(\theta)}$")
+
+        if matplotlib.rcParams['text.usetex']:
+            x_label = r"$\hat{\theta}_t$"
+            y_label = r"$\hat{x(\theta)}$"
+        else:
+            x_label = "Travel time coefficient"
+            y_label = "Traffic flow function"
 
         # Set font sizes
         for axi in reversed(fig.get_axes()):
-            axi.tick_params(axis='y', labelsize=12)
-            axi.tick_params(axis='x', labelsize=12)
-            axi.xaxis.label.set_size(12)
-            axi.yaxis.label.set_size(12)
+            axi.set_xlabel(x_label)
+            axi.set_ylabel(y_label)
+            axi.tick_params(axis='y', labelsize=self.fontsize)
+            axi.tick_params(axis='x', labelsize=self.fontsize)
+            axi.xaxis.label.set_size(self.fontsize)
+            axi.yaxis.label.set_size(self.fontsize)
             # axi.legend(prop=dict(size=18))
 
             # for label in (axi.get_xticklabels() + axi.get_yticklabels()):
@@ -1840,7 +1862,7 @@ class Artist:
         # Legend
         lines, labels = ax.get_legend_handles_labels()
         # g.fig.legend(handles=handles, labels=labels, loc='lower center', ncol=4)
-        fig.legend(lines, labels, loc='upper center', ncol=5, prop={'size': 12}
+        fig.legend(lines, labels, loc='upper center', ncol=5, prop={'size': self.fontsize}
                    , bbox_to_anchor=[0.55, -0.15]
                    , bbox_transform=BlendedGenericTransform(fig.transFigure, ax.transAxes))
 
@@ -1881,7 +1903,7 @@ class Artist:
             ax[pos_plot].plot(x_range, j, color=color, label=label)
             ax[pos_plot].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
             ax[pos_plot].axhline(y=0, color=color, linestyle='dashed', linewidth=0.5)
-            # ax[(0, 0)].set_ylabel(r"$n^{-1} \  ||x(\hat{\theta})-\bar{x}||_2^2$")
+            # ax[(0, 0)].set_ylabel(r"$ ||x(\hat{\theta})-\bar{x}||_2^2$")
 
         ax[(0, 0)].set_xticklabels([])
         ax[(0, 1)].set_xticklabels([])
@@ -1891,13 +1913,22 @@ class Artist:
         ax[(1, 1)].set_xticks(np.arange(int(round(min(x_range))), int(round(max(x_range))) + 0.1, 5))
 
         # set labels
-        plt.setp(ax[-1, :], xlabel=r"$\hat{\theta}_t$")
-        plt.setp(ax[:, 0], ylabel=r"$n^{-1} \  ||x(\hat{\theta})-\bar{x}||_2^2$")
+        if matplotlib.rcParams['text.usetex']:
+            x_label = r"$\hat{\theta}_t$"
+            y_label = r"$||x(\hat{\theta})-\bar{x}||_2^2$"
+        else:
+            x_label = "Travel time coefficient"
+            y_label = "Objective function"
+
+        # plt.setp(ax[-1, :], xlabel=x_label)
+        # plt.setp(ax[:, 0], ylabel=y_label)
 
         # Legend
 
         lines, labels = [], []
         for axi in reversed(fig.get_axes()):
+            axi.set_xlabel(x_label)
+            axi.set_ylabel(y_label)
             # axi.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
             yfmt = ScalarFormatterForceFormat()
             yfmt.set_powerlimits((0, 0))
@@ -1905,12 +1936,12 @@ class Artist:
             linei, labeli = axi.get_legend_handles_labels()
             lines = linei + lines
             labels = labeli + labels
-            axi.tick_params(axis='y', labelsize=12)
-            axi.tick_params(axis='x', labelsize=12)
-            axi.xaxis.label.set_size(12)
-            axi.yaxis.label.set_size(12)
+            axi.tick_params(axis='y', labelsize=self.fontsize)
+            axi.tick_params(axis='x', labelsize=self.fontsize)
+            axi.xaxis.label.set_size(self.fontsize)
+            axi.yaxis.label.set_size(self.fontsize)
 
-        fig.legend(lines, labels, loc='upper center', ncol=4, prop={'size': 12}
+        fig.legend(lines, labels, loc='upper center', ncol=4, prop={'size': self.fontsize}
                    , bbox_to_anchor=[0.52, -0.25]
                    , bbox_transform=BlendedGenericTransform(fig.transFigure, ax.flatten()[-2].transAxes))
 
@@ -1943,8 +1974,14 @@ class Artist:
         ax[(0, 0)].plot(x_range, y_vals, color='red')
         ax[(0, 0)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
         ax[(0, 0)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
-        ax[(0, 0)].set_ylabel(r"$n^{-1} \  ||x(\hat{\theta})-\bar{x}||_2^2$")
         ax[(0, 0)].set_xticklabels([])
+
+        if matplotlib.rcParams['text.usetex']:
+            y_label = r"$||x(\hat{\theta})-\bar{x}||_2^2$"
+        else:
+            y_label = "Objective function"
+
+        ax[(0, 0)].set_ylabel(y_label)
 
         # r"$\hat{\theta}$"
 
@@ -1954,8 +1991,14 @@ class Artist:
         ax[(0, 1)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
         ax[(0, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
         ax[(0, 1)].plot(x_range, y_vals, color='red')
-        ax[(0, 1)].set_ylabel(r"$n^{-1} \ \nabla_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)$")
         ax[(0, 1)].set_xticklabels([])
+
+        if matplotlib.rcParams['text.usetex']:
+            y_label = r"$\nabla_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)$"
+        else:
+            y_label = "First derivative"
+
+        ax[(0, 1)].set_ylabel(y_label)
 
         # ax[(0, 2)].set_title("Sign Gradient L2-norm")
         # y_vals = [np.sign(np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1))) for x_val in x_range]
@@ -1963,8 +2006,15 @@ class Artist:
         ax[(1, 0)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
         ax[(1, 0)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
         ax[(1, 0)].plot(x_range, y_vals, color='red')
-        ax[(1, 0)].set_ylabel(r"$n^{-1} \ \textmd{sign} (\nabla_{\theta} ||x(\hat{\theta})-\bar{x}||_2^2 )$")
         ax[(1, 0)].set_xticks(np.arange(int(round(min(x_range))), int(round(max(x_range))) + 0.1, 5))
+
+        if matplotlib.rcParams['text.usetex']:
+            y_label = r"$\textmd{sign} (\nabla_{\theta} ||x(\hat{\theta})-\bar{x}||_2^2 )$"
+        else:
+            y_label = "Sign of first derivative"
+
+        ax[(1, 0)].set_ylabel(y_label)
+
         # ax[(1, 0)].set_xticklabels([])
 
         # Hessian L2-norm
@@ -1981,7 +2031,7 @@ class Artist:
         # ax[(1, 1)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
         # ax[(1, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
         # ax[(1, 1)].plot(x_range, y_vals, color='red', )
-        # ax[(1, 1)].set_ylabel(r"$n^{-1} \ \nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2) $")
+        # ax[(1, 1)].set_ylabel(r"$\nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2) $")
 
         # Sign Hessian L2-norm
 
@@ -1991,8 +2041,14 @@ class Artist:
         ax[(1, 1)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
         ax[(1, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
         ax[(1, 1)].plot(x_range, y_vals, color='red', )
-        ax[(1, 1)].set_ylabel(r"$n^{-1} \  \textmd{sign} (\nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)) $")
         ax[(1, 1)].set_xticks(np.arange(int(round(min(x_range))), int(round(max(x_range))) + 0.1, 5))
+
+        if matplotlib.rcParams['text.usetex']:
+            y_label = r"$\textmd{sign} (\nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2))$"
+        else:
+            y_label = "Sign of second derivative"
+
+        ax[(1, 1)].set_ylabel(y_label)
 
         # ax[(0, 2)].set_title("Hessian L2-norm")
         # y_vals = [np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1)) for x_val in x_range]
@@ -2012,8 +2068,14 @@ class Artist:
         # ax[(1, 0)].ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
         # ax[(1, 1)].ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
 
+        if matplotlib.rcParams['text.usetex']:
+            x_label = r"$\hat{\theta}$"
+        else:
+            x_label = "Travel time coefficient"
+
         lines, labels = [], []
         for axi in fig.get_axes():
+            axi.set_xlabel(x_label)
             # axi.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
             yfmt = ScalarFormatterForceFormat()
             yfmt.set_powerlimits((0, 0))
@@ -2021,13 +2083,14 @@ class Artist:
             linei, labeli = axi.get_legend_handles_labels()
             lines = linei + lines
             labels = labeli + labels
-            axi.tick_params(axis='y', labelsize=12)
-            axi.tick_params(axis='x', labelsize=12)
-            axi.xaxis.label.set_size(12)
-            axi.yaxis.label.set_size(12)
+            axi.tick_params(axis='y', labelsize=self.fontsize)
+            axi.tick_params(axis='x', labelsize=self.fontsize)
+            axi.xaxis.label.set_size(self.fontsize)
+            axi.yaxis.label.set_size(self.fontsize)
 
-        # set labels
-        plt.setp(ax[-1, :], xlabel=r"$\hat{\theta}$")
+
+
+        # plt.setp(ax[-1, :], xlabel=x_label)
         # plt.setp(ax[:, 0], ylabel=r"$\theta_i$")
 
         fig.tight_layout()
@@ -2060,9 +2123,13 @@ class Artist:
         # ax[(0, 0)].set_title("\n\nObj. function (L2)")
         ax[(0, 0)].set_title("\n\n")
         ax[(0, 0)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
-        ax[(0, 0)].set_ylabel(r"$n^{-1} \  ||x(\hat{\theta})-\bar{x}||_2^2$")
-
         ax[(0, 0)].set_xticklabels([])
+        if matplotlib.rcParams['text.usetex']:
+            y_label = r"$||x(\hat{\theta})-\bar{x}||_2^2$"
+        else:
+            y_label = "Objective function"
+
+        ax[(0, 0)].set_ylabel(y_label)
 
         for attr, color, label in zip(attrs, colors, labels):
             y_vals = results_df[results_df['attr'] == attr]['f_vals']
@@ -2074,9 +2141,13 @@ class Artist:
         # ax[(0, 1)].set_title("Gradient L2-norm")
         # y_vals = [np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1)) for x_val in x_range]
         ax[(0, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
-        ax[(0, 1)].set_ylabel(r"$n^{-1} \ \nabla_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)$")
-
         ax[(0, 1)].set_xticklabels([])
+        if matplotlib.rcParams['text.usetex']:
+            y_label = r"$\nabla_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)$"
+        else:
+            y_label = "First derivative"
+
+        ax[(0, 1)].set_ylabel(y_label)
 
         for attr, color, label in zip(attrs, colors, labels):
             y_vals = results_df[results_df['attr'] == attr]['grad_f_vals']
@@ -2086,7 +2157,13 @@ class Artist:
         # ax[(0, 2)].set_title("Sign Gradient L2-norm")
         # y_vals = [np.sign(np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1))) for x_val in x_range]
         ax[(1, 0)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
-        ax[(1, 0)].set_ylabel(r"$n^{-1} \ \textmd{sign} (\nabla_{\theta} ||x(\hat{\theta})-\bar{x}||_2^2 )$")
+
+        if matplotlib.rcParams['text.usetex']:
+            y_label = r"$\textmd{sign} (\nabla_{\theta} ||x(\hat{\theta})-\bar{x}||_2^2 )$"
+        else:
+            y_label = "Sign of first derivative"
+
+        ax[(1, 0)].set_ylabel(y_label)
 
         for attr, color, label in zip(attrs, colors, labels):
             y_vals = np.sign(results_df[results_df['attr'] == attr]['grad_f_vals'])
@@ -2110,14 +2187,20 @@ class Artist:
         # ax[(1, 1)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
         # ax[(1, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
         # ax[(1, 1)].plot(x_range, y_vals, color='red', )
-        # ax[(1, 1)].set_ylabel(r"$n^{-1} \ \nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2) $")
+        # ax[(1, 1)].set_ylabel(r"$\nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2) $")
 
         # Sign Hessian L2-norm
 
         # y_vals = hessian_f_vals
         # y_vals = np.sign(y_vals)
         ax[(1, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
-        ax[(1, 1)].set_ylabel(r"$n^{-1} \  \textmd{sign} (\nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)) $")
+
+        if matplotlib.rcParams['text.usetex']:
+            y_label = r"$\textmd{sign} (\nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2))$"
+        else:
+            y_label = "Sign of second derivative"
+
+        ax[(1, 1)].set_ylabel(y_label)
 
         for attr, color, label in zip(attrs, colors, labels):
             y_vals = np.sign(results_df[results_df['attr'] == attr]['hessian_f_vals'])
@@ -2142,8 +2225,15 @@ class Artist:
         # ax[(1, 0)].ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
         # ax[(1, 1)].ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
 
+        if matplotlib.rcParams['text.usetex']:
+            x_label = r"$\hat{\theta}$"
+        else:
+            x_label = "Travel time coefficient"
+
         lines, labels = [], []
         for axi in fig.get_axes():
+            axi.set_xlabel(x_label)
+
             # axi.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
             yfmt = ScalarFormatterForceFormat()
             yfmt.set_powerlimits((0, 0))
@@ -2153,10 +2243,10 @@ class Artist:
             linei, labeli = axi.get_legend_handles_labels()
             lines = linei + lines
             labels = labeli + labels
-            axi.tick_params(axis='y', labelsize=12)
-            axi.tick_params(axis='x', labelsize=12)
-            axi.xaxis.label.set_size(12)
-            axi.yaxis.label.set_size(12)
+            axi.tick_params(axis='y', labelsize=self.fontsize)
+            axi.tick_params(axis='x', labelsize=self.fontsize)
+            axi.xaxis.label.set_size(self.fontsize)
+            axi.yaxis.label.set_size(self.fontsize)
 
         # # Set font sizes
         # for axi in fig.get_axes():
@@ -2170,14 +2260,14 @@ class Artist:
         #         label.set_fontsize(12)
 
         # set labels
-        plt.setp(ax[-1, :], xlabel=r"$\hat{\theta}$")
+        # plt.setp(ax[-1, :], xlabel=r"$\hat{\theta}$")
 
         # plt.setp(ax[:, 0], ylabel=r"$\theta_i$")
 
         # Legend
         lines, labels = ax[(1, 1)].get_legend_handles_labels()
         # g.fig.legend(handles=handles, labels=labels, loc='lower center', ncol=4)
-        fig.legend(lines, labels, loc='upper center', ncol=2, prop={'size': 12}
+        fig.legend(lines, labels, loc='upper center', ncol=2, prop={'size': self.fontsize}
                    , bbox_to_anchor=[0.52, -0.25]
                    , bbox_transform=BlendedGenericTransform(fig.transFigure, ax[(1, 1)].transAxes))
 
@@ -2217,8 +2307,13 @@ class Artist:
         ax[(0, 0)].plot(x_range, y_vals, color=color)
         ax[(0, 0)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
         ax[(0, 0)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
-        ax[(0, 0)].set_ylabel(r"$n^{-1} \  ||x(\hat{\theta})-\bar{x}||_2^2$")
         ax[(0, 0)].set_xticklabels([])
+        if matplotlib.rcParams['text.usetex']:
+            y_label = r"$||x(\hat{\theta})-\bar{x}||_2^2$"
+        else:
+            y_label = "Objective function"
+
+        ax[(0, 0)].set_ylabel(y_label)
 
         # r"$\hat{\theta}$"
 
@@ -2229,8 +2324,12 @@ class Artist:
             ax[(0, 1)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
             ax[(0, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
             ax[(0, 1)].plot(x_range, y_vals, color=color)
-            ax[(0, 1)].set_ylabel(r"$n^{-1} \ \nabla_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)$")
             ax[(0, 1)].set_xticklabels([])
+            if matplotlib.rcParams['text.usetex']:
+                y_label = r"$\nabla_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)$"
+            else:
+                y_label = "First derivative"
+            ax[(0, 1)].set_ylabel(y_label)
 
             # ax[(0, 2)].set_title("Sign Gradient L2-norm")
             # y_vals = [np.sign(np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1))) for x_val in x_range]
@@ -2238,7 +2337,13 @@ class Artist:
             ax[(1, 0)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
             ax[(1, 0)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
             ax[(1, 0)].plot(x_range, y_vals, color=color)
-            ax[(1, 0)].set_ylabel(r"$n^{-1} \ \textmd{sign} (\nabla_{\theta} ||x(\hat{\theta})-\bar{x}||_2^2 )$")
+            if matplotlib.rcParams['text.usetex']:
+                y_label = r"$\textmd{sign} (\nabla_{\theta} ||x(\hat{\theta})-\bar{x}||_2^2 )$"
+            else:
+                y_label = "Sign of first derivative"
+
+            ax[(1, 0)].set_ylabel(y_label)
+
             # ax[(1, 0)].set_xticks(np.arange(int(min(x_range)), int(max(x_range)), 3))
             # ax[(1, 0)].set_xticklabels([])
 
@@ -2256,7 +2361,7 @@ class Artist:
             # ax[(1, 1)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
             # ax[(1, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
             # ax[(1, 1)].plot(x_range, y_vals, color='red', )
-            # ax[(1, 1)].set_ylabel(r"$n^{-1} \ \nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2) $")
+            # ax[(1, 1)].set_ylabel(r"$\nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2) $")
 
             # Sign Hessian L2-norm
 
@@ -2265,9 +2370,15 @@ class Artist:
             # y_vals = hessian_f_vals
             # y_vals = np.sign(y_vals)
             ax[(1, 1)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
-            ax[(1, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
             ax[(1, 1)].plot(x_range, y_vals, color=color, )
-            ax[(1, 1)].set_ylabel(r"$n^{-1} \  \textmd{sign} (\nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)) $")
+            ax[(1, 1)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
+
+            if matplotlib.rcParams['text.usetex']:
+                y_label = r"$\textmd{sign} (\nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2))$"
+            else:
+                y_label = "Sign of second derivative"
+
+            ax[(1, 1)].set_ylabel(y_label)
 
         # ax[(0, 2)].set_title("Hessian L2-norm")
         # y_vals = [np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1)) for x_val in x_range]
@@ -2289,10 +2400,16 @@ class Artist:
 
         lines, labels = [], []
         # set labels
-        plt.setp(ax[-1, :], xlabel=r"$\hat{\theta}$")
+        # plt.setp(ax[-1, :], xlabel=r"$\hat{\theta}$")
         # plt.setp(ax[:, 0], ylabel=r"$\theta_i$")
 
+        if matplotlib.rcParams['text.usetex']:
+            x_label = r"$\hat{\theta}$"
+        else:
+            x_label = "Travel time coefficient"
+
         for axi in fig.get_axes():
+            axi.set_xlabel(x_label)
             # axi.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
             yfmt = ScalarFormatterForceFormat()
             yfmt.set_powerlimits((0, 0))
@@ -2303,10 +2420,10 @@ class Artist:
             linei, labeli = axi.get_legend_handles_labels()
             lines = linei + lines
             labels = labeli + labels
-            axi.tick_params(axis='y', labelsize=12)
-            axi.tick_params(axis='x', labelsize=12)
-            axi.xaxis.label.set_size(12)
-            axi.yaxis.label.set_size(12)
+            axi.tick_params(axis='y', labelsize=self.fontsize)
+            axi.tick_params(axis='x', labelsize=self.fontsize)
+            axi.xaxis.label.set_size(self.fontsize)
+            axi.yaxis.label.set_size(self.fontsize)
 
         fig.tight_layout()
 
@@ -2325,9 +2442,8 @@ class Artist:
 
         assert 'method' in results_experiment.keys()
 
-        theta_true = pd.Series(
-            data=results_experiment['theta_true'].values,
-            index=results_experiment['attr']).drop_duplicates()
+        theta_true = pd.Series(data=results_experiment['theta_true'].values,
+                               index=results_experiment['attr']).drop_duplicates()
 
         methods = results_experiment[['method']].drop_duplicates().values.flatten().tolist()
 
@@ -2335,7 +2451,6 @@ class Artist:
             folder = self.folder
 
         # Computation of False positives and negatives
-
         false_negatives, false_positives = False, False
 
         if 'fp' in list(set(results_experiment.f_type.values)):
@@ -2352,7 +2467,8 @@ class Artist:
         # 1) bias in estimates
         sns.boxplot(x="method", y="bias", data=results_experiment[results_experiment.attr != 'vot'], ax=ax[(0, 0)],
                     showfliers=False, color='white')
-        ax[(0, 0)].set_ylabel('bias ' + r"$(\hat{\theta})$")
+        # ax[(0, 0)].set_ylabel('bias ' + r"$(\hat{\theta})$")
+        ax[(0, 0)].set_ylabel('bias in coefficients')
         if range_initial_values is not None:
             ax[(0, 0)].set(ylim=range_initial_values)
 
@@ -2360,7 +2476,8 @@ class Artist:
         sns.boxplot(x="method", y="bias",
                     data=results_experiment[results_experiment.attr == 'vot'],
                     showfliers=False, ax=ax[(0, 1)], color='white')
-        ax[(0, 1)].set_ylabel('bias ' + r"$(\hat{\theta}_t/\hat{\theta}_c)$")
+        # ax[(0, 1)].set_ylabel('bias ' + r"$(\hat{\theta}_t/\hat{\theta}_c)$")
+        ax[(0, 1)].set_ylabel('bias in value of time')
         # if range_initial_values is not None:
         #     ax[(0, 1)].set(ylim=range_initial_values)
         ax[(0, 1)].set(ylim=(-0.2, 0.2))
@@ -2401,7 +2518,6 @@ class Artist:
 
 
         else:
-
             # computation time
             sns.barplot(x="method", y="time", data=results_experiment, ax=ax[(1, 1)]
                         , color='white', errcolor="black", edgecolor="black", linewidth=1.5, errwidth=1.5)
@@ -2418,7 +2534,6 @@ class Artist:
             plt.setp(axi.lines, color='k')
 
             plt.setp(axi.artists, edgecolor='black', facecolor='white')
-
 
         ax[(0, 0)].axhline(0, linestyle='--', color='gray')
         ax[(0, 1)].axhline(0, linestyle='--', color='gray')
@@ -2831,7 +2946,8 @@ class Artist:
         # 1) bias in estimates
         sns.boxplot(x="level", y="bias", data=results_experiment[results_experiment.attr != 'vot'], color="white",
                     ax=ax[(0, 0)], showfliers=False)
-        ax[(0, 0)].set_ylabel('bias ' + r"$(\hat{\theta})$")
+        # ax[(0, 0)].set_ylabel('bias ' + r"$(\hat{\theta})$")
+        ax[(0, 0)].set_ylabel('bias in coefficients')
         if range_initial_values is not None:
             ax[(0, 0)].set(ylim=range_initial_values)
         # ax[(1, 0)].set_ylabel('bias ' + r"$(\hat{\theta} - \theta)$")
