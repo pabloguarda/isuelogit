@@ -340,7 +340,7 @@ class NetworksExperiment(NetworkExperiment):
                  **kwargs
                  ):
 
-        kwargs['folderpath'] = 'small-networks'
+        # kwargs['folderpath'] = 'small-networks'
         # kwargs['network'] = kwargs['networks'][0]
 
         super().__init__(**kwargs)
