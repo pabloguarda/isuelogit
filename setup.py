@@ -42,7 +42,7 @@ setup(
     license="MIT license",
     long_description=readme + '\n\n' + history,
     include_package_data=True,
-    keywords='AI',
+    keywords='network modelling, discrete choice modelling, pseudo-convex optimization',
     name='isuelogit',
     package_dir={'': 'src'},
     packages=find_packages('src'),
