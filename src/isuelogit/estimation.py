@@ -42,12 +42,14 @@ class Parameter:
                  key: str,
                  type: str = None,
                  sign: str = None,
+                 fixed: bool = False,
                  initial_value: float = None,
                  true_value: float = None,
                  ):
         self._key = key
         self._type = type
         self._sign = sign
+        self._fixed = fixed
         self._initial_value = initial_value
         self._true_value = true_value
         self._value = None
@@ -75,6 +77,14 @@ class Parameter:
     @sign.setter
     def sign(self, value):
         self._sign = value
+        
+    @property
+    def fixed(self):
+        return self._fixed
+
+    @fixed.setter
+    def fixed(self, value):
+        self._fixed = value
 
     @property
     def initial_value(self):
@@ -114,6 +124,7 @@ class UtilityFunction:
                  features_Y: Features,
                  features_Z: Features = None,
                  signs: Optional[ParametersDict] = None,
+                 fixed: Optional[ParametersDict] = None,
                  initial_values: Optional[ParametersDict] = None,
                  true_values: Optional[ParametersDict] = None
                  ):
@@ -130,6 +141,7 @@ class UtilityFunction:
         self._initial_values = initial_values
         self._true_values = true_values
         self._signs = signs
+        self._fixed = fixed
 
         # Dict[Feature,Parameter]
         self._parameters = {}
@@ -137,6 +149,7 @@ class UtilityFunction:
         # Create parameters
         self.add_features(features_Y=self._features_Y,
                           features_Z=self._features_Z,
+                          fixed = fixed,
                           signs=signs,
                           initial_values=initial_values,
                           true_values=true_values)
@@ -157,6 +170,7 @@ class UtilityFunction:
                      features_Y: Optional[List[str]] = None,
                      features_Z: Optional[List[str]] = None,
                      signs: Optional[ParametersDict] = None,
+                     fixed: Optional[ParametersDict] = None,
                      initial_values: Optional[ParametersDict] = None,
                      true_values: Optional[ParametersDict] = None
                      ):
@@ -174,6 +188,9 @@ class UtilityFunction:
 
         if signs is None:
             signs = dict.fromkeys(features_Y + features_Z)
+        
+        if fixed is None:
+            fixed = dict.fromkeys(features_Y + features_Z, False)
 
         if initial_values is None:
             initial_values = dict.fromkeys(features_Y + features_Z)
@@ -185,6 +202,7 @@ class UtilityFunction:
             self.parameters[feature] = Parameter(key=feature,
                                                  type='Y',
                                                  sign=signs.get(feature),
+                                                 fixed=fixed.get(feature, False),
                                                  initial_value=initial_values.get(feature),
                                                  true_value=true_values.get(feature))
 
@@ -192,6 +210,7 @@ class UtilityFunction:
             self.parameters[feature] = Parameter(key=feature,
                                                  type='Z',
                                                  sign=signs.get(feature),
+                                                 fixed=fixed.get(feature, False),
                                                  initial_value=initial_values.get(feature),
                                                  true_value=true_values.get(feature))
 
@@ -283,6 +302,19 @@ class UtilityFunction:
                 value = values[feature]
                 assert value in ['-', '+']
                 self.parameters[feature].sign = values[feature]
+                
+    @property
+    def fixed(self):
+        return {key: parameter.fixed for key, parameter in self.parameters.items()}
+
+    @fixed.setter
+    def fixed(self, values: Dict[Feature, str]):
+
+        if values is not None:
+            for feature, value in values.items():
+                value = values[feature]
+                assert value is bool
+                self.parameters[feature].fixed = values[feature]
 
     @property
     def parameters(self):
@@ -377,7 +409,7 @@ class FirstOrderMethod(OuterMethod):
 
         self.type = 'first-order'
 
-    def update_parameters(self, theta, gradient):
+    def update_parameters(self, theta, gradient, features_idxs = None):
         raise NotImplementedError
 
     def reset_gradients(self):
@@ -393,19 +425,24 @@ class NormalizedGradientDescent(FirstOrderMethod):
     def __init__(self, **kwargs):
         super().__init__(key='ngd', **kwargs)
 
-    def update_parameters(self,
-                          theta,
-                          gradient):
+    def update_parameters(self, theta, gradient, features_idxs = None):
 
         epsilon = 1e-12
 
         # grad_adj =  numeric.almost_zero_gradient(grad_adj)
+
+        if features_idxs is not None:
+            previous_theta = theta.copy()
 
         if len(theta) == 1:
             theta = theta - np.sign(gradient) * self.eta
         else:
             theta = theta - (gradient) / np.linalg.norm(
                 gradient + epsilon) * self.eta  # epsilon to avoid problem when gradient is 0
+
+        for feature_idx in np.arange(theta.size):
+            if feature_idx not in features_idxs:
+                theta[feature_idx] = previous_theta[feature_idx]
 
         return theta
 
@@ -414,11 +451,18 @@ class GradientDescent(FirstOrderMethod):
     def __init__(self, **kwargs):
         super().__init__(key='gd', **kwargs)
 
-    def update_parameters(self, theta, gradient):
+    def update_parameters(self, theta, gradient,features_idxs = None):
         # theta_update_new = gamma * (theta_update_old) + eta * grad_new
+
+        if features_idxs is not None:
+            previous_theta = theta.copy()
 
         # Gradient update (with momentum)
         theta = theta - gradient * self.eta
+
+        for feature_idx in np.arange(theta.size):
+            if feature_idx not in features_idxs:
+                theta[feature_idx] = previous_theta[feature_idx]
 
         # theta_update_old = theta_update_new
 
@@ -429,7 +473,7 @@ class StochasticGradientDescent(GradientDescent):
     def __init__(self, **kwargs):
         super().__init__(key='gd', **kwargs)
 
-    def update_parameters(self, theta, gradient):
+    def update_parameters(self, theta, gradient,features_idxs = None):
         pass
 
 
@@ -437,7 +481,7 @@ class Adagrad(FirstOrderMethod):
     def __init__(self, **kwargs):
         super().__init__(key='adagrad', **kwargs)
 
-    def update_parameters(self, theta, gradient):
+    def update_parameters(self, theta, gradient,features_idxs = None):
         # TODO: Fix adagrad using diagonal matrix for accumulated gradients and use acumulated gradients from past bilevel iterations. The same applies for Adam and momentum updates
 
         # TODO: Review gradients update Adagrad
@@ -462,7 +506,7 @@ class Adam(FirstOrderMethod):
         self.beta_1 = kwargs.get('beta_1', 0.5)  # 0.9
         self.beta_2 = kwargs.get('beta_2', 0.5)  # 0.999
 
-    def update_parameters(self, theta, gradient):
+    def update_parameters(self, theta, gradient,features_idxs = None):
         epsilon = 1e-7
 
         # Compute and update first moments (m) and second moments (v)
@@ -485,9 +529,6 @@ class SecondOrderMethod(OuterMethod):
         super().__init__(**kwargs)
         self.type = 'second-order'
 
-    def compute_jacobian(self):
-        pass
-
     def update_parameters(self):
         raise NotImplementedError
 
@@ -497,9 +538,16 @@ class Newton(SecondOrderMethod):
     def __init__(self, **kwargs):
         super().__init__(key='newton', **kwargs)
 
-    def update_parameters(self, theta, hessian, gradient):
+    def update_parameters(self, theta, hessian, gradient,features_idxs):
+
+        if features_idxs is not None:
+            previous_theta = theta.copy()
 
         theta = theta - np.linalg.pinv(hessian).dot(gradient)
+
+        for feature_idx in np.arange(theta.size):
+            if feature_idx not in features_idxs:
+                theta[feature_idx] = previous_theta[feature_idx]
 
         # # Stable version
         # theta = theta + np.linalg.lstsq(hessian, -g, rcond=None)[0]
@@ -519,12 +567,19 @@ class LevenbergMarquardt(SecondOrderMethod):
         # https://mljs.github.io/levenberg-marquardt/
         # Source: https://en.wikipedia.org/wiki/Levenberg%E2%80%93Marquardt_algorithm
 
-    def update_parameters(self, theta, lambda_lm, jacobian, delta_y):
+    def update_parameters(self, theta, lambda_lm, jacobian, delta_y,features_idxs = None):
         J = jacobian
 
         J_T_J = J.T.dot(J)
 
+        if features_idxs is not None:
+            previous_theta = theta.copy()
+
         theta = theta + np.linalg.lstsq(J_T_J + lambda_lm * np.eye(J_T_J.shape[0]), J.T.dot(delta_y), rcond=None)[0]
+
+        for feature_idx in np.arange(theta.size):
+            if feature_idx not in features_idxs:
+                theta[feature_idx] = previous_theta[feature_idx]
 
         return theta
 
@@ -535,13 +590,20 @@ class LevenbergMarquardtRevised(LevenbergMarquardt):
         self.key = 'lm-rev'
         # SecondOrderMethod.__init__(key='lm-revised', **kwargs)
 
-    def update_parameters(self, theta, lambda_lm, jacobian, delta_y):
+    def update_parameters(self, theta, lambda_lm, jacobian, delta_y,features_idxs = None):
 
         J = jacobian
 
         J_T_J = J.T.dot(J)
 
+        if features_idxs is not None:
+            previous_theta = theta.copy()
+
         theta = theta + np.linalg.lstsq(J_T_J + lambda_lm * np.eye(J_T_J.shape[0]), J.T.dot(delta_y), rcond=None)[0]
+
+        for feature_idx in np.arange(theta.size):
+            if feature_idx not in features_idxs:
+                theta[feature_idx] = previous_theta[feature_idx]
 
         return theta
 
@@ -650,18 +712,8 @@ class OuterOptimizer:
 
         self.utility_function = utility_function
 
-        self.theta_0 = None
-
-        if utility_function is not None:
-            self.theta_0 = copy.deepcopy(utility_function.initial_values)
-
-            # Check that utility function parameters have no none initial values, otherwise it sets them to 0
-            for feature, initial_value in self.theta_0.items():
-                if initial_value is None:
-                    self.theta_0[feature] = 0
-                    # self.utility_function.initial_values[feature] = 0
-
         # Create optimizer object
+        kwargs.pop('parameters_constraints', None)
         self.method = self.generate_outer_method(method, **kwargs)
 
     def generate_outer_method(self, method, **kwargs) -> OuterMethod:
@@ -727,7 +779,7 @@ class OuterOptimizer:
         self.options['od_estimation'] = False
 
         # Constrained optimization
-        self.options['constrained_optimization'] = {'sign': False, 'fix': False}
+        self.options['parameters_constraints'] = {'sign': False, 'fixed': False}
 
         # # Correction using path size logit
         # self.options['paths_specific_utility'] = 0
@@ -821,10 +873,28 @@ class OuterOptimizer:
                                                   q=network.q,
                                                   **kwargs)
 
+
+    def project_parameters_constraints(self, theta):
+        counter = 0
+        signs = self.utility_function.signs
+        for feature in self.utility_function.features:
+            if feature in signs.keys():
+                sign = signs[feature]
+                if sign == '+':
+                    theta[counter] = max(0, theta[counter])
+                elif sign == '-':
+                    theta[counter] = min(0, theta[counter])
+
+            counter += 1
+
+        return theta
+
+
     def solve_outer_problem(self,
                             Y: DataFrame,
                             Z: DataFrame,
-                            paths_specific_utility: ColumnVector,
+                            theta_0: ColumnVector = None,
+                            paths_specific_utility: ColumnVector = None,
                             paths_probabilities: Optional[ColumnVector] = None,
                             q_0: ColumnVector = None,
                             q_bar: ColumnVector = None,
@@ -841,17 +911,15 @@ class OuterOptimizer:
 
         """
 
+        if kwargs.get('parameters_constraints') is None:
+            kwargs['parameters_constraints'] = self.options['parameters_constraints']
+
         options = self.options.get_updated_options(new_options=kwargs)
 
         iters = options['iters']
-
         batch_size = options['batch_size']
-        standardization = options['standardization']
-
         iters_scaling = options['iters_scaling']
         eta_scaling = options['eta_scaling']
-
-        theta0 = options.get('theta_0', self.theta_0)
 
         if isinstance(self.method, FirstOrderMethod):
             print('\nLearning params via ' + self.method.key + ' (' + str(int(iters))
@@ -868,10 +936,22 @@ class OuterOptimizer:
                                           features_Z=self.utility_function.features_Z,
                                           features_Y=self.utility_function.features_Y)
 
-        # Incidences matrices
-        D = self.network.D
-        M = self.network.M
-        C = self.network.C
+
+        if theta_0 is None:
+            print('No initial values of the utility function parameters have been provided')
+            theta_0 = copy.deepcopy(self.utility_function.initial_values)
+
+            # Check that utility function parameters have no none initial values, otherwise it sets them to 0
+            for feature, initial_value in theta_0.items():
+                if initial_value is None:
+                    theta_0[feature] = 0
+                # self.utility_function.initial_values[feature] = 0
+
+        features_idxs = None
+
+        if options['parameters_constraints']['fixed']:
+            if self.utility_function.fixed is not None:
+                features_idxs = list(np.where(np.array(list(self.utility_function.fixed.values())).astype(int) == 0)[0])
 
         counts = self.network.counts_vector
 
@@ -885,7 +965,7 @@ class OuterOptimizer:
 
         assert batch_size < total_no_nans, 'Batch size larger than size of observed counts vector'
 
-        theta = np.array(list(theta0.values()))[:, np.newaxis]
+        theta = np.array(list(theta_0.values()))[:, np.newaxis]
 
         # Path probabilities
         if paths_probabilities is None:
@@ -909,36 +989,32 @@ class OuterOptimizer:
 
             if iter == 0:
                 theta = np.array([1])[:, np.newaxis]
-            # thetas[0] * float(theta)
 
-            grad_old = gradient_objective_function(theta,
-                                                   design_matrix.dot(thetas[0].dot(float(theta))),
-                                                   counts = self.network.counts_vector,
-                                                   q = self.network.q,
-                                                   D = self.network.D,
-                                                   M = self.network.M,
-                                                   C = self.network.C)
+            grad_current = self.compute_gradient_objective_function(
+                theta=theta,
+                design_matrix=design_matrix.dot(thetas[0].dot(float(theta))),
+                network=self.network,
+                features_idxs = features_idxs,
+                paths_probabilities=paths_probabilities,
+                paths_specific_utility=paths_specific_utility)
 
             # For scaling this makes more sense using a sign function as it operates as a grid search and reduce numerical errors
-
-            theta = theta - np.sign(grad_old) * eta_scaling
+            theta = theta - np.sign(grad_current) * eta_scaling
 
             # Record theta with the new scaling
             thetas.append(thetas[0] * theta)
-            # obj_fun = objective_function(theta=thetas[0] * theta, D=D, design_matrix=design_matrix)
-
-            # For multidimensional case
-            # theta = theta - (grad_old)/np.linalg.norm(grad_old+epsilon) * eta_ngd  #epsilon to avoid problem when gradient is 0
 
             if iter == iters_scaling - 1:
-                initial_objective = np.sum(
-                    Learner.compute_objective_function(theta=thetas[0], design_matrix=design_matrix, counts=counts, q=q,
-                                                       D=D, M=M, C=C))
+                initial_objective = self.compute_objective_function(theta=thetas[0],
+                                                                    design_matrix=design_matrix,
+                                                                    network=self.network,
+                                                                    paths_specific_utility=paths_specific_utility)
                 print('initial objective: ' + str(initial_objective))
-                final_objective = np.sum(
-                    Learner.compute_objective_function(theta=thetas[-1], design_matrix=design_matrix, counts=counts,
-                                                       q=q,
-                                                       D=D, M=M, C=C))
+                final_objective = self.compute_objective_function(theta=thetas[-1],
+                                                                  design_matrix=design_matrix,
+                                                                  network=self.network,
+                                                                  paths_specific_utility=paths_specific_utility
+                                                                  )
                 print('objective in iter ' + str(iter + 1) + ': ' + str(final_objective))
                 print('scaling factor: ' + str(theta))
                 print('theta after scaling: ' + str(thetas[-1].T))
@@ -953,10 +1029,6 @@ class OuterOptimizer:
         lambdas_lm = []
         mode_lm = 'lambda'
         best_theta_lm = None
-
-        # if method.key == 'lm':
-        #     # lm required an extra iteration to adjust the dumping parameter
-        #     iters += 1
 
         paths_probabilities = paths_probabilities.copy()
 
@@ -984,7 +1056,7 @@ class OuterOptimizer:
                 # Set nan in the sample outside of batch that has no nan
                 idx_nobatch = list(np.random.choice(idx_nonas, missing_sample_size, replace=False))
 
-                counts_masked = masked_observed_counts(counts=counts, idx=idx_nobatch)
+                # counts_masked = masked_observed_counts(counts=counts, idx=idx_nobatch)
 
             # i) First order optimization methods
 
@@ -1006,28 +1078,31 @@ class OuterOptimizer:
                     theta=theta,
                     design_matrix=design_matrix,
                     network=self.network,
+                    features_idxs=features_idxs,
                     # numeric = True,
                     paths_probabilities=paths_probabilities,
                     paths_specific_utility=paths_specific_utility)  # /total_no_nans
 
-                # TODO: debug momentum
-                #  formula (https://towardsdatascience.com/stochastic-gradient-descent-with-momentum-a84097641a5d)
-                # grad_old = (1 - gamma) * grad_old + gamma * grad_new
-                if self.grad_old is None:
-                    # So we avoid that first graident is 0
-                    grad_adj = grad_current
-
-                else:
-                    grad_adj = gamma * self.grad_old + (1 - gamma) * grad_current
+                # # TODO: debug momentum
+                # #  formula (https://towardsdatascience.com/stochastic-gradient-descent-with-momentum-a84097641a5d)
+                # # grad_old = (1 - gamma) * grad_old + gamma * grad_new
+                # if self.grad_old is None:
+                #     # So we avoid that first graident is 0
+                #     grad_adj = grad_current
+                #
+                # else:
+                #     grad_adj = gamma * self.grad_old + (1 - gamma) * grad_current
 
                 # self.grad_old = grad_adj
 
-                # TODO implement nesterov acelerated gradient descent
-                # https: // ruder.io / optimizing - gradient - descent /
+                grad_adj = grad_current
 
-                # grad_adj =  numeric.almost_zero_gradient(grad_adj)
+                theta = self.method.update_parameters(theta=theta, gradient=grad_current, features_idxs = features_idxs)
 
-                theta = self.method.update_parameters(theta=theta, gradient=grad_current)
+                if options['parameters_constraints']['sign']:
+
+                    theta = self.project_parameters_constraints(theta)
+
 
                 # print('gradient_diff : ' + str(gradient_check(theta=theta)))
 
@@ -1047,6 +1122,7 @@ class OuterOptimizer:
                         theta=theta,
                         design_matrix=design_matrix,
                         network=self.network,
+                        features_idxs = features_idxs,
                         paths_probabilities=paths_probabilities,
                         paths_specific_utility=paths_specific_utility)
 
@@ -1057,7 +1133,14 @@ class OuterOptimizer:
                                                                 paths_probabilities=paths_probabilities,
                                                                 paths_specific_utility=paths_specific_utility)
 
-                    theta = self.method.update_parameters(theta = theta, hessian = H, gradient = g)
+                    if features_idxs is not None:
+                        previous_theta = theta.copy()
+
+                    theta = self.method.update_parameters(theta = theta, hessian = H, gradient = g,
+                                                          features_idxs = features_idxs)
+
+                    for feature_idx in features_idxs:
+                        theta[feature_idx] = previous_theta[feature_idx]
 
                 if isinstance(self.method, (GaussNewton, LevenbergMarquardt, LevenbergMarquardtRevised)):
 
@@ -1068,13 +1151,6 @@ class OuterOptimizer:
                         theta = theta_0
 
                         if iters > 1 and isinstance(self.method, (LevenbergMarquardt, LevenbergMarquardtRevised)):
-
-                            # pred_x = self.compute_response_function(network = self.network,
-                            #                                         paths_probabilities=paths_probabilities)
-                            #
-                            # delta_y = fake_observed_counts(predicted_counts=pred_x, observed_counts=counts) - pred_x
-                            #
-                            # previous_objective = np.sum(delta_y ** 2)
 
                             previous_objective = self.compute_objective_function(
                                 theta=thetas[iter],
@@ -1093,7 +1169,8 @@ class OuterOptimizer:
                         design_matrix=design_matrix,
                         network=self.network,
                         paths_probabilities=paths_probabilities,
-                        paths_specific_utility=paths_specific_utility
+                        paths_specific_utility=paths_specific_utility,
+                        features_idxs = features_idxs
                     )
 
                     predicted_counts = self.compute_response_function(network=self.network,
@@ -1106,7 +1183,8 @@ class OuterOptimizer:
                     delta_y = np.delete(delta_y, idxs_nan, axis=0)
                     J = np.delete(J, idxs_nan, axis=0)
 
-                    theta = self.method.update_parameters(theta = theta, lambda_lm = lambda_lm, jacobian = J, delta_y = delta_y)
+                    theta = self.method.update_parameters(theta = theta, lambda_lm = lambda_lm, jacobian = J,
+                                                          delta_y = delta_y, features_idxs = features_idxs)
 
                     objective_value = self.compute_objective_function(theta=theta,
                                                                       design_matrix=design_matrix,
@@ -1230,7 +1308,7 @@ class OuterOptimizer:
         theta = best_theta  # thetas[-1]
 
         # Conver theta into a dictionary to return it then
-        theta_dict = dict(zip(theta0.keys(), theta.flatten()))
+        theta_dict = dict(zip(self.utility_function.features, theta.flatten()))
 
         print('theta: ' + str({key: "{0:.1E}".format(val) for key, val in theta_dict.items()}))
 
@@ -1373,7 +1451,7 @@ class Learner:
 
         print('\nBilevel optimization for ' + str(self.network.key) + ' network \n')
 
-        options = self.options = self.options.get_updated_options(new_options=kwargs)
+        options = self.options.get_updated_options(new_options=kwargs)
 
         iters = options.get('bilevel_iters')
 
@@ -1536,7 +1614,8 @@ class Learner:
                     paths_probabilities=p_f_0,
                     paths_specific_utility=paths_specific_utility,
                     q_0=q_current,
-                    q_bar=q_bar
+                    q_bar=q_bar,
+                    parameters_constraints = options.get('parameters_constraints')
                 )
 
             q_current = q_new.copy()
@@ -2597,7 +2676,7 @@ def grid_search_optimization(network: TNetwork,
         if gradients:
             grad_vals.append(
                 float(gradient_objective_function(
-                    attribute_k=index_feature,
+                    features_idxs=[index_feature],
                     theta=theta_current_vector,
                     design_matrix=design_matrix,
                     counts=counts,
@@ -2841,6 +2920,7 @@ def jacobian_response_function(theta,
                                paths_specific_utility: ColumnVector,
                                paths_probabilities: ColumnVector = None,
                                counts: ColumnVector = None,
+                               features_idxs: List = None,
                                numeric=False,
                                normalization=True):
     '''
@@ -2924,8 +3004,11 @@ def jacobian_response_function(theta,
     counter = 0
     n_features = theta.shape[0]
 
+    if features_idxs is None:
+        features_idxs = np.arange(theta.shape[0])
+
     # This operation is performed for each attribute k
-    for k in np.arange(theta.shape[0]):  # np.arange(len([*features_Y,*features])):
+    for k in features_idxs:  # np.arange(len([*features_Y,*features])):
 
         # printProgressBar(counter, n_features-1, prefix='Progress:', suffix='', length=20)
 
@@ -2955,10 +3038,17 @@ def jacobian_response_function(theta,
 
         counter += 1
 
+    jacobian = np.zeros((J.shape[0],theta.shape[0]))
+
+    counter = 0
+    for feature_idx in features_idxs:
+        jacobian[:,feature_idx] = J[:,counter]
+        counter+=1
+
     if counts is not None:
-        return J, paths_probabilities, D, M
+        return jacobian, paths_probabilities, D, M
     else:
-        return J, paths_probabilities
+        return jacobian, paths_probabilities
 
 
 def compute_links_utilities(theta,
@@ -3314,7 +3404,7 @@ def gradient_objective_function(theta: ColumnVector,
                                 C: Matrix,
                                 numeric=False,
                                 paths_probabilities: ColumnVector = None,
-                                attribute_k: int = None,
+                                features_idxs: List = None,
                                 standardization: dict = None,
                                 paths_specific_utility=0
                                 ) -> ColumnVector:
@@ -3390,11 +3480,10 @@ def gradient_objective_function(theta: ColumnVector,
     counter = 0
     n_features = theta.shape[0]
 
-    for k in np.arange(theta.shape[0]):
+    if features_idxs is None:
+        features_idxs = np.arange(theta.shape[0])
 
-        if attribute_k is not None:
-            k = attribute_k
-            n_features = 1
+    for k in features_idxs:
 
         # printProgressBar(counter, n_features - 1, prefix='Progress:', suffix='', length=20)
 
@@ -3420,10 +3509,14 @@ def gradient_objective_function(theta: ColumnVector,
 
         counter += 1
 
-        if attribute_k is not None:
-            break
+    gradient = np.zeros_like(theta)
 
-    return np.array(gradient_l2norm)[:, np.newaxis]
+    counter = 0
+    for feature_idx in features_idxs:
+        gradient[feature_idx] = gradient_l2norm[counter]
+        counter+=1
+
+    return gradient
 
 
 def numeric_gradient_objective_function(theta: ColumnVector,
