@@ -1537,6 +1537,10 @@ class Learner:
         # Get path specific utility:
         paths_specific_utility = network.get_paths_specific_utility()
 
+        initial_error_by_link = error_by_link(observed_counts=counts,
+                                              predicted_counts=predicted_counts,
+                                              show_nan=False)
+
         if convergence_report:
 
             outer_gradient = gradient_objective_function(
@@ -1573,19 +1577,16 @@ class Learner:
             else:
                 print('Hessian is not positive definite')
 
-        if link_report:
+        if network.key == 'Fresno':
             summary_table = summary_links_fresno(network=network)
-
-            initial_error_by_link = error_by_link(observed_counts=counts,
-                                                  predicted_counts=predicted_counts,
-                                                  show_nan=False)
-
             summary_table['error'] = initial_error_by_link.flatten()
+            errors_by_link = [initial_error_by_link]
 
+        if link_report:
             with pd.option_context('display.float_format', '{:0.1f}'.format):
                 print('\n' + summary_table.to_string())
 
-            errors_by_link = [initial_error_by_link]
+
 
         best_objective = initial_objective
         best_predicted_counts = copy.deepcopy(predicted_counts)
@@ -1704,21 +1705,20 @@ class Learner:
                         np.round(objective_values[-2] - objective_values[-1], 1)))
                     print('')
 
-            if link_report:
-                summary_table = summary_links_fresno(network=network)
+
+
+            if network.key == 'Fresno':
 
                 current_error_by_link = error_by_link(counts, predicted_counts, show_nan=False)
 
-                d_error = current_error_by_link - errors_by_link[-1]
+                summary_table = summary_links_fresno(network=network)
 
+                d_error = current_error_by_link - errors_by_link[-1]
                 d_error_print = ["{0:.1E}".format(d_error_i[0]) for d_error_i in list(d_error)]
 
                 summary_table['prev_error'] = errors_by_link[-1].flatten()
                 summary_table['error'] = current_error_by_link.flatten()
                 summary_table['d_error'] = d_error_print
-
-                with pd.option_context('display.float_format', '{:0.1f}'.format):
-                    print('\n' + summary_table.to_string())
 
                 results[iter]['Fresno_report'] = summary_table
 
@@ -1749,6 +1749,10 @@ class Learner:
                       "{:.1%}".format(no_diff_error / len(d_error)))
 
                 errors_by_link.append(current_error_by_link)
+
+            if link_report:
+                with pd.option_context('display.float_format', '{:0.1f}'.format):
+                    print('\n' + summary_table.to_string())
 
             # print('\nKey, Prediction, observed count, error and capacities by link\n', s)
 
@@ -2702,7 +2706,7 @@ def grid_search_optimization(network: TNetwork,
                     D=network.D,
                     M=network.M,
                     C=network.C,
-                    paths_probabilities=p_f)
+                    paths_probabilities=p_f)[index_feature]
                 ))
 
         if hessians:
