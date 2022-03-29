@@ -416,7 +416,7 @@ class LUE_Equilibrator(Equilibrator):
                         path.specific_utility = float(options['path_size_correction'] * np.log(path_size_factors[idx]))
                         path_specific_utilities.append(path.specific_utility)
 
-                    print('Performed path size correction with factor', options['path_size_correction'])
+                    print('Path size correction with factor', options['path_size_correction'])
 
                     # network.Z_data[features_Z]
 
