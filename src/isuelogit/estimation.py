@@ -1604,10 +1604,10 @@ class Learner:
 
             if isinstance(self.outer_optimizer.method, FirstOrderMethod):
                 print('\nEstimating parameters via ' + self.outer_optimizer.method.key + ' (' + str(int(self.outer_optimizer.options['iters']))
-                      + ' iters, eta = ' + "{0:.1E}".format(self.outer_optimizer.method.eta) + ')')
+                      + ' iters, eta = ' + "{0:.1E}".format(self.outer_optimizer.method.eta) + ')\n')
 
             if self.outer_optimizer.method.type == 'second-order':
-                print('\nEstimating parameters via ' + self.outer_optimizer.method.key + ' (' + str(int(self.outer_optimizer.options['iters'])) + ' iters)')
+                print('\nEstimating parameters via ' + self.outer_optimizer.method.key + ' (' + str(int(self.outer_optimizer.options['iters'])) + ' iters)\n')
 
         for iter in np.arange(2, iters + 1, 1):
 
