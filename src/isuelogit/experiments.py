@@ -679,14 +679,17 @@ class ConsistencyExperiment(NetworkExperiment):
             with block_output(show_stdout=replicate_report, show_stderr=replicate_report):
 
                 # Generate synthetic traffic counts
-                counts, _ = self.linkdata_generator.simulate_counts(
+                counts_replicate, _ = self.linkdata_generator.simulate_counts(
                     network=self.network,
                     equilibrator=self.equilibrator,
                     utility_function=self.utility_function)
 
-                self.network.load_traffic_counts(counts=counts)
-
                 sd_x = self.linkdata_generator.options['noise_params']['sd_x']
+
+                counts_vector = self.linkdata_generator.add_error_counts(
+                    original_counts=np.array(list(counts_replicate.values()))[:,np.newaxis], sd_x=sd_x)
+
+                self.network.load_traffic_counts(counts=dict(zip(counts_replicate.keys(),counts_vector.flatten())))
 
                 method_norefined_1 = self.learner_norefined_1.outer_optimizer.method.key
                 method_norefined_2 = self.learner_norefined_2.outer_optimizer.method.key
@@ -713,13 +716,13 @@ class ConsistencyExperiment(NetworkExperiment):
                 theta_norefined_1 = learning_results_norefined_1[best_iter_norefined_1]['theta']
 
                 predicted_counts_norefined_1 = np.array(
-                    list(learning_results_norefined_1[best_iter_norefined_1]['x'].values()))
+                    list(learning_results_norefined_1[best_iter_norefined_1]['x'].values()))[:,np.newaxis]
 
                 time_norefined_1 = time.time() - t0
 
                 t0 = time.time()
 
-                self.utility_function.initial_values =copy.deepcopy(initial_values)
+                self.utility_function.initial_values = copy.deepcopy(initial_values)
 
                 print('\nStatistical Inference in No Refined Stage using', method_norefined_2)
 
@@ -730,7 +733,7 @@ class ConsistencyExperiment(NetworkExperiment):
                 theta_norefined_2 = learning_results_norefined_2[best_iter_norefined_2]['theta']
 
                 predicted_counts_norefined_2 = np.array(
-                    list(learning_results_norefined_2[best_iter_norefined_2]['x'].values()))
+                    list(learning_results_norefined_2[best_iter_norefined_2]['x'].values()))[:,np.newaxis]
 
                 time_norefined_2 = time.time() - t0
 
@@ -748,7 +751,7 @@ class ConsistencyExperiment(NetworkExperiment):
                 theta_refined = learning_results_refined[best_iter_refined]['theta']
 
                 predicted_counts_refined = np.array(
-                    list(learning_results_refined[best_iter_refined]['x'].values()))
+                    list(learning_results_refined[best_iter_refined]['x'].values()))[:,np.newaxis]
 
                 time_refined = time.time() - t0 + time_norefined_1
 
@@ -760,7 +763,7 @@ class ConsistencyExperiment(NetworkExperiment):
                 inference_results_norefined_1 = inference_results_norefined_1.assign(
                     time=time_norefined_1, method=method_norefined_1, rep=replicate,
                     objective=learning_results_norefined_1[best_iter_norefined_1]['objective'],
-                    nrmse=nrmse(actual=np.array(list(counts.values())), predicted=predicted_counts_norefined_1))
+                    nrmse=nrmse(actual=counts_vector, predicted=predicted_counts_norefined_1))
 
                 inference_results_norefined_2 = \
                     pd.concat([inference_results_norefined_2['parameters'],
@@ -769,7 +772,7 @@ class ConsistencyExperiment(NetworkExperiment):
                 inference_results_norefined_2 = inference_results_norefined_2.assign(
                     time=time_norefined_2, method=method_norefined_2, rep=replicate,
                     objective=learning_results_norefined_2[best_iter_norefined_2]['objective'],
-                    nrmse=nrmse(actual=np.array(list(counts.values())), predicted=predicted_counts_norefined_2))
+                    nrmse=nrmse(actual=counts_vector, predicted=predicted_counts_norefined_2))
 
                 inference_results_refined = \
                     pd.concat([inference_results_refined['parameters'],
@@ -778,7 +781,7 @@ class ConsistencyExperiment(NetworkExperiment):
                 inference_results_refined = inference_results_refined.assign(
                     time=time_refined, method=method_norefined_1 + '+' + method_refined, rep=replicate,
                     objective=learning_results_refined[best_iter_refined]['objective'],
-                    nrmse=nrmse(actual=np.array(list(counts.values())), predicted=predicted_counts_refined))
+                    nrmse=nrmse(actual=counts_vector, predicted=predicted_counts_refined))
 
                 results_replicate = pd.concat([inference_results_norefined_1,
                                                inference_results_norefined_2,
@@ -903,11 +906,16 @@ class CountsExperiment(ConvergenceExperiment):
 
                         sd_x = self.linkdata_generator.options['noise_params']['sd_x']
 
-                        counts,_ = self.linkdata_generator.mask_counts_by_coverage(counts_replicate_vector, coverage=level)
+                        # counts = self.linkdata_generator.add_error_counts(
+                        #     original_counts=counts_replicate_vector, sd_x=sd_x)
+
+                        counts,_ = self.linkdata_generator.mask_counts_by_coverage(counts_replicate_vector,
+                                                                                   coverage=level)
 
                     if type == 'noise':
 
-                        counts = self.linkdata_generator.add_error_counts(counts_replicate_vector, sd_x = level)
+                        counts = self.linkdata_generator.add_error_counts(original_counts=counts_replicate_vector,
+                                                                          sd_x=level)
 
                         sd_x = level
 
@@ -947,12 +955,13 @@ class CountsExperiment(ConvergenceExperiment):
                     results = pd.concat([inference_results_refined['parameters'],
                                          pd.DataFrame({'parameter': ['vot'], 'est': compute_vot(theta_refined)})])
 
+                    predicted_counts = np.array(list(learning_results_refined[best_iter_refined]['x'].values()))[:,np.newaxis]
+
                     results = results.assign(
                         rep=replicate,
                         level=level,
                         objective=learning_results_refined[best_iter_refined]['objective'],
-                        nrmse=nrmse(actual=np.array(list(counts_replicate.values())),
-                                    predicted=np.array(list(learning_results_refined[best_iter_refined]['x'].values())))
+                        nrmse=nrmse(actual=counts, predicted=predicted_counts)
                     )
 
                     results_replicate = pd.concat([results_replicate, results])
@@ -1063,6 +1072,8 @@ class ODExperiment(ConvergenceExperiment):
         # Noise or scale difference in Q matrix
         # Q_original = copy.deepcopy(self.network.Q_true)
 
+        sd_x = self.linkdata_generator.options['noise_params']['sd_x']
+
         for replicate in range(1, replicates + 1):
 
             if replicate_report or show_replicate_plot:
@@ -1145,12 +1156,14 @@ class ODExperiment(ConvergenceExperiment):
                     results = pd.concat([inference_results_refined['parameters'],
                                          pd.DataFrame({'parameter': ['vot'], 'est': compute_vot(theta_refined)})])
 
+                    predicted_counts = np.array(list(learning_results_refined[best_iter_refined]['x'].values()))[:,np.newaxis]
+
                     results = results.assign(
                         rep=replicate,
                         level=level,
                         objective=learning_results_refined[best_iter_refined]['objective'],
-                        nrmse=nrmse(actual=np.array(list(counts.values())),
-                                    predicted= np.array(list(learning_results_refined[best_iter_refined]['x'].values())))
+                        nrmse=nrmse(actual=np.array(list(counts.values()))[:,np.newaxis],
+                                    predicted= predicted_counts)
                     )
 
                     results_replicate = pd.concat([results_replicate, results])
@@ -1188,7 +1201,7 @@ class ODExperiment(ConvergenceExperiment):
 
                 fig = self.artist.levels_experiment(
                     results_experiment=results_experiment,
-                    sd_x = self.linkdata_generator.options['noise_params']['sd_x'],
+                    sd_x = sd_x,
                     alpha=alpha,
                     folder=self.dirs['replicate_folder'],
                     range_initial_values=range_initial_values)
@@ -1200,7 +1213,7 @@ class ODExperiment(ConvergenceExperiment):
 
         self.artist.levels_experiment(
             results_experiment=results_experiment,
-            sd_x=self.linkdata_generator.options['noise_params']['sd_x'],
+            sd_x=sd_x,
             alpha=alpha,
             folder=self.dirs['experiment_folder'],
             range_initial_values=range_initial_values)
