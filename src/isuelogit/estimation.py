@@ -440,9 +440,10 @@ class NormalizedGradientDescent(FirstOrderMethod):
             theta = theta - (gradient) / np.linalg.norm(
                 gradient + epsilon) * self.eta  # epsilon to avoid problem when gradient is 0
 
-        for feature_idx in np.arange(theta.size):
-            if feature_idx not in features_idxs:
-                theta[feature_idx] = previous_theta[feature_idx]
+        if features_idxs is not None:
+            for feature_idx in np.arange(theta.size):
+                if feature_idx not in features_idxs:
+                    theta[feature_idx] = previous_theta[feature_idx]
 
         return theta
 
@@ -460,9 +461,11 @@ class GradientDescent(FirstOrderMethod):
         # Gradient update (with momentum)
         theta = theta - gradient * self.eta
 
-        for feature_idx in np.arange(theta.size):
-            if feature_idx not in features_idxs:
-                theta[feature_idx] = previous_theta[feature_idx]
+        if features_idxs is not None:
+            for feature_idx in np.arange(theta.size):
+                if feature_idx not in features_idxs:
+                    theta[feature_idx] = previous_theta[feature_idx]
+
 
         # theta_update_old = theta_update_new
 
@@ -545,9 +548,11 @@ class Newton(SecondOrderMethod):
 
         theta = theta - np.linalg.pinv(hessian).dot(gradient)
 
-        for feature_idx in np.arange(theta.size):
-            if feature_idx not in features_idxs:
-                theta[feature_idx] = previous_theta[feature_idx]
+        if features_idxs is not None:
+            for feature_idx in np.arange(theta.size):
+                if feature_idx not in features_idxs:
+                    theta[feature_idx] = previous_theta[feature_idx]
+
 
         # # Stable version
         # theta = theta + np.linalg.lstsq(hessian, -g, rcond=None)[0]
@@ -577,9 +582,11 @@ class LevenbergMarquardt(SecondOrderMethod):
 
         theta = theta + np.linalg.lstsq(J_T_J + lambda_lm * np.eye(J_T_J.shape[0]), J.T.dot(delta_y), rcond=None)[0]
 
-        for feature_idx in np.arange(theta.size):
-            if feature_idx not in features_idxs:
-                theta[feature_idx] = previous_theta[feature_idx]
+        if features_idxs is not None:
+            for feature_idx in np.arange(theta.size):
+                if feature_idx not in features_idxs:
+                    theta[feature_idx] = previous_theta[feature_idx]
+
 
         return theta
 
@@ -601,9 +608,11 @@ class LevenbergMarquardtRevised(LevenbergMarquardt):
 
         theta = theta + np.linalg.lstsq(J_T_J + lambda_lm * np.eye(J_T_J.shape[0]), J.T.dot(delta_y), rcond=None)[0]
 
-        for feature_idx in np.arange(theta.size):
-            if feature_idx not in features_idxs:
-                theta[feature_idx] = previous_theta[feature_idx]
+        if features_idxs is not None:
+            for feature_idx in np.arange(theta.size):
+                if feature_idx not in features_idxs:
+                    theta[feature_idx] = previous_theta[feature_idx]
+
 
         return theta
 
@@ -922,11 +931,11 @@ class OuterOptimizer:
         eta_scaling = options['eta_scaling']
 
         if isinstance(self.method, FirstOrderMethod):
-            print('\nLearning params via ' + self.method.key + ' (' + str(int(iters))
+            print('\nEstimating params via ' + self.method.key + ' (' + str(int(iters))
                   + ' iters, eta = ' + "{0:.1E}".format(self.method.eta) + ')\n')
 
         if self.method.type == 'second-order':
-            print('\nLearning params via ' + self.method.key + ' (' + str(int(iters)) + ' iters)\n')
+            print('\nEstimating params via ' + self.method.key + ' (' + str(int(iters)) + ' iters)\n')
 
         if batch_size > 0:
             print('batch size for observed link counts = ' + str(batch_size))
@@ -1590,6 +1599,15 @@ class Learner:
         t0_global = time.time()
 
         # print('\n')
+
+        if iteration_report is False:
+
+            if isinstance(self.outer_optimizer.method, FirstOrderMethod):
+                print('\nEstimating params via ' + self.outer_optimizer.method.key + ' (' + str(int(iters))
+                      + ' iters, eta = ' + "{0:.1E}".format(self.outer_optimizer.method.eta) + ')')
+
+            if self.outer_optimizer.method.type == 'second-order':
+                print('\nEstimating params via ' + self.outer_optimizer.method.key + ' (' + str(int(iters)) + ' iters)')
 
         for iter in np.arange(2, iters + 1, 1):
 
