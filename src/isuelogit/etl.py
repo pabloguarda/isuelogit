@@ -51,6 +51,10 @@ class DataReader:
             self.set_default_options_fresno()
 
     def read_pems_counts_data(self, **kwargs):
+        if self._setup_spark is False:
+            self.spark_reader = SparkReader()
+            self._setup_spark = True
+            
         return self.spark_reader.read_pems_counts_data(**kwargs)
 
     def read_pems_counts_by_period(self, **kwargs):
@@ -62,18 +66,42 @@ class DataReader:
         return self.spark_reader.read_pems_counts_by_period(**kwargs)
     
     def selected_period_filter(self, **kwargs):
+        if self._setup_spark is False:
+            self.spark_reader = SparkReader()
+            self._setup_spark = True
+
         return self.spark_reader.selected_period_filter(**kwargs)
 
     def read_inrix_data(self, **kwargs):
+
+        if self._setup_spark is False:
+            self.spark_reader = SparkReader()
+            self._setup_spark = True
+
         return self.spark_reader.read_inrix_data(**kwargs)
 
     def generate_inrix_data_by_segment(self, **kwargs):
+
+        if self._setup_spark is False:
+            self.spark_reader = SparkReader()
+            self._setup_spark = True
+
         return self.spark_reader.generate_inrix_data_by_segment(**kwargs)
 
     def write_partition_inrix_data(self, **kwargs):
+
+        if self._setup_spark is False:
+            self.spark_reader = SparkReader()
+            self._setup_spark = True
+
         self.spark_reader.write_partition_inrix_data(**kwargs)
 
     def read_traffic_incidents(self, **kwargs):
+
+        if self._setup_spark is False:
+            self.spark_reader = SparkReader()
+            self._setup_spark = True
+
         return self.spark_reader.read_traffic_incidents(**kwargs)
         
 
@@ -527,18 +555,18 @@ class SparkReader:
 
         # There are 12 lane independent attributes: len(lane_independent_columns)
         lane_independent_columns = [ \
-            self.self.StructField('ts', self.self.StringType(), True), \
-            self.self.StructField('station_id', self.self.IntegerType(), True), \
-            self.self.StructField('district_id', self.self.IntegerType(), True), \
-            self.self.StructField('freeway_id', self.self.IntegerType(), True), \
-            self.self.StructField('travel_direction', self.StringType(), True), \
-            self.self.StructField('lane_type', self.StringType(), True), \
-            self.self.StructField('observed_lanes_pct', self.DoubleType(), True), \
-            self.self.StructField('station_length', self.DoubleType(), True), \
-            self.self.StructField('samples', self.IntegerType(), True), \
-            self.self.StructField('flow_total', self.DoubleType(), True), \
-            self.self.StructField('occupancy_avg', self.DoubleType(), True), \
-            self.self.StructField('speed_avg', self.DoubleType(), True), \
+            self.StructField('ts', self.StringType(), True), \
+            self.StructField('station_id', self.IntegerType(), True), \
+            self.StructField('district_id', self.IntegerType(), True), \
+            self.StructField('freeway_id', self.IntegerType(), True), \
+            self.StructField('travel_direction', self.StringType(), True), \
+            self.StructField('lane_type', self.StringType(), True), \
+            self.StructField('observed_lanes_pct', self.DoubleType(), True), \
+            self.StructField('station_length', self.DoubleType(), True), \
+            self.StructField('samples', self.IntegerType(), True), \
+            self.StructField('flow_total', self.DoubleType(), True), \
+            self.StructField('occupancy_avg', self.DoubleType(), True), \
+            self.StructField('speed_avg', self.DoubleType(), True), \
             ]
 
         # The dataset have 52 columns: len(counts_df.columns)
