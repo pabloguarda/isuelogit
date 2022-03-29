@@ -769,6 +769,8 @@ def rmse(actual: np.ndarray, predicted: np.ndarray):
 def nrmse(actual: np.ndarray, predicted: np.ndarray):
     """ Root Mean Squared Error"""
 
+    assert actual.shape == predicted.shape
+
     return rmse(actual, predicted)/np.nanmean(actual)
 
 # def nrmse(actual: np.ndarray, predicted: np.ndarray):
