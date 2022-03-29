@@ -931,11 +931,11 @@ class OuterOptimizer:
         eta_scaling = options['eta_scaling']
 
         if isinstance(self.method, FirstOrderMethod):
-            print('\nEstimating params via ' + self.method.key + ' (' + str(int(iters))
+            print('\nEstimating parameters via ' + self.method.key + ' (' + str(int(iters))
                   + ' iters, eta = ' + "{0:.1E}".format(self.method.eta) + ')\n')
 
         if self.method.type == 'second-order':
-            print('\nEstimating params via ' + self.method.key + ' (' + str(int(iters)) + ' iters)\n')
+            print('\nEstimating parameters via ' + self.method.key + ' (' + str(int(iters)) + ' iters)\n')
 
         if batch_size > 0:
             print('batch size for observed link counts = ' + str(batch_size))
@@ -1603,11 +1603,11 @@ class Learner:
         if iteration_report is False:
 
             if isinstance(self.outer_optimizer.method, FirstOrderMethod):
-                print('\nEstimating params via ' + self.outer_optimizer.method.key + ' (' + str(int(iters))
+                print('\nEstimating parameters via ' + self.outer_optimizer.method.key + ' (' + str(int(self.outer_optimizer.options['iters']))
                       + ' iters, eta = ' + "{0:.1E}".format(self.outer_optimizer.method.eta) + ')')
 
             if self.outer_optimizer.method.type == 'second-order':
-                print('\nEstimating params via ' + self.outer_optimizer.method.key + ' (' + str(int(iters)) + ' iters)')
+                print('\nEstimating parameters via ' + self.outer_optimizer.method.key + ' (' + str(int(self.outer_optimizer.options['iters'])) + ' iters)')
 
         for iter in np.arange(2, iters + 1, 1):
 
