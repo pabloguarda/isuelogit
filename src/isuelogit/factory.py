@@ -556,10 +556,15 @@ class LinkDataGenerator(Generator):
 
         print("\nGenerating synthetic link counts via " + method_label)
 
-        # Manipulatin of noise or scale in Q matrix
-        if sd_Q != 0:
+        assert sd_Q >= 0, 'Standard deviation of OD matrix cannot be <= 0'
 
-            assert sd_Q > 0, 'Standard deviation of OD matrix cannot be <= 0'
+        # Store original OD matrix
+        Q_original = copy.deepcopy(network.Q_true)
+
+        # Manipulatin of noise or scale in Q matrix
+        if sd_Q > 0:
+
+            # assert sd_Q > 0, 'Standard deviation of OD matrix cannot be <= 0'
 
             # If noise is applied in the q matrix, we generate a copy of the original od demand vector and set a noisy matrix meanwhile to compute equilibrium
 
@@ -646,8 +651,8 @@ class LinkDataGenerator(Generator):
         if scale_Q != 1:
             network.scale_OD(scale = 1)
 
-        if sd_Q != 0:
-            network.load_OD(Q = network.Q_true)
+        if sd_Q > 0:
+            network.load_OD(Q = Q_original)
 
         # Do not do nothing with congestion factor on Q because it is still assumed that the true OD matrix is known
 
