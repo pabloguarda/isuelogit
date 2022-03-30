@@ -1407,16 +1407,22 @@ def read_spatiotemporal_data_fresno(network,
                                                           'output_folder'] + 'gis/Fresno/streets-intersections'
                                          , filename='links_buffer_streets_intersections'
                                          )
+
     attr_links = list(network.links[0].Z_dict.keys())
 
     # List of new attributes
     new_attr_links = list(set(attr_links)-set(initial_attr_links))
 
+    for key in new_attr_links:
+        for link in network.get_non_regular_links():
+            link.Z_dict[key] = 0
+
+    print('\nFeatures values of link with types different than "LWRLK" were set to 0\n')
+
     # Create a pandas dataframe with the new link attributes
     links_df = network.Z_data[new_attr_links]
 
     links_df.insert(0,'link_key', network.links_keys)
-
 
     return links_df, new_attr_links
 
@@ -1894,7 +1900,7 @@ class LinkData():
         pct_high = np.percentile(feature_data, pcts[1])
 
         # find the indexes of the elements out of percentiles
-        idx_under_low = np.argwhere(feature_data <= pct_low).ravel()
+        idx_under_low = np.argwhere(feature_data < pct_low).ravel()
         idx_under_high = np.argwhere(feature_data <= pct_high).ravel()
 
         # find the number of the elements in between percentiles
@@ -1910,7 +1916,7 @@ class LinkData():
 
         for link in self.links:
             feature_val = link.Z_dict[feature]
-            if feature_val <= pct_low or feature_val >= pct_high:
+            if feature_val < pct_low or feature_val > pct_high:
 
                 if lwrlk_only:
                     if link.link_type == 'LWRLK':
