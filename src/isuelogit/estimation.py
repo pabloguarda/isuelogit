@@ -2680,6 +2680,9 @@ def grid_search_optimization(network: TNetwork,
                                                       features_Z=features_Z,
                                                       silent_mode=True
                                                       )
+
+        network.load_traveltimes(results_eq['tt_x'])
+
         predicted_counts = np.array(list(results_eq['x'].values()))[:, np.newaxis]
 
         p_f = results_eq['p_f']
