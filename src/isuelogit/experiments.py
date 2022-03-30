@@ -418,11 +418,13 @@ class ConvergenceExperiment(NetworkExperiment):
 
         initial_values = copy.deepcopy(self.utility_function.initial_values)
 
-        for scenario, uncongested_mode in scenarios.items():
+        for scenario, exogenous_mode in scenarios.items():
 
             print('\nScenario:', scenario)
 
-            self.equilibrator.update_options(uncongested_mode=uncongested_mode)
+            self.equilibrator.update_options(exogenous_traveltimes = exogenous_mode)
+
+            # self.equilibrator.update_options(uncongested_mode=uncongested_mode)
 
             # Generate synthetic traffic counts
             counts, _ = self.linkdata_generator.simulate_counts(
@@ -469,7 +471,7 @@ class ConvergenceExperiment(NetworkExperiment):
             methods=[self.outer_optimizer_norefined.method.key, self.outer_optimizer_refined.method.key],
             theta_true=self.utility_function.true_values,
             colors=['blue', 'red'],
-            labels=['exogenous', 'endogenous']
+            labels=['exogenous travel time', 'endogenous travel time']
         )
 
 
