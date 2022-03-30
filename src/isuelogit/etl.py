@@ -542,6 +542,8 @@ class SparkReader:
 
         if 'hour' in selected_period.keys() and 'duration' in selected_period.keys():
 
+            assert selected_period['duration']>0, 'duration must be greater than 0'
+
             print('Reading pems counts starting at ' + str(selected_period['hour']) + ':00' + ' and during ' + str(
                 selected_period['duration']) + ' minutes')
 
