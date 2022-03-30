@@ -407,8 +407,8 @@ class ConvergenceExperiment(NetworkExperiment):
 
         results_df = {}
 
-        scenarios = {'uncongested': True, 'congested': False}
-        # scenarios = {'congested': False, 'uncongested': True}
+        scenarios = {'exogenous': True, 'endogenous': False}
+        # scenarios = {'endogenous': False, 'exogenous': True}
 
         # Initilization of initial estimate
         if range_initial_values is not None:
@@ -469,7 +469,7 @@ class ConvergenceExperiment(NetworkExperiment):
             methods=[self.outer_optimizer_norefined.method.key, self.outer_optimizer_refined.method.key],
             theta_true=self.utility_function.true_values,
             colors=['blue', 'red'],
-            labels=['Uncongested', 'Congested']
+            labels=['exogenous', 'endogenous']
         )
 
 
