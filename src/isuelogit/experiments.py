@@ -1070,9 +1070,7 @@ class ODExperiment(ConvergenceExperiment):
         # if type == 'noise':
         #     levels.insert(0,0)
 
-        # Store original OD matrix
         # Noise or scale difference in Q matrix
-        # Q_original = copy.deepcopy(self.network.Q_true)
 
         sd_x = self.linkdata_generator.options['noise_params']['sd_x']
 
@@ -1109,9 +1107,6 @@ class ODExperiment(ConvergenceExperiment):
 
                     if type == 'congestion':
                         generator_options['noise_params'] = {'congestion_Q': level}
-
-                        # # Update Q matrix with original
-                        # self.network.load_OD(Q_original)
 
                     # Generate synthetic traffic counts
                     counts, _ = self.linkdata_generator.simulate_counts(
