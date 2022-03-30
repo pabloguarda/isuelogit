@@ -304,7 +304,8 @@ def adjust_fresno_nodes_coordinates(nodes: Nodes,
             base_node2 = node
 
     # Rotate points in the bottom by 2.4 degrees
-    nodes = rotate_coordinates(nodes = nodes, origin=base_node2.position.get_xy(), degrees=-3, bbox_ranges=(xrange_bbox_2, yrange_bbox_2))
+    nodes = rotate_coordinates(nodes = nodes, origin=base_node2.position.get_xy(), degrees=-3,
+                               bbox_ranges=(xrange_bbox_2, yrange_bbox_2))
 
     # nodes = adjust_by_base_coordinates(base_node= base_node1
     #                                    , base_coordinates = base_coordinates_1
@@ -327,7 +328,8 @@ def adjust_fresno_nodes_coordinates(nodes: Nodes,
             base_node3 = node
 
     # # Rotate points in the bottom by -2.4 degrees
-    nodes = rotate_coordinates(nodes = nodes, origin=base_node3.position.get_xy(), degrees=2, bbox_ranges=(xrange_bbox_3, yrange_bbox_3))
+    nodes = rotate_coordinates(nodes = nodes, origin=base_node3.position.get_xy(), degrees=2,
+                               bbox_ranges=(xrange_bbox_3, yrange_bbox_3))
 
     nodes = adjust_by_base_coordinates(base_node=base_node3
                                        , base_coordinates=base_coordinates_3
@@ -419,7 +421,8 @@ def write_line_segments_shp(links,
                             networkname: str) -> None:
     """ Save line segments using x,y coordinates from nodes """
 
-    # Links positions comes from x,y coordinates of nodes, which are expected to be different from the raw file to better match the shape of the network in a real map
+    # Links positions comes from x,y coordinates of nodes, which are expected to be different from the raw file to
+    # better match the shape of the network in a real map
 
     df = pd.DataFrame()
 
@@ -463,7 +466,8 @@ def write_links_congestion_map_shp(links,
                                    networkname: str) -> None:
     """ Save line segments using x,y coordinates from nodes """
 
-    # Links positions comes from x,y coordinates of nodes, which are expected to be different from the raw file to better match the shape of the network in a real map
+    # Links positions comes from x,y coordinates of nodes, which are expected to be different from the raw file to
+    # better match the shape of the network in a real map
 
     df = pd.DataFrame()
 
@@ -556,7 +560,8 @@ def write_census_blocks_data_fresno(countyname: str,
     # block_employment_status_gdf = gpd.read_file(gdb_path, driver="FileGDB", layer = 'X23_EMPLOYMENT_STATUS')
     # block_poverty_gdf = gpd.read_file(gdb_path, driver="FileGDB", layer = 'X17_POVERTY')
 
-    # Filter blocks corresponding to Fresno only. Use FIPS information to filter based on GEOID. Otherwise, it takes too long to read a file
+    # Filter blocks corresponding to Fresno only. Use FIPS information to filter based on GEOID.
+    # Otherwise, it takes too long to read a file
     # https://www.census.gov/programs-surveys/geography/guidance/geo-identifiers.html
 
     # county_name = 'Fresno'
@@ -608,7 +613,9 @@ def write_census_blocks_data_fresno(countyname: str,
 
     # gpd.merge(census_blocks_county_gdf,block_income_county_gdf)
 
-    census_blocks_county_gdf = census_blocks_county_gdf.merge(block_income_county_gdf, left_on='GEOID', right_on='GEOID').merge(block_age_sex_county_gdf, left_on='GEOID', right_on='GEOID')
+    census_blocks_county_gdf \
+        = census_blocks_county_gdf.merge(block_income_county_gdf, left_on='GEOID', right_on='GEOID').\
+        merge(block_age_sex_county_gdf, left_on='GEOID', right_on='GEOID')
 
     # Write geodatabase for Fresno only
     filename = config.paths['folder_gis_data'] + countyname + '/census/' + countyname + '_census_shp'
@@ -697,8 +704,8 @@ def match_network_links_and_census_tracts_fresno(network_gdf: gpd.GeoDataFrame,
 
     # assert len(network_census_data_gdf) == n_matched_links, 'errors in matching'
 
-    print(str(n_matched_links) + ' network links were matched (' + "{:.1%}". format(n_matched_links/len(links)) + ' of links)'  )
-    print(str(n_imputed_links) + ' network links were imputed (' + "{:.1%}". format(n_imputed_links/len(links)) + ' of links)'  )
+    print(str(n_matched_links) + ' links were matched (' + "{:.1%}". format(n_matched_links/len(links)) + ' of links)')
+    print(str(n_imputed_links) + ' links were imputed (' + "{:.1%}". format(n_imputed_links/len(links)) + ' of links)')
 
 def match_network_links_and_inrix_segments_fresno(network_gdf: gpd.GeoDataFrame,
                                                   inrix_gdf: gpd.GeoDataFrame,
@@ -747,14 +754,15 @@ def match_network_links_and_inrix_segments_fresno(network_gdf: gpd.GeoDataFrame,
     # plt.show()
 
     # Join inrix street centroids with buffer to osmn data
-    inrix_network_gdf = gpd.sjoin(link_centroids_buffer_gdf, inrix_gdf, how="left", predicate='intersects').drop(['index_right'], axis=1)
+    inrix_network_gdf = gpd.sjoin(link_centroids_buffer_gdf, inrix_gdf,
+                                  how="left", predicate='intersects').drop(['index_right'], axis=1)
 
     # if selected_years is not None:
     #     incidents_network_gdf = incidents_network_gdf.loc[incidents_network_gdf['year'].isin(selected_years)]
     #
     # n_years = len(incidents_network_gdf ['year'].unique())
 
-    # TODO: see how to account for dupplicates. In the current setting, it will just pick the last row within the match which is not necessarily the best.
+    # TODO: see how to account for dups. Now, it picks the last row in the matching which is not necessarily the best.
 
     counter = 0
     sum_confidence = 0
@@ -801,10 +809,12 @@ def match_network_links_and_inrix_segments_fresno(network_gdf: gpd.GeoDataFrame,
     #     print(link.key)
     #     print(link.inrix_id)
 
-    # config.gis_results['inrix_matching'] = {'perc_matching': "{:.1%}".format(counter / len(links)), 'conf_matching': "{:.1%}".format(sum_confidence/counter) }
+    # config.gis_results['inrix_matching'] \
+    #     = {'perc_matching': "{:.1%}".format(counter / len(links)), 'conf_matching': "{:.1%}".format(sum_confidence/counter) }
 
     # Compute percentage matching
-    print(str(counter) + ' network links were matched (' + "{:.1%}".format(counter / len(links)) + ' of links) with a ' + "{:.1%}".format(sum_confidence/counter)+ ' confidence')
+    print(str(counter) + ' network links were matched (' + "{:.1%}".format(counter / len(links)) + ' of links) with a '
+          + "{:.1%}".format(sum_confidence/counter)+ ' confidence')
 
 
 
@@ -876,7 +886,8 @@ def read_pems_stations_fresno(filepath: str = None,
 
 
     if adjusted_gis_stations is False:
-        # County fields has the FIPS number but without the state number for california (06). Ref: https://www2.census.gov/geo/docs/reference/codes/files/st06_ca_cou.txt
+        # County fields has the FIPS number but without the state number for california (06).
+        # Ref: https://www2.census.gov/geo/docs/reference/codes/files/st06_ca_cou.txt
 
 
         fips_fresno = int(addfips.AddFIPS().get_county_fips('Fresno', state='California')[-3:])
@@ -954,7 +965,8 @@ def match_network_and_stations_fresno(network_gdf: gpd.GeoDataFrame,
 
 
     if adjusted_gis_stations is False:
-        stations_gdf = gpd.sjoin(stations_gdf, fresno_network_bbox_gdf, how="inner", predicate='intersects').drop(['index_right'],axis=1)
+        stations_gdf = gpd.sjoin(stations_gdf, fresno_network_bbox_gdf, how="inner",
+                                 predicate='intersects').drop(['index_right'],axis=1)
 
         #Write shapefile with PeMS stations in fresno
         # Save shapefile
@@ -989,14 +1001,15 @@ def match_network_and_stations_fresno(network_gdf: gpd.GeoDataFrame,
             dist = i.hausdorff_distance(l)
             # dist = i.distance(j)
 
-            # The closest street segment could have been already matched to a traffic station, and we want to keep the traffic station that is closer to the segment
+            # The closest street segment could have been already matched to a traffic station, and
+            # we want to keep the traffic station that is closer to the segment
 
             if dist < min_dist:
                 min_dist = dist
                 closest_distance_station_to_network_link[link_id]['station'] = station_id
                 closest_distance_station_to_network_link[link_id]['min_dist'] = min_dist
 
-    # There might be multiple network links matched to the same station. We will choose the link that has the lowest distance to the station
+    # Multiple links may be matched to the same station. The link that has the lowest distance to the station is chosen
 
     unique_closest_network_segment_to_station = dict(
         zip(stations_gdf['ID'], np.repeat(float('inf'), len(stations_gdf.geometry))))
@@ -1021,8 +1034,9 @@ def match_network_and_stations_fresno(network_gdf: gpd.GeoDataFrame,
         if unique_closest_network_segment_to_station_copy[station] == float('inf'):
             del unique_closest_network_segment_to_station[station]
 
-    assert len(set(unique_closest_network_segment_to_station.values())) == len(
-        unique_closest_network_segment_to_station.values()), 'there are non unique keys in the matching to stations to network links'
+    assert len(set(unique_closest_network_segment_to_station.values())) \
+           == len(unique_closest_network_segment_to_station.values()), \
+        'there are non unique keys in the matching to stations to links'
 
     # stations_matched = list(map(lambda x: x['station'], list(closest_distance_station_to_network_link.values())))
     #
@@ -1070,13 +1084,9 @@ def match_network_and_stations_fresno(network_gdf: gpd.GeoDataFrame,
                 link.pems_stations_ids.append(station_id)
                 n_matched_links += 1
 
-    assert len(
-        unique_closest_network_segment_to_station.values()) == n_matched_links, 'some links could not been matched'
+    assert len(unique_closest_network_segment_to_station.values()) == n_matched_links, 'some links were not matched'
 
-
-
-
-    print(str(n_matched_links) + ' network links were matched (' + "{:.1%}".format(n_matched_links / len(links)) + ' of links)'  )
+    print(str(n_matched_links) + ' links were matched (' + "{:.1%}".format(n_matched_links / len(links)) + ' of links)')
 
 def match_network_links_and_fresno_incidents(network_gdf: gpd.GeoDataFrame,
                                              incidents_df: pd.DataFrame,
@@ -1113,6 +1123,8 @@ def match_network_links_and_fresno_incidents(network_gdf: gpd.GeoDataFrame,
     n_matched_incidents = 0
 
     # Add list of incidents in each link
+
+    #Implicitly, the deafult number of incidents is zero as it where the length of the incident list is 0
     for link in links:
 
         link.incidents_list = []
@@ -1141,7 +1153,8 @@ def match_network_links_and_fresno_incidents(network_gdf: gpd.GeoDataFrame,
 
     # gis_results['matching_stats']['incidents'] = {'perc_matching': "{:.1%}".format(n_matched_links / len(links))}
 
-    print(str(n_matched_incidents)+ ' incidents were matched to ' + str(n_matched_links) + ' links  (' + "{:.1%}".format(n_matched_links / len(links)) + ' of links)'  )
+    print(str(n_matched_incidents)+ ' incidents were matched to ' + str(n_matched_links) + ' links  ('
+          + "{:.1%}".format(n_matched_links / len(links)) + ' of links)'  )
 
 
 
