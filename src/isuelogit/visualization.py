@@ -1662,6 +1662,9 @@ class Artist:
 
         # Legend
         lines, labels = ax[(1, 1)].get_legend_handles_labels()
+        # ph = [plt.plot([], marker="", ls="")[0]]
+        # lines = ph + lines
+        # labels = ["travel time"] + labels
         # g.fig.legend(handles=handles, labels=labels, loc='lower center', ncol=4)
         fig.legend(lines, labels, loc='upper center', ncol=2, prop={'size': self.fontsize}
                    , bbox_to_anchor=[0.52, -0.25]
