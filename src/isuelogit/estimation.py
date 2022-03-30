@@ -1705,6 +1705,7 @@ class Learner:
                         np.round(objective_values[-2] - objective_values[-1], 1)))
                     print('')
 
+
             if network.key == 'Fresno':
 
                 current_error_by_link = error_by_link(counts, predicted_counts, show_nan=False)
@@ -1743,8 +1744,9 @@ class Learner:
 
                 no_diff_error = initial_no_nas - final_no_nas
 
-                print('\nProportion of links with no difference in errors between iterations',
-                      "{:.1%}".format(no_diff_error / len(d_error)))
+                if iteration_report:
+                    print('\nProportion of links with no difference in errors between iterations',
+                          "{:.1%}".format(no_diff_error / len(d_error)))
 
                 errors_by_link.append(current_error_by_link)
 
