@@ -145,8 +145,7 @@ def read_internal_paths(network: TNetwork) -> Paths:
 
         for path_line, counter in zip(path_reader, range(total_paths)):
 
-            printer.printProgressBar(counter, total_paths, prefix='Progress:', suffix='',
-                                     length=20)
+            printer.printProgressBar(counter, total_paths-1, prefix='Progress:', suffix='',length=20)
 
             links = []
 
@@ -178,7 +177,7 @@ def read_internal_paths(network: TNetwork) -> Paths:
             paths.append(path)
 
     assert len(paths) > 0, 'Paths were not succesfully read'
-    print(str(total_paths) + ' paths were read in ' + str(np.round(time.time() - t0, 1)) + '[s]')
+    print(str(total_paths) + ' paths were read in ' + str(np.round(time.time() - t0, 1)) + '[s]      ')
     
     return paths
 
