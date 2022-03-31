@@ -5,7 +5,7 @@ import sys, os
 from contextlib import contextmanager
 import io
 
-def printProgressBar(iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r", eraseBar = True):
+def printProgressBar(iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "", eraseBar = True):
     """
     Call in a loop to create terminal progress bar
     @params:
