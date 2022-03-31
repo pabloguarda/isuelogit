@@ -219,7 +219,7 @@ def get_loss_and_estimates_over_iterations(results_norefined: pd.DataFrame,
     df_bilevel_refined['iter'] = (df_bilevel_refined['iter'] + df_bilevel_norefined['iter'].max()).astype(int)
 
     # Append dataframes
-    bilevel_estimation_df = df_bilevel_norefined.append(df_bilevel_refined)
+    bilevel_estimation_df = pd.concat([df_bilevel_norefined,df_bilevel_refined])
 
     return bilevel_estimation_df
 
