@@ -33,9 +33,10 @@ output/experiments/*
 output/experiments/SiouxFalls/*
 !output/experiments/Siouxfalls/220330
 !output/experiments/Siouxfalls/220331
+
+!output/experiments/small-networks
 output/experiments/small-networks/*
 !output/experiments/small-networks/220331
-output/experiments/Yang/*
 
 # Input
 input/private
