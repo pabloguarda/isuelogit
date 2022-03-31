@@ -13,6 +13,7 @@ ssl._create_default_https_context = ssl._create_unverified_context
 import requests
 import re
 import urllib
+import io
 
 import os
 import openmatrix as omx
@@ -1011,7 +1012,35 @@ def read_tntp_od(network_name: str,
 
     return Q
 
+def read_csv_github(url, username, token, **kwargs):
+    '''
+    https://medium.com/towards-entrepreneurship/importing-a-csv-file-from-github-in-a-jupyter-notebook-e2c28e7e74a5
 
+    Args:
+        url:  # Make sure the url is the raw version of the file on GitHub
+        token: Personal Access Token (PAO) from your GitHub account
+        username: Username of your GitHub account
+
+    Returns:
+
+    '''
+    # Creates a re-usable session object with your creds in-built
+
+    github_session = requests.Session()
+    github_session.auth = (username, token)
+
+    # Downloading the csv file from your GitHub
+    download = github_session.get(url).content
+
+    # Reading the downloaded content and making it a pandas dataframe
+
+    df = pd.read_csv(io.StringIO(download.decode('utf-8')), **kwargs)
+
+    # Printing out the first 5 rows of the dataframe to make sure everything is good
+
+    # print(df.head())
+
+    return df
 
 
 def read_colombus_od(folderpath: str, A: Matrix, nodes: Nodes) -> Matrix:
