@@ -961,7 +961,7 @@ class TNetwork(nx.Graph):
 
         total_trips = float(np.sum(self.OD.Q))
 
-        print(str(total_trips) + ' trips were loaded among '  + str(len(self.ods)) + ' o-d pairs')
+        print(str(round(total_trips,1)) + ' trips were loaded among '  + str(len(self.ods)) + ' o-d pairs')
 
     def scale_OD(self, scale = 1):
 
