@@ -16,5 +16,5 @@ The `isuelogit` package addresses this limitation by solving the inverse problem
 ## Jupyter notebooks
 1. Install jupyter lab: `pip install jupyterlab`
 2. Install ipython kernel for jupyter: `pip install ipykernel`
-3. Add your virtual environment to Jupyter:  `python3 -m ipykernel install --name=myvenv`
+3. Add your virtual environment to Jupyter:  `python3 -m ipykernel install --user --name=myvenv`
 4. Open any of the notebooks include in folder `notebooks` and choose kernel `myvenv` to run it
