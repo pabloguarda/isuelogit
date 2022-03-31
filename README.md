@@ -7,8 +7,8 @@ The `isuelogit` package addresses this limitation by solving the inverse problem
 ## Development setup
 
 1. Clone the repository
-2. Create virtual environment: `python3 -m venv myvenv`
-3. Activate virtual environment: `source myvenv/bin/activate`
+2. Create virtual environment: `python3 -m venv venv-isuelogit`
+3. Activate virtual environment: `source venv-isuelogit/bin/activate`
 4. Install the package: `pip install -e .`
 5. Install the development dependencies: `pip install -r requirements/dev.txt`
 6. Run the tests: `pytest`
@@ -16,5 +16,5 @@ The `isuelogit` package addresses this limitation by solving the inverse problem
 ## Jupyter notebooks
 1. Install jupyter lab: `pip install jupyterlab`
 2. Install ipython kernel for jupyter: `pip install ipykernel`
-3. Add your virtual environment to Jupyter:  `python3 -m ipykernel install --user --name=myvenv`
+3. Add your virtual environment to Jupyter:  `python3 -m ipykernel install --user --name=venv-isuelogit`
 4. Open any of the notebooks include in folder `notebooks` and choose kernel `myvenv` to run it
