@@ -260,12 +260,12 @@ class Reporter(ABC):
         # T-tests, confidence intervals and parameter estimates
         parameter_inference_norefined_table.insert(0, 'stage', 'norefined')
         parameter_inference_refined_table.insert(0, 'stage', 'refined')
-        parameters_inference_table = parameter_inference_norefined_table.append(parameter_inference_refined_table)
+        parameters_inference_table = pd.concat([parameter_inference_norefined_table,parameter_inference_refined_table])
 
         # F-test and model summary statistics
         model_inference_norefined_table.insert(0, 'stage', 'norefined')
         model_inference_refined_table.insert(0, 'stage', 'refined')
-        model_inference_table = model_inference_norefined_table.append(model_inference_refined_table)
+        model_inference_table = pd.concat([model_inference_norefined_table, model_inference_refined_table])
 
         filename_parameters = 'parameters_inference_table'
         filename_model = 'model_inference_table'
