@@ -1319,7 +1319,7 @@ class OuterOptimizer:
         # Conver theta into a dictionary to return it then
         theta_dict = dict(zip(self.utility_function.features, theta.flatten()))
 
-        print('theta: ' + str({key: "{0:.1E}".format(val) for key, val in theta_dict.items()}))
+        print('\ntheta: ' + str({key: "{0:.1E}".format(val) for key, val in theta_dict.items()}))
 
         # print("Gradient:", str({key: "{0:.1E}".format(val) for key, val in zip(theta_dict.keys(),grads[-1].flatten().tolist())}))
 
