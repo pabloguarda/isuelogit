@@ -461,7 +461,7 @@ def write_line_segments_shp(links,
 
 
 def write_links_congestion_map_shp(links,
-                                   flows,
+                                   predicted_counts,
                                    folderpath: str,
                                    networkname: str) -> None:
     """ Save line segments using x,y coordinates from nodes """
@@ -482,10 +482,10 @@ def write_links_congestion_map_shp(links,
     df['direction_confidence'] = [str((round(link.direction_confidence[0],1),round(link.direction_confidence[1],1))) for link in links]
     df['lane'] = [str(link.Z_dict['lane']) for link in links]
     df['link_type'] = [str(link.link_type) for link in links]
-    df['cap'] = [str(link.bpr.k) for link in links]
-    df['link_flow'] = list(flows.flatten())
+    df['capacity'] = [str(link.bpr.k) for link in links]
+    df['predicted_counts'] = list(predicted_counts.flatten())
 
-    df['cong_idx'] = np.minimum(df['link_flow']/df['cap'].astype('float'),1).round(4)
+    df['cong_idx'] = np.minimum(df['predicted_counts']/df['capacity'].astype('float'),1).round(4)
 
     gdf = gpd.GeoDataFrame(df, geometry=df.geometry)
 
