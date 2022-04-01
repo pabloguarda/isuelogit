@@ -1385,7 +1385,7 @@ class Learner:
         self.equilibrator.network = self.network
         self.outer_optimizer.network = self.network
         self.counts = self.network.link_data.counts
-        self.counts_vector = self.network.observed_counts_vector
+        self.observed_counts_vector = self.network.observed_counts_vector
 
     def update_options(self, **kwargs):
         self.options = self.options.get_updated_options(new_options=kwargs)
@@ -1411,7 +1411,7 @@ class Learner:
         # Feature selection based on t-test from no refined step and ignoring fixed effects (I must NOT do post-selection inference as it violates basic assumptions)
         # self.options['ttest_selection'] = False
 
-        # Computation of t-test with top percentage of observations in terms of SSE
+        # Computation of t-test with top proportion of observations in terms of SSE
         self.options['pct_lowest_sse'] = 100
 
         # Relax the critical value to remove features that are highly "no significant". A simil of regularization
@@ -1744,13 +1744,11 @@ class Learner:
 
             no_diff_error = initial_no_nas - final_no_nas
 
-            if iteration_report:
-                print('Proportion of links with no difference in errors between iterations:',
-                      "{:.1%}".format(no_diff_error / len(d_error)))
-
             errors_by_link.append(current_error_by_link)
 
             if link_report:
+                print('Proportion of links with no difference in errors between iterations:',
+                      "{:.1%}".format(no_diff_error / len(d_error)))
                 with pd.option_context('display.float_format', '{:0.1f}'.format):
                     print('\n' + summary_table.to_string())
 
@@ -2376,6 +2374,8 @@ def hypothesis_tests(theta: ParametersDict,
 
     var_error = sum_sse / (n - p)
 
+    features_idxs = np.arange(0,theta_array.shape[0])
+
     if numeric_hessian is True:
 
         H = diagonal_hessian_objective_function(theta=theta_array,
@@ -2392,14 +2392,14 @@ def hypothesis_tests(theta: ParametersDict,
 
     else:
 
-        # Check if parameters are close to zero. When true, it removes those parameters from the computation of Jacobian
-        features_idxs = []
-        zero_features_idxs = []
-        for feature_idx in range(theta_array.shape[0]):
-            if np.allclose(theta_array[feature_idx], 0):
-                zero_features_idxs.append(feature_idx)
-            else:
-                features_idxs.append(feature_idx)
+        # # Check if parameters are close to zero. When true, it removes those parameters from the computation of Jacobian
+        # features_idxs = []
+        # zero_features_idxs = []
+        # for feature_idx in range(theta_array.shape[0]):
+        #     if np.allclose(theta_array[feature_idx], 0):
+        #         zero_features_idxs.append(feature_idx)
+        #     else:
+        #         features_idxs.append(feature_idx)
 
         # # Unidimensional inverse function is just the reciprocal but this is multidimensional so inverse is required
         F, pf = jacobian_response_function(theta_array,
@@ -2408,7 +2408,7 @@ def hypothesis_tests(theta: ParametersDict,
                                            D=D,
                                            M=M,
                                            C=C,
-                                           features_idxs = features_idxs,
+                                           # features_idxs = features_idxs,
                                            paths_probabilities=p_f,
                                            paths_specific_utility=paths_specific_utility,
                                            numeric=numeric_jacobian,
@@ -2418,8 +2418,8 @@ def hypothesis_tests(theta: ParametersDict,
         idxs_nan = np.where(np.isnan(counts))[0]
         F = np.delete(F, idxs_nan, axis=0)
 
-        # Remove columns of feature that is almost zero
-        F = np.delete(F, zero_features_idxs, axis=1)
+        # # Remove columns of feature that is almost zero
+        # F = np.delete(F, zero_features_idxs, axis=1)
 
         print('\nHessian approximated as J^T J')
         H = F.T.dot(F)
@@ -2434,10 +2434,12 @@ def hypothesis_tests(theta: ParametersDict,
     cov_theta = np.linalg.pinv(H)
     # cov_theta = np.linalg.inv(H)
 
-    diag_cov_theta = np.zeros_like(theta_array)
-    for feature_idx in range(theta_array.shape[0]):
-        if not np.allclose(theta_array[feature_idx], 0):
-            diag_cov_theta[feature_idx] = float(cov_theta[(feature_idx,feature_idx)])
+    diag_cov_theta = np.diag(cov_theta)
+
+    # diag_cov_theta = np.zeros_like(theta_array)
+    # for feature_idx in features_idxs:
+    #     if not np.allclose(theta_array[feature_idx], 0):
+    #         diag_cov_theta[feature_idx] = float(cov_theta[(feature_idx,feature_idx)])
 
 
     # i) T-tests
@@ -2445,7 +2447,7 @@ def hypothesis_tests(theta: ParametersDict,
 
     ttest = np.zeros_like(theta_array)
 
-    for feature_idx in range(theta_array.shape[0]):
+    for feature_idx in features_idxs:
         if not np.allclose(theta_array[feature_idx] - h0, 0):
             ttest[feature_idx] = (theta_array[feature_idx] - h0) / np.sqrt(var_error * diag_cov_theta[feature_idx])
 
