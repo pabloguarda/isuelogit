@@ -554,7 +554,7 @@ class Artist:
             sdX_vs_theta_N = [np.sqrt(np.var(row)) for row in x_N]
             sdF_vs_theta_N = [np.sqrt(np.var(row)) for row in f_N]
 
-            ax[pos_plot].plot(sdF_vs_theta_N, label='route flows')
+            ax[pos_plot].plot(sdF_vs_theta_N, label='route predicted_counts')
             ax[pos_plot].set_title(j)
 
         plt.setp(ax[-1, :], xlabel=r'$\theta_t$')
@@ -565,11 +565,11 @@ class Artist:
         self.save_fig(fig=fig, filename=filename, folder=subfolder)
 
         # Plot
-        # plt.plot(sdX_vs_theta_N, label='link flows')
-        # plt.plot(sdF_vs_theta_N, label='route flows')
-        # plt.title(filename + '\n Standard deviation of route flows')
+        # plt.plot(sdX_vs_theta_N, label='link predicted_counts')
+        # plt.plot(sdF_vs_theta_N, label='route predicted_counts')
+        # plt.title(filename + '\n Standard deviation of route predicted_counts')
         # plt.set_xlabel('Theta')
-        # plt.set_ylabel('Standard deviation of route flows')
+        # plt.set_ylabel('Standard deviation of route predicted_counts')
         # plt.show()
 
     def consistency_nonlinear_link_logit_estimation(self, filename, subfolder, theta_est: {}, display_parameters: {},
@@ -579,7 +579,7 @@ class Artist:
 
         # This suptitle rais errors
         # # Title does not show up on Pycharm bu it does in file saved
-        # fig.suptitle("Estimates of logit parameters versus sample size (i.e. observed links flows)\n",
+        # fig.suptitle("Estimates of logit parameters versus sample size (i.e. observed links predicted_counts)\n",
         #              y=1.05)
         # # ax = ax.flatten()
 
@@ -658,7 +658,7 @@ class Artist:
 
         # This suptitle rais errors
         # # Title does not show up on Pycharm bu it does in file saved
-        # fig.suptitle("Estimates of logit parameters versus sample size (i.e. observed links flows)\n",
+        # fig.suptitle("Estimates of logit parameters versus sample size (i.e. observed links predicted_counts)\n",
         #              y=1.05)
         # # ax = ax.flatten()
 
@@ -703,7 +703,7 @@ class Artist:
     #     fig, ax = plt.subplots(ncols=2, nrows=2)
     #
     #     # Title does not show up on Pycharm bu it does in file saved
-    #     fig.suptitle("Estimates of logit parameters versus sample size (i.e. observed links flows)\n" + N_label,
+    #     fig.suptitle("Estimates of logit parameters versus sample size (i.e. observed links predicted_counts)\n" + N_label,
     #                  y=1.05)
     #     # ax = ax.flatten()
     #
@@ -763,7 +763,7 @@ class Artist:
         fig, ax = plt.subplots(ncols=2, nrows=2)
 
         # # Title does not show up on Pycharm bu it does in file saved
-        # fig.suptitle("Estimates of logit parameters versus sample size (i.e. observed links flows)\n" + N_label,
+        # fig.suptitle("Estimates of logit parameters versus sample size (i.e. observed links predicted_counts)\n" + N_label,
         #              y=1.05)
         # ax = ax.flatten()
 
