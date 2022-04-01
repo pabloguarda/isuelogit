@@ -363,7 +363,7 @@ class Link:
 class BPR:
 
     def __init__(self, alpha: float, beta: float, tf: float, k: float):
-        """ BPR function that maps link flows into travel times
+        """ BPR function that maps link predicted_counts into travel times
 
         :arg alpha: shape parameter (b)
         :arg beta: exponent parameter
