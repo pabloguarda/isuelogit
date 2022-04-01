@@ -137,7 +137,7 @@ class LUE_Equilibrator(Equilibrator):
         #Correction using path size logit
         self.options['path_size_correction'] = 0
 
-# TODO: Implement frankwolfe and MSE using as reference ta.py and comparing result with observed flows in files.
+# TODO: Implement frankwolfe and MSE using as reference ta.py and comparing result with observed predicted_counts in files.
 
     def derivative_sue_objective_function_fisk(self,
                                     f1: np.array,
@@ -321,7 +321,7 @@ class LUE_Equilibrator(Equilibrator):
         if network is None:
             network = self.network
 
-        assert vf.shape[1] == 1, 'vector of path flows is not a column vector'
+        assert vf.shape[1] == 1, 'vector of path predicted_counts is not a column vector'
 
         f,p_f = self.traffic_assignment_path_space(network = network,
                                                    q = q,
@@ -816,7 +816,7 @@ class LUE_Equilibrator(Equilibrator):
 
         # * I may do the augmentation only once for efficiency but define a factor to control for this. The augmentation may be based on the shortest path
 
-        # * In the algorithm proposed by Damberg et al. (1996)  it is, however, possible to avoid generating flows on overlapping routes by deleting (or suitably modifying) any route generated that overlaps with a previously generated one more than a maximal allowed measure of overlapping; depending on the overlap measure, this may be easily performed by augmenting the route generation phase with a suitable check.
+        # * In the algorithm proposed by Damberg et al. (1996)  it is, however, possible to avoid generating predicted_counts on overlapping routes by deleting (or suitably modifying) any route generated that overlaps with a previously generated one more than a maximal allowed measure of overlapping; depending on the overlap measure, this may be easily performed by augmenting the route generation phase with a suitable check.
 
         Args:
             network:
@@ -1135,7 +1135,7 @@ def sue_logit_dial(root, subfolder, prefix_filename, options, Z_dict, k_Z, theta
 
     def loadAON():
         '''
-        This method produces auxiliary flows for all or nothing loading.
+        This method produces auxiliary predicted_counts for all or nothing loading.
         '''
         x_bar = {l: 0.0 for l in linkSet}
         SPTT = 0.0
