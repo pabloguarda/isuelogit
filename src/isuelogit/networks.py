@@ -1244,14 +1244,14 @@ class OD:
     # def q_true(self, value):
     #     self._q_true = value
 
-    def sample_ods_by_demand(self, percentage, k = 1):
+    def sample_ods_by_demand(self, proportion, k = 1):
 
         ods_sorted = list(np.dstack(np.unravel_index(np.argsort(-self.Q.ravel()), self.Q.shape)))[0]
 
         if self.options['remove_zeros_Q']:
             n = len(self.q)
 
-        n_samples = int(np.floor(percentage * n))
+        n_samples = int(np.floor(proportion * n))
 
         # k select the kth set of ODs with largest demand
         max_k = int(n/n_samples)
