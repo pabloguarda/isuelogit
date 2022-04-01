@@ -523,7 +523,7 @@ class PseudoconvexityExperiment(NetworkExperiment):
             theta_attr_grid, f_vals, grad_f_vals, hessian_f_vals \
                 = grid_search_optimization(network=self.network,
                                            equilibrator=self.equilibrator,
-                                           counts=self.network.counts_vector,
+                                           counts=self.network.observed_counts_vector,
                                            q=self.network.q,
                                            theta_attr_grid=grid,
                                            utility_function=self.utility_function,
@@ -1322,7 +1322,7 @@ class PseudoconvexityExperiments(MonotonicityExperiments):
             theta_attr_grid, f_vals[network], grad_f_vals, hessian_f_vals \
                 = grid_search_optimization(network=network,
                                            equilibrator=self.equilibrator,
-                                           counts=network.counts_vector,
+                                           counts=network.observed_counts_vector,
                                            q=network.q,
                                            theta_attr_grid=grid,
                                            utility_function=self.utility_function,
