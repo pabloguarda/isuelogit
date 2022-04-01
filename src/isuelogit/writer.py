@@ -461,7 +461,7 @@ def write_internal_paths(paths: [Path],
         writer = csv.writer(csvfile, delimiter=',')
         writer.writerows(lines)
 
-    print(str(total_paths) + ' paths were written in ' + str(np.round(time.time() - t0, 1)) + '[s]')
+    print(str(total_paths) + ' paths were written in ' + str(np.round(time.time() - t0, 1)) + '[s]                 ')
 
 
 def write_internal_C(C: np.ndarray,
