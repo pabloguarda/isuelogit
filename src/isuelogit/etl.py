@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from mytypes import Positions, Links, Nodes, Dict, Feature,ColumnVector, List, DataFrame
+    from mytypes import Positions, Links, Nodes, Dict, Feature,ColumnVector, List, DataFrame, Tuple
     from links import Link
 
 from utils import Options
@@ -1480,7 +1480,7 @@ def generate_fresno_pems_counts(links: Links,
 
                 elif np.count_nonzero(~np.isnan(station_rows[lane_label])) == 1:
 
-                    # If two stations are matched but only one gives a no nan link flows, this means that
+                    # If two stations are matched but only one gives a no nan link predicted_counts, this means that
                     # the list of pems stations ids can be safely reduced
 
                     link.pems_stations_ids = [link.pems_stations_ids[np.where(~np.isnan(station_rows[lane_label]))[0][0]]]
@@ -1868,12 +1868,12 @@ class LinkData():
     # def counts(self, value) -> None:
 
     @property
-    def counts_vector(self) -> ColumnVector:
+    def observed_counts_vector(self) -> ColumnVector:
 
         return np.array(list(self.counts.values()))[:, np.newaxis]
 
     @property
-    def x_vector(self) -> ColumnVector:
+    def predicted_counts_vector(self) -> ColumnVector:
 
         return np.array(list(self.x.values()))[:, np.newaxis]
 
@@ -2089,31 +2089,31 @@ def generate_training_validation_samples(xct: dict, prop_validation, prop_traini
 
     return xct_training, xct_validation
 
-def get_informative_links_fresno(learning_results, network):
-    d_errors = np.array(learning_results[2]['Fresno_report']['d_error']).astype(np.float)[:, np.newaxis]
+def get_informative_links(learning_results, network) -> Tuple[Dict,List]:
+    d_errors = np.array(learning_results[2]['link_report']['d_error']).astype(np.float)[:, np.newaxis]
 
     # learning_results[3] = {'Fresno_report':learning_results[2]['Fresno_report'] }
 
     for iter, results in learning_results.items():
 
-        if iter > 2 and 'Fresno_report' in results.keys():
-            report = learning_results[iter]['Fresno_report']
+        if iter > 2 and 'link_report' in results.keys():
+            report = learning_results[iter]['link_report']
             d_error = np.array(report['d_error']).astype(np.float)[:, np.newaxis]
             d_errors = np.append(d_errors, d_error, axis=1)
 
     counts_copy = copy.deepcopy(network.link_data.counts)
 
-    nas_link_keys = report['link_key'][np.where(np.max(d_errors, axis=1) <= 1e-10)[0]]
+    removed_link_keys = report['link_key'][np.where(abs(np.max(d_errors, axis=1)) <= 1e-10)[0]]
 
-    for key in nas_link_keys:
+    for key in removed_link_keys:
         counts_copy[(key[0], key[1], '0')] = np.nan
 
     # print(str(initial_no_nas-final_no_nas) + ' links were removed')
 
-    print("\n" + str(len(nas_link_keys)),
+    print("\n" + str(len(removed_link_keys)),
           " traffic counts observations were removed due to no variation in predicted counts over iterations")
 
-    return counts_copy, nas_link_keys
+    return counts_copy, removed_link_keys
 
 
 def isWorkingNetwork(network_name) -> bool:
