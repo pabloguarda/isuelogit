@@ -499,9 +499,9 @@ class LUE_Equilibrator(Equilibrator):
                 # Create dictionary with path probabilities
                 pf_dict = {str(path.get_nodes_keys()): p_f[i] for i, path in zip(np.arange(len(p_f)), network.paths)}
 
-                print('\nPath selection:', 'dissimilarity_weight: '
-                      + str(options['column_generation']['dissimilarity_weight']) +
-                      ', paths per od: ' + str(options['column_generation']['paths_selection']))
+                print('\nPath selection:', 'probability_weight: '
+                      + str(round(1-options['column_generation']['dissimilarity_weight'],1)) +
+                      ', maximum number of paths per od: ' + str(options['column_generation']['paths_selection']))
 
                 total_paths = 0
                 total_ods = 0
@@ -847,8 +847,8 @@ class LUE_Equilibrator(Equilibrator):
                 ods_sample = network.OD.random_ods(ods_coverage)
 
             if ods_sampling == 'demand':
-                ods_sample = network.OD.sample_ods_by_demand(percentage = ods_coverage,
-                                                             k = self.options['column_generation']['n_ods_sampling'] )
+                ods_sample = network.OD.sample_ods_by_demand(proportion= ods_coverage,
+                                                             k = self.options['column_generation']['n_ods_sampling'])
                 self.options['column_generation']['n_ods_sampling']+=1
 
         else:
