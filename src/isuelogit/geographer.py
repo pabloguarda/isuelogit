@@ -812,7 +812,7 @@ def match_network_links_and_inrix_segments_fresno(network_gdf: gpd.GeoDataFrame,
     # config.gis_results['inrix_matching'] \
     #     = {'perc_matching': "{:.1%}".format(counter / len(links)), 'conf_matching': "{:.1%}".format(sum_confidence/counter) }
 
-    # Compute percentage matching
+    # Compute proportion matching
     print(str(counter) + ' network links were matched (' + "{:.1%}".format(counter / len(links)) + ' of links) with a '
           + "{:.1%}".format(sum_confidence/counter)+ ' confidence')
 
