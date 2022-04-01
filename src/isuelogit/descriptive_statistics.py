@@ -588,10 +588,10 @@ def adjusted_link_coverage(network, counts) -> None:
     # print('dif in coverage', np.count_nonzero(~np.isnan(x_bar))-np.count_nonzero(~np.isnan( x_bar_remasked)))
 
 
-def summary_links_fresno(network):
+def summary_links_report(network):
 
-    x_bar = network.link_data.counts_vector
-    x_eq = network.link_data.x_vector
+    x_bar = network.link_data.observed_counts_vector
+    x_eq = network.link_data.predicted_counts_vector
 
     idx_nonas = list(np.where(~np.isnan(x_bar))[0])
 
@@ -662,7 +662,7 @@ def estimators_over_iterations():
 
 
 def pre_post_covid_comparison():
-    """ Compare traffic flows between October 2019 and October 2020 which is basically pre and pos covid outbreak (March 2020). This is 15 minutes counts over the October 1st of each year"""
+    """ Compare traffic predicted_counts between October 2019 and October 2020 which is basically pre and pos covid outbreak (March 2020). This is 15 minutes counts over the October 1st of each year"""
 
 
     pass
