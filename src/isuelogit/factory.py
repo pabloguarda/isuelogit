@@ -145,7 +145,7 @@ def random_disturbance_Q(Q, sd=0):
           "{0:.1f}".format(Q_original[np.nonzero(Q)].mean()))
     print('Mean absolute difference between the nonzero entries of the noisy and original:',
           "{0:.1f}".format(np.sum(np.abs(Q_original - Q)) / non_zeros_entries))
-    print('Approximated percentage change:',
+    print('Approximated proportion change:',
           "{0:.1%}".format(
               np.sum(np.abs(Q_original - Q)) / (non_zeros_entries * Q_original[np.nonzero(Q_original)].mean())))
 
@@ -493,7 +493,7 @@ class LinkDataGenerator(Generator):
                         **kwargs) -> (Dict, Dict):
         """
 
-        :param coverage: percentage of links where data is assumed to be known
+        :param coverage: proportion of links where data is assumed to be known
         :param equilibrium_args:
         :param noise_params:
 
