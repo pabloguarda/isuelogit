@@ -25,8 +25,8 @@ import time
 import pandas as pd
 
 from networks import TNetwork
-from etl import fake_observed_counts, masked_observed_counts
-from descriptive_statistics import summary_links_fresno, rmse, nrmse
+from etl import fake_observed_counts, masked_observed_counts, get_informative_links
+from descriptive_statistics import summary_links_report, rmse, nrmse
 
 from mytypes import ColumnVector, ParametersDict, Matrix, Proportion
 from utils import get_design_matrix, v_normalization, is_pos_def, is_pos_semidef, almost_zero, Options
@@ -661,7 +661,7 @@ def od_estimation(network,
     M = network.M
     q = network.q
 
-    counts = network.counts_vector
+    counts = network.observed_counts_vector
 
     # Optimization of OD matrix (using plain gradient descent meantime)
     jacobian_q_x = D.dot(paths_probabilities.dot(np.ones([paths_probabilities.size, 1]).T)).dot(M.T)
@@ -815,7 +815,7 @@ class OuterOptimizer:
                                                          M=network.M,
                                                          C=network.C,
                                                          q = network.q,
-                                                         counts=network.counts_vector,
+                                                         counts=network.observed_counts_vector,
                                                          **kwargs
                                                          ))
 
@@ -828,7 +828,7 @@ class OuterOptimizer:
             M=network.M,
             C=network.C,
             q=network.q,
-            counts=network.counts_vector,
+            counts=network.observed_counts_vector,
             **kwargs)
 
         return gradient
@@ -855,7 +855,7 @@ class OuterOptimizer:
             M=network.M,
             C=network.C,
             q=network.q,
-            counts=network.counts_vector,
+            counts=network.observed_counts_vector,
             **kwargs)
 
         return jacobian
@@ -875,7 +875,7 @@ class OuterOptimizer:
                                            **kwargs):
 
         return numeric_hessian_objective_function(theta=theta,
-                                                  counts=network.counts_vector,
+                                                  counts=network.observed_counts_vector,
                                                   D=network.D,
                                                   M=network.M,
                                                   C=network.C,
@@ -914,7 +914,7 @@ class OuterOptimizer:
 
         Arguments
         ----------
-        :argument f: vector with path flows
+        :argument f: vector with path predicted_counts
         :argument  opt_params={'method': None, 'iters_scaling': 1, 'iters_gd': 0, 'gamma': 0, 'eta_scaling': 1,'eta': 0, 'batch_size': int(0)}
         :argument
 
@@ -962,7 +962,7 @@ class OuterOptimizer:
             if self.utility_function.fixed is not None:
                 features_idxs = list(np.where(np.array(list(self.utility_function.fixed.values())).astype(int) == 0)[0])
 
-        counts = self.network.counts_vector
+        counts = self.network.observed_counts_vector
 
         # OD
         q = q_0
@@ -1043,7 +1043,7 @@ class OuterOptimizer:
 
         for iter in range(0, iters):
 
-            printProgressBar(iter, iters, prefix='Progress:', suffix='', length=20)
+            #printProgressBar(iter, iters-1, prefix='Progress:', suffix='', length=20)
 
             # It is very expensive to compute p_f so adequating the code is important
             if iter > 0:
@@ -1319,7 +1319,7 @@ class OuterOptimizer:
         # Conver theta into a dictionary to return it then
         theta_dict = dict(zip(self.utility_function.features, theta.flatten()))
 
-        print('\ntheta: ' + str({key: "{0:.1E}".format(val) for key, val in theta_dict.items()}))
+        print('theta: ' + str({key: "{0:.1E}".format(val) for key, val in theta_dict.items()}))
 
         # print("Gradient:", str({key: "{0:.1E}".format(val) for key, val in zip(theta_dict.keys(),grads[-1].flatten().tolist())}))
 
@@ -1385,7 +1385,7 @@ class Learner:
         self.equilibrator.network = self.network
         self.outer_optimizer.network = self.network
         self.counts = self.network.link_data.counts
-        self.counts_vector = self.network.counts_vector
+        self.counts_vector = self.network.observed_counts_vector
 
     def update_options(self, **kwargs):
         self.options = self.options.get_updated_options(new_options=kwargs)
@@ -1452,7 +1452,7 @@ class Learner:
 
         Arguments
         ----------
-        :argument f: vector with path flows
+        :argument f: vector with path predicted_counts
         :argument M: Path/O-D demand incidence
         :argument D: Path/link incidence matrix
         :argument counts: link counts
@@ -1487,7 +1487,7 @@ class Learner:
         theta_current = {k: v for k, v in self.utility_function.initial_values.items() if
                          k in [*features_Y, *features_Z]}
 
-        counts = network.counts_vector
+        counts = network.observed_counts_vector
 
         with block_output(show_stdout=iteration_report, show_stderr=iteration_report):
             print('Iteration : ' + str(1) + '/' + str(int(iters)) + '\n')
@@ -1508,11 +1508,11 @@ class Learner:
                 column_generation={'n_paths': None, 'paths_selection': None},
                 **options)
 
-        # Update travel times and link flows in network
+        # Update travel times and link predicted_counts in network
         network.load_linkflows(results_eq[1]['x'])
         network.load_traveltimes(results_eq[1]['tt_x'])
 
-        predicted_counts = network.link_data.x_vector
+        predicted_counts = network.link_data.predicted_counts_vector
 
         initial_objective = loss_function(observed_counts=counts,
                                           predicted_counts=predicted_counts)
@@ -1577,10 +1577,10 @@ class Learner:
             else:
                 print('Hessian is not positive definite')
 
-        if network.key == 'Fresno':
-            summary_table = summary_links_fresno(network=network)
-            summary_table['error'] = initial_error_by_link.flatten()
-            errors_by_link = [initial_error_by_link]
+        # if network.key == 'Fresno':
+        summary_table = summary_links_report(network=network)
+        summary_table['error'] = initial_error_by_link.flatten()
+        errors_by_link = [initial_error_by_link]
 
         if link_report:
             with pd.option_context('display.float_format', '{:0.1f}'.format):
@@ -1657,12 +1657,12 @@ class Learner:
                     **options_copy
                 )
 
-            # Update travel times and link flows in network
+            # Update travel times and link predicted_counts in network
             network.load_linkflows(results_eq[iter]['x'])
             network.load_traveltimes(results_eq[iter]['tt_x'])
 
-            # Compute new value of link flows and objective function at equilibrium
-            predicted_counts = network.link_data.x_vector
+            # Compute new value of link predicted_counts and objective function at equilibrium
+            predicted_counts = network.link_data.predicted_counts_vector
 
             # New objective function after computing network equilibria with updated travel times
             objective_value = loss_function(observed_counts=counts,
@@ -1706,49 +1706,49 @@ class Learner:
                     print('')
 
 
-            if network.key == 'Fresno':
+            # if network.key == 'Fresno':
 
-                current_error_by_link = error_by_link(counts, predicted_counts, show_nan=False)
+            current_error_by_link = error_by_link(counts, predicted_counts, show_nan=False)
 
-                summary_table = summary_links_fresno(network=network)
+            summary_table = summary_links_report(network=network)
 
-                d_error = current_error_by_link - errors_by_link[-1]
-                d_error_print = ["{0:.1E}".format(d_error_i[0]) for d_error_i in list(d_error)]
+            d_error = current_error_by_link - errors_by_link[-1]
+            d_error_print = ["{0:.1E}".format(d_error_i[0]) for d_error_i in list(d_error)]
 
-                summary_table['prev_error'] = errors_by_link[-1].flatten()
-                summary_table['error'] = current_error_by_link.flatten()
-                summary_table['d_error'] = d_error_print
+            summary_table['prev_error'] = errors_by_link[-1].flatten()
+            summary_table['error'] = current_error_by_link.flatten()
+            summary_table['d_error'] = d_error_print
 
-                results[iter]['Fresno_report'] = summary_table
+            results[iter]['link_report'] = summary_table
 
-                d_errors = d_error
+            d_errors = d_error
 
-                counts_copy = copy.deepcopy(network.link_data.counts)
+            counts_copy = copy.deepcopy(network.link_data.counts)
 
-                if iter == 2:
-                    initial_no_nas = len(np.where(~np.isnan(np.array(list(counts_copy.values()))))[0])
+            if iter == 2:
+                initial_no_nas = len(np.where(~np.isnan(np.array(list(counts_copy.values()))))[0])
 
-                if iter > 2:
-                    for i in range(iter - 1, 1, -1):
-                        report = results[i]['Fresno_report']
-                        d_error = np.array(report['d_error']).astype(np.float)[:, np.newaxis]
-                        d_errors = np.append(d_errors, d_error, axis=1)
+            if iter > 2:
+                for i in range(iter - 1, 1, -1):
+                    report = results[i]['link_report']
+                    d_error = np.array(report['d_error']).astype(np.float)[:, np.newaxis]
+                    d_errors = np.append(d_errors, d_error, axis=1)
 
-                nas_link_keys = results[iter]['Fresno_report']['link_key'][
-                    np.where(np.max(d_errors, axis=1) <= 1e-10)[0]]
+            nas_link_keys = results[iter]['link_report']['link_key'][
+                np.where(abs(np.max(d_errors, axis=1)) <= 1e-10)[0]]
 
-                for key in nas_link_keys:
-                    counts_copy[(key[0], key[1], '0')] = np.nan
+            for key in nas_link_keys:
+                counts_copy[(key[0], key[1], '0')] = np.nan
 
-                final_no_nas = len(np.where(~np.isnan(np.array(list(counts_copy.values()))))[0])
+            final_no_nas = len(np.where(~np.isnan(np.array(list(counts_copy.values()))))[0])
 
-                no_diff_error = initial_no_nas - final_no_nas
+            no_diff_error = initial_no_nas - final_no_nas
 
-                if iteration_report:
-                    print('\nProportion of links with no difference in errors between iterations',
-                          "{:.1%}".format(no_diff_error / len(d_error)))
+            if iteration_report:
+                print('Proportion of links with no difference in errors between iterations:',
+                      "{:.1%}".format(no_diff_error / len(d_error)))
 
-                errors_by_link.append(current_error_by_link)
+            errors_by_link.append(current_error_by_link)
 
             if link_report:
                 with pd.option_context('display.float_format', '{:0.1f}'.format):
@@ -1791,7 +1791,7 @@ class Learner:
 
             H = diagonal_hessian_objective_function(theta=best_theta_array,
                                                     design_matrix=design_matrix,
-                                                    counts=network.counts_vector,
+                                                    counts=network.observed_counts_vector,
                                                     q=network.q,
                                                     D=network.D,
                                                     M=network.M,
@@ -2075,7 +2075,7 @@ class Learner:
               theta_m2: dict = None,
               alpha=0.05,
               pct_lowest_sse=100,
-              silent_mode: bool = False) -> Dict:
+              silent_mode: bool = False) -> pd.DataFrame:
 
         print('\nComputing F-test')
 
@@ -2160,13 +2160,14 @@ class Learner:
         summary_inference_model = {'F': ftest_value,
                                    'critical-F': critical_fvalue,
                                    'p': pvalue,
-                                   'n': n,
                                    'dof_m1': p_1,
                                    'dof_m2': p_2,
                                    'sse_m1': np.sum(top_sse_1),
-                                   'sse_m2': np.sum(top_sse_2)}
+                                   'sse_m2': np.sum(top_sse_2),
+                                   'n': n,
+                                   }
 
-        return summary_inference_model
+        return pd.DataFrame([summary_inference_model])
 
     def statistical_inference(self,
                               **kwargs
@@ -2187,9 +2188,16 @@ class Learner:
         best_results = learning_results[best_iter]
         theta = best_results['theta']
 
-        # Update travel times and link flows in network
+        # Update travel times and link predicted_counts in network
         self.network.load_linkflows(best_results['x'])
         self.network.load_traveltimes(best_results['tt_x'])
+
+        counts = self.network.observed_counts_vector
+
+        if kwargs.get('link_selection', False):
+            counts, _ = get_informative_links(learning_results=learning_results, network=self.network)
+            # self.network.load_traffic_counts(new_counts)
+            counts = np.array(list(counts.values()))[:,np.newaxis]
 
         parameter_inference_table, model_inference_table = hypothesis_tests(
             network=self.network,
@@ -2197,8 +2205,8 @@ class Learner:
             design_matrix=get_design_matrix(
                 Y=self.network.Y_data,
                 Z=self.network.Z_data[self.utility_function.features_Z]),
-            counts=self.network.counts_vector,
-            predicted_counts=self.network.link_data.x_vector,
+            counts=counts,
+            predicted_counts=self.network.link_data.predicted_counts_vector,
             **kwargs)
 
         inference_results['model'] = model_inference_table
@@ -2310,7 +2318,6 @@ def hypothesis_tests(theta: ParametersDict,
                      predicted_counts: Optional[ColumnVector] = None,
                      **kwargs
                      ):
-    print('\nPerforming hypothesis testing (H0: theta = ' + str(h0) + ', alpha = ' + str(alpha) + ')')
 
     t0 = time.time()
 
@@ -2331,6 +2338,8 @@ def hypothesis_tests(theta: ParametersDict,
 
     p = theta_array.shape[0]
     n = np.count_nonzero(~np.isnan(counts))
+
+    print('\nHypothesis testing (H0: theta = ' + str(h0) + ', alpha = ' + str(alpha) + ', n = ' + str(n) + ')')
 
     assert q.shape[1] == 1, 'q is not a column vector'
 
@@ -2382,6 +2391,16 @@ def hypothesis_tests(theta: ParametersDict,
                                                 paths_specific_utility=paths_specific_utility)
 
     else:
+
+        # Check if parameters are close to zero. When true, it removes those parameters from the computation of Jacobian
+        features_idxs = []
+        zero_features_idxs = []
+        for feature_idx in range(theta_array.shape[0]):
+            if np.allclose(theta_array[feature_idx], 0):
+                zero_features_idxs.append(feature_idx)
+            else:
+                features_idxs.append(feature_idx)
+
         # # Unidimensional inverse function is just the reciprocal but this is multidimensional so inverse is required
         F, pf = jacobian_response_function(theta_array,
                                            design_matrix=design_matrix,
@@ -2389,6 +2408,7 @@ def hypothesis_tests(theta: ParametersDict,
                                            D=D,
                                            M=M,
                                            C=C,
+                                           features_idxs = features_idxs,
                                            paths_probabilities=p_f,
                                            paths_specific_utility=paths_specific_utility,
                                            numeric=numeric_jacobian,
@@ -2398,7 +2418,10 @@ def hypothesis_tests(theta: ParametersDict,
         idxs_nan = np.where(np.isnan(counts))[0]
         F = np.delete(F, idxs_nan, axis=0)
 
-        print('Hessian approximated as J^T J')
+        # Remove columns of feature that is almost zero
+        F = np.delete(F, zero_features_idxs, axis=1)
+
+        print('\nHessian approximated as J^T J')
         H = F.T.dot(F)
 
     # # Replaced nan values in Hessian
@@ -2411,19 +2434,25 @@ def hypothesis_tests(theta: ParametersDict,
     cov_theta = np.linalg.pinv(H)
     # cov_theta = np.linalg.inv(H)
 
-    # i) T-tests
+    diag_cov_theta = np.zeros_like(theta_array)
+    for feature_idx in range(theta_array.shape[0]):
+        if not np.allclose(theta_array[feature_idx], 0):
+            diag_cov_theta[feature_idx] = float(cov_theta[(feature_idx,feature_idx)])
 
+
+    # i) T-tests
     critical_tvalue = stats.t.ppf(1 - alpha / 2, df=n - p)
 
-    if np.allclose(theta_array - h0, 0):
-        ttest = np.zeros_like(theta_array)
-    else:
-        ttest = (theta_array - h0) / np.sqrt(var_error * np.diag(cov_theta)[:, np.newaxis])
+    ttest = np.zeros_like(theta_array)
+
+    for feature_idx in range(theta_array.shape[0]):
+        if not np.allclose(theta_array[feature_idx] - h0, 0):
+            ttest[feature_idx] = (theta_array[feature_idx] - h0) / np.sqrt(var_error * diag_cov_theta[feature_idx])
 
     pvalues = 2 * stats.t.sf(np.abs(ttest), df=n - p)
 
     # ii) Confidence intervals
-    width_confint = critical_tvalue * np.sqrt(var_error * np.diag(cov_theta)[:, np.newaxis])
+    width_confint = critical_tvalue * np.sqrt(var_error * diag_cov_theta)
 
     confint_list = ["[" + str(round(float(i - j), 3)) + ", " + str(round(float(i + j), 3)) + "]" for i, j in
                     zip(theta_array, width_confint)]
@@ -2436,7 +2465,7 @@ def hypothesis_tests(theta: ParametersDict,
     #     {'parameter': theta.keys(), 't-test': theta.values(), 'critical-t-value': list(criticalval_t * np.ones(len(theta))), 'p-value': pvals.flatten(), 'CI': confint_list, 'null_f_test': theta_m1.values()})
 
     with pd.option_context('display.float_format', '{:0.3f}'.format):
-        print('\nSummary of parameters: \n', summary_inference_parameters.to_string(index=False))
+        print('\n', summary_inference_parameters.to_string(index=False))
 
     # (iii) F-test assuming that restricted model set all parameters equal to 0
     summary_inference_model = Learner.ftest(
@@ -2451,10 +2480,10 @@ def hypothesis_tests(theta: ParametersDict,
         alpha=alpha,
         silent_mode=True)
 
-    summary_inference_model = pd.DataFrame([summary_inference_model])
+    # summary_inference_model = pd.DataFrame([summary_inference_model])
 
     with pd.option_context('display.float_format', '{:0.3f}'.format):
-        print('\nSummary of model: \n', summary_inference_model.to_string(index=False))
+        print(summary_inference_model.to_string(index=False))
 
     if pct_lowest_sse < 100:
         print(str(round(pct_lowest_sse)) + '% of the total observations with lowest SSE were used')
