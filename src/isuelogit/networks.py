@@ -857,8 +857,8 @@ class TNetwork(nx.Graph):
                 self.links_dict[link_key].count = float(count)
 
     @property
-    def counts_vector(self) -> ColumnVector:
-        return self.link_data.counts_vector
+    def observed_counts_vector(self) -> ColumnVector:
+        return self.link_data.observed_counts_vector
 
     def load_linkflows(self, x: Dict[str, float]):
 
@@ -871,7 +871,7 @@ class TNetwork(nx.Graph):
 
     @property
     def linkflows_vector(self) -> ColumnVector:
-        return self.link_data.x_vector
+        return self.link_data.predicted_counts_vector
 
     def load_traveltimes(self, traveltimes: Dict[str, float]):
         self.set_Y_attr_links({'tt': traveltimes})
