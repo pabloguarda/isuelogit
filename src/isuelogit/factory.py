@@ -632,7 +632,7 @@ class LinkDataGenerator(Generator):
             path_size_correction = path_size_correction
         )
 
-        # Store path flows
+        # Store path predicted_counts
         network.path_flows = results_equilibrium['f']
 
         # Exogenous noise in the link count measurements
