@@ -7,20 +7,21 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from mytypes import Positions, Links, Nodes
 
-import matplotlib.pyplot as plt
-import geopandas as gpd
+import config
+
+try:
+    import geopandas as gpd
+except ImportError:
+    pass
+
 import numpy as np
 import pandas as pd
 import addfips
 import webbrowser
-import urllib
 import os
-import math
-
 import shapely.geometry
 from shapely.geometry import Point, LineString
 
-import config
 
 
 class NodePosition(Point):
