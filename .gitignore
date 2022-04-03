@@ -60,3 +60,4 @@ docs/
 tox.ini
 History.rst
 
+notebooks/.ipynb_checkpoints/
