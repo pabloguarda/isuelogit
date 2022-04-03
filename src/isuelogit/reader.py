@@ -25,7 +25,7 @@ import scipy.sparse
 import csv
 import sys
 
-csv.field_size_limit(sys.maxsize)  # to support reading large matrices
+#csv.field_size_limit(sys.maxsize)  # to support reading large matrices
 
 import printer
 
