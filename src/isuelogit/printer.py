@@ -27,10 +27,15 @@ def printProgressBar(iteration, total, prefix = '', suffix = '', decimals = 1, l
     # filledLength = int(length * iteration // total)
     # bar = fill * filledLength + '-' * (length - filledLength)
 
+    # unicode character '█' only works in Linux/mac environments
+    # bar_symbol = '█'
+    bar_symbol = '#'
+
     str_format = "{0:." + str(decimals) + "f}"
     percents = str_format.format(100 * (iteration / float(total)))
     filled_length = int(round(length * iteration / float(total)))
-    bar = '█' * filled_length + '-' * (length - filled_length)
+
+    bar = bar_symbol * filled_length + '-' * (length - filled_length)
 
     sys.stdout.write('\r%s |%s| %s%s %s' % (prefix, bar, percents, '%', suffix)),
 
@@ -53,9 +58,13 @@ def printIterationBar(iteration, iterations, prefix = '', length = 100, eraseBar
 
     # https: // stackoverflow.com / questions / 3173320 / text - progress - bar - in -the - console
 
+    # unicode character '█' only works in Linux/mac environments
+    #bar_symbol = '█'
+    bar_symbol = '#'
+
     # percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
     filled_length = int(round(length * iteration / float(iterations)))
-    bar = '█' * filled_length + '-' * (length - filled_length)
+    bar = bar_symbol * filled_length + '-' * (length - filled_length)
     iteration = '{:d}'.format(iteration)
     iterations = '{:d}'.format(iterations)
 
