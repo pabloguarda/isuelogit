@@ -18,7 +18,6 @@ import io
 import os
 import openmatrix as omx
 import time
-import geopandas as gpd
 import networkx as nx
 import pandas as pd
 import numpy as np
