@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """Console communication """
 
 import time
@@ -5,7 +7,7 @@ import sys, os
 from contextlib import contextmanager
 import io
 
-def printProgressBar(iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '\u2588', printEnd = "", eraseBar = True):
+def printProgressBar(iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, eraseBar = True):
     """
     Call in a loop to create terminal progress bar
     @params:
@@ -21,19 +23,30 @@ def printProgressBar(iteration, total, prefix = '', suffix = '', decimals = 1, l
 
     # https: // stackoverflow.com / questions / 3173320 / text - progress - bar - in -the - console
 
-    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
-    filledLength = int(length * iteration // total)
-    bar = fill * filledLength + '-' * (length - filledLength)
-    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = printEnd)
+    # percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    # filledLength = int(length * iteration // total)
+    # bar = fill * filledLength + '-' * (length - filledLength)
+
+    str_format = "{0:." + str(decimals) + "f}"
+    percents = str_format.format(100 * (iteration / float(total)))
+    filled_length = int(round(length * iteration / float(total)))
+    bar = '█' * filled_length + '-' * (length - filled_length)
+
+    sys.stdout.write('\r%s |%s| %s%s %s' % (prefix, bar, percents, '%', suffix)),
+
+    # print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = printEnd)
 
     # When Completed
     if iteration == total:
         if eraseBar:
-            print('', end='\r')
+            # print('', end='\r')
+            sys.stdout.write('\r')
         else:
-            print('')
+            sys.stdout.write('\n')
 
-def printIterationBar(iteration, iterations, prefix = '', length = 100, fill = '\u2588', printEnd = "", eraseBar = False):
+    sys.stdout.flush()
+
+def printIterationBar(iteration, iterations, prefix = '', length = 100, eraseBar = False):
     """
     Call in a loop to create terminal progress bar
     """
@@ -41,19 +54,24 @@ def printIterationBar(iteration, iterations, prefix = '', length = 100, fill = '
     # https: // stackoverflow.com / questions / 3173320 / text - progress - bar - in -the - console
 
     # percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
-    filledLength = int(length * iteration // iterations)
-    bar = fill * filledLength + '-' * (length - filledLength)
+    filled_length = int(round(length * iteration / float(iterations)))
+    bar = '█' * filled_length + '-' * (length - filled_length)
     iteration = '{:d}'.format(iteration)
     iterations = '{:d}'.format(iterations)
 
-    print(f'\r{prefix} |{bar}| {iteration}/{iterations}', end = printEnd)
+    # print(f'\r{prefix} |{bar}| {iteration}/{iterations}', end = printEnd)
+
+    sys.stdout.write('\r%s |%s| %s%s%s ' % (prefix, bar, iteration, '/', iterations)),
 
     # When Completed
     if iteration == iterations:
         if eraseBar:
-            print('', end='\r')
+            # print('', end='\r')
+            sys.stdout.write('\r')
         else:
-            print('')
+            sys.stdout.write('\n')
+
+    sys.stdout.flush()
 
 
 def timeit(method):
