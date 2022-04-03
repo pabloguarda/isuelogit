@@ -55,7 +55,7 @@ def read_colombus_paths(network:TNetwork,
     ods = set()
     t0 = time.time()
 
-    with open(filepath, 'r', newline='') as csvfile:
+    with open(filepath, 'r', newline='', encoding = "utf-8") as csvfile:
         path_reader = csv.reader(csvfile, delimiter=' ')
         total_paths = len(list(path_reader))
         print('Total paths to be read: ' + str(total_paths))
@@ -66,7 +66,7 @@ def read_colombus_paths(network:TNetwork,
     # Create hash table (dictionary) to speed up mapping from original to internal ids (keys)
     links_ids_to_keys = {(int(link.init_node.id), int(link.term_node.id), '0'): link.key for link in network.links}
 
-    with open(filepath, 'r', newline='') as csvfile:
+    with open(filepath, 'r', newline='', encoding = "utf-8") as csvfile:
         path_reader = csv.reader(csvfile, delimiter=' ')
 
         for path_line, counter in zip(path_reader, range(total_paths)):
@@ -127,14 +127,14 @@ def read_internal_paths(network: TNetwork) -> Paths:
     if network.network_type is MultiDiTNetwork:
         raise NotImplementedError
 
-    with open(filepath, 'r', newline='') as csvfile:
+    with open(filepath, 'r', newline='', encoding = "utf-8") as csvfile:
         path_reader = csv.reader(csvfile, delimiter=' ')
         total_paths = len(list(path_reader))
         # print('Total paths to be read: ' + str(total_paths))
 
     t0 = time.time()
 
-    with open(filepath, 'r', newline='') as csvfile:
+    with open(filepath, 'r', newline='', encoding = "utf-8") as csvfile:
 
         # print('reading')
 
@@ -207,12 +207,12 @@ def read_internal_C(network: TNetwork,
     else:
         filepath = config.dirs['read_network_data'] + 'C/C-' + network.key + '.csv'
 
-        with open(filepath, 'r', newline='') as csvfile:
+        with open(filepath, 'r', newline='', encoding = "utf-8") as csvfile:
             rows_reader = csv.reader(csvfile, delimiter=' ')
             total_rows = len(list(rows_reader))
             print('Total rows to be read: ' + str(total_rows))
 
-        with open(filepath, 'r', newline='') as csvfile:
+        with open(filepath, 'r', newline='', encoding = "utf-8") as csvfile:
             rows_reader = csv.reader(csvfile, delimiter=',')
 
             for C_row, counter in zip(rows_reader, range(rows_reader)):
@@ -245,12 +245,12 @@ def read_internal_D(network: TNetwork,
 
     else:
         filepath = config.dirs['read_network_data'] + 'D/D-' + network.key + '.csv'
-        with open(filepath, 'r', newline='') as csvfile:
+        with open(filepath, 'r', newline='', encoding = "utf-8") as csvfile:
             rows_reader = csv.reader(csvfile, delimiter=' ')
             total_rows = len(list(rows_reader))
             print('Total rows to be read: ' + str(total_rows))
 
-        with open(filepath, 'r', newline='') as csvfile:
+        with open(filepath, 'r', newline='', encoding = "utf-8") as csvfile:
             rows_reader = csv.reader(csvfile, delimiter=',')
 
             for D_row, counter in zip(rows_reader, range(total_rows)):
@@ -286,12 +286,12 @@ def read_internal_M(network: TNetwork,
 
     else:
         filepath = config.dirs['read_network_data'] + 'M/M-' + network.key + '.csv'
-        with open(filepath, 'r', newline='') as csvfile:
+        with open(filepath, 'r', newline='', encoding = "utf-8") as csvfile:
             rows_reader = csv.reader(csvfile, delimiter=' ')
             total_rows = len(list(rows_reader))
             print('Total rows to be read: ' + str(total_rows))
 
-        with open(filepath, 'r', newline='') as csvfile:
+        with open(filepath, 'r', newline='', encoding = "utf-8") as csvfile:
             rows_reader = csv.reader(csvfile, delimiter=',')
 
             for M_row, counter in zip(rows_reader, range(total_rows)):
@@ -325,12 +325,12 @@ def read_internal_Q(network: TNetwork,
 
     else:
         filepath = config.dirs['read_network_data'] + 'Q/Q-' + network.key + '.csv'
-        with open(filepath, 'r', newline='') as csvfile:
+        with open(filepath, 'r', newline='', encoding = "utf-8") as csvfile:
             rows_reader = csv.reader(csvfile, delimiter=' ')
             total_rows = len(list(rows_reader))
             print('Total rows to be read: ' + str(total_rows))
 
-        with open(filepath, 'r', newline='') as csvfile:
+        with open(filepath, 'r', newline='', encoding = "utf-8") as csvfile:
             rows_reader = csv.reader(csvfile, delimiter=',')
 
             for Q_row, counter in zip(rows_reader, range(rows_reader)):
@@ -610,7 +610,7 @@ def read_colombus_network(folderpath: str) -> (Matrix, pd.DataFrame, pd.DataFram
     count_files = ['count_5-12AM_7hours_car.csv', 'count_1-7PM_6hours_car.csv', 'count_5-12AM_7hours_truck.csv',
                    'count_1-7PM_6hours_truck.csv']
 
-    with open(folderpath + '/counts/' + count_files[1], 'r', newline='') as csvfile:
+    with open(folderpath + '/counts/' + count_files[1], 'r', newline='', encoding = "utf-8") as csvfile:
         counts_reader = csv.reader(csvfile, delimiter=',')
 
         counter = 0
@@ -946,7 +946,7 @@ def read_tntp_od(network_name: str,
     # Function to import OMX matrices
     def import_matrix(filepath, network_name):
         if local_files:
-            f = open(filepath, 'r')
+            f = open(filepath, 'r', encoding = "utf-8")
             all_rows = f.read()
         else:
             f = urllib.request.urlopen(filepath)
@@ -1075,7 +1075,7 @@ def read_fresno_od(folderpath, A, nodes) -> Matrix:
 
     # Q = np.zeros((Q_rows,Q_rows))
 
-    with open(filepath, 'r', newline='') as csvfile:
+    with open(filepath, 'r', newline='', encoding = "utf-8") as csvfile:
 
         net_reader = csv.reader(csvfile, delimiter=',')
 
@@ -1159,7 +1159,7 @@ def read_fresno_dynamic_od(filepath, network, periods: []) -> Matrix:
 
     od_dict = {}
 
-    with open(filepath, 'r', newline='') as csvfile:
+    with open(filepath, 'r', newline='', encoding = "utf-8") as csvfile:
 
         net_reader = csv.reader(csvfile)
 
@@ -1264,7 +1264,7 @@ def read_sacramento_od(folder, A, nodes) -> Matrix:
 
     # Q = np.zeros((Q_rows,Q_rows))
 
-    with open(filepath, 'r', newline='') as csvfile:
+    with open(filepath, 'r', newline='', encoding = "utf-8") as csvfile:
 
         net_reader = csv.reader(csvfile, delimiter=',')
 
