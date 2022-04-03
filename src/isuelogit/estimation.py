@@ -2445,7 +2445,7 @@ def hypothesis_tests(theta: ParametersDict,
     # i) T-tests
     critical_tvalue = stats.t.ppf(1 - alpha / 2, df=n - p)
 
-    ttest = np.zeros_like(theta_array)
+    ttest = np.zeros_like(theta_array, dtype = np.float64)
 
     for feature_idx in features_idxs:
         if not np.allclose(theta_array[feature_idx] - h0, 0):
@@ -3565,7 +3565,7 @@ def gradient_objective_function(theta: ColumnVector,
 
         counter += 1
 
-    gradient = np.zeros_like(theta)
+    gradient = np.zeros_like(theta, dtype = np.float64)
 
     counter = 0
     for feature_idx in features_idxs:
