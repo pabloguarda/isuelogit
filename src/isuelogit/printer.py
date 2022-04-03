@@ -5,7 +5,7 @@ import sys, os
 from contextlib import contextmanager
 import io
 
-def printProgressBar(iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "", eraseBar = True):
+def printProgressBar(iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '\u2588', printEnd = "", eraseBar = True):
     """
     Call in a loop to create terminal progress bar
     @params:
@@ -33,7 +33,7 @@ def printProgressBar(iteration, total, prefix = '', suffix = '', decimals = 1, l
         else:
             print('')
 
-def printIterationBar(iteration, iterations, prefix = '', length = 100, fill = '█', printEnd = "\r", eraseBar = False):
+def printIterationBar(iteration, iterations, prefix = '', length = 100, fill = '\u2588', printEnd = "", eraseBar = False):
     """
     Call in a loop to create terminal progress bar
     """
@@ -43,6 +43,9 @@ def printIterationBar(iteration, iterations, prefix = '', length = 100, fill = '
     # percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
     filledLength = int(length * iteration // iterations)
     bar = fill * filledLength + '-' * (length - filledLength)
+    iteration = '{:d}'.format(iteration)
+    iterations = '{:d}'.format(iterations)
+
     print(f'\r{prefix} |{bar}| {iteration}/{iterations}', end = printEnd)
 
     # When Completed
