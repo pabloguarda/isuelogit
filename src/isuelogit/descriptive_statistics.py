@@ -466,7 +466,8 @@ def summary_table_links(links: List = None,
                                      })
 
     summary_links_df['inrix_id'] =[link.inrix_id for link in links ]
-    summary_links_df['pems_id'] = [link.pems_stations_ids for link in links]
+    summary_links_df['inrix_id'] = summary_links_df['inrix_id'].astype('Int64')
+    summary_links_df['pems_ids'] = [link.pems_stations_ids for link in links]
 
     # Link attributes
     summary_links_Z_attrs_df = get_link_Z_attributes_df(links, Z_attrs, Z_labels)
