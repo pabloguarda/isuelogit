@@ -1198,11 +1198,14 @@ def read_spatiotemporal_data_fresno(network,
             filepaths = [path_inrix_data_part1, path_inrix_data_part2]
 
             if options['write_inrix_daily_data']:
+                print("Writing daily Inrix data")
                 data_analyst.write_partition_inrix_data(
                     filepaths,
                     output_folderpath=config.dirs['input_folder'] + '/private/Fresno/inrix/speed/by-day/')
 
             if options['read_inrix_daily_data']:
+
+                print("Reading daily Inrix data")
 
                 filepaths = config.dirs['input_folder'] + '/private/Fresno/inrix/speed/by-day/' + \
                             options['selected_date'] + '.csv'
@@ -1213,6 +1216,7 @@ def read_spatiotemporal_data_fresno(network,
                 )
 
             else:
+                print("Reading all Inrix data")
                 # Generate a pandas dataframe with the average and standard deviaetion of the speed among INRIX link segments
                 inrix_data_df = data_analyst.generate_inrix_data_by_segment(
                     filepaths=filepaths,
