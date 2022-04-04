@@ -29,7 +29,7 @@ class Link:
         self._pems_stations_ids = []
 
         # INRIX segment id (int)
-        self._inrix_id = None
+        self._inrix_id = np.nan
         
         # INRIX data associated to inrix id
         self._inrix_features = dict.fromkeys(
@@ -275,7 +275,7 @@ class Link:
 
     @performance_function.setter
     def performance_function(self, value):
-        self._performance_function = value # BPR(alpha = alpha, beta = beta, tf = tf, k = k)
+        self._performance_function = value
         if isinstance(self._performance_function,BPR):
             self._bpr = self._performance_function
 
