@@ -442,7 +442,7 @@ def write_internal_paths(paths: [Path],
         os.makedirs(folder)
 
     if filename is None:
-        filename = 'paths-' + network_key
+        filename = 'paths-' + network_key + '.csv'
 
     filepath = folder + filename
 
