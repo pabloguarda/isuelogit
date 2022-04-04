@@ -113,7 +113,9 @@ def read_colombus_paths(network:TNetwork,
     # return paths, paths_od
 
 
-def read_internal_paths(network: TNetwork) -> Paths:
+def read_internal_paths(network: TNetwork,
+                        folderpath: str = None,
+                        filename: str = None) -> Paths:
     """ It assumes that a dictionary of existing links is available and the path generated and rematched to those links
 
     Each line in the text file contains a sequence of nodes separated by a comma
@@ -122,7 +124,13 @@ def read_internal_paths(network: TNetwork) -> Paths:
 
     paths = []
 
-    filepath = config.dirs['read_network_data'] + 'paths/paths-' + network.key + '.csv'
+    if folderpath is None:
+        folderpath = config.dirs['read_network_data'] + 'paths/'
+
+    if filename is None:
+        filename = 'paths-' + network.key + '.csv'
+
+    filepath = folderpath + filename
 
     if network.network_type is MultiDiTNetwork:
         raise NotImplementedError
