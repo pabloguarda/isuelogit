@@ -132,7 +132,6 @@ class DataReader:
                                       'incidents': False, 'bus_stops': False, 'streets_intersections': False}
 
         options['write_inrix_daily_data'] = False
-        options['read_inrix_daily_data'] = True
 
         # - Periods (6 periods of 15 minutes each for Fresno)
         options['od_periods'] = []
