@@ -434,14 +434,17 @@ def write_internal_paths(paths: [Path],
     t0 = time.time()
 
     if overwrite_input:
-        folder = config.dirs['read_network_data']
+        folder = config.dirs['read_network_data'] + 'paths/'
     else:
-        folder = config.dirs['write_network_data']
+        folder = config.dirs['write_network_data'] + 'paths/'
 
-    root_dir = folder  + 'paths/' + 'paths-' + network_key
+    if not os.path.exists(folder):
+        os.makedirs(folder)
 
-    if filename is not None:
-        root_dir = folder  + 'paths/' + filename
+    if filename is None:
+        filename = 'paths-' + network_key
+
+    filepath = folder + filename
 
     lines = []
 
@@ -457,7 +460,7 @@ def write_internal_paths(paths: [Path],
 
         lines.append(line)
 
-    with open(root_dir + '.csv', 'w', newline='') as csvfile:
+    with open(filepath, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=',')
         writer.writerows(lines)
 
