@@ -968,7 +968,9 @@ class PathsGenerator(Generator):
         # if options['reading']['paths']:
         #     # print('reading paths')
 
-        paths = read_internal_paths(network=network)
+        paths = read_internal_paths(network=network,
+                                    filename = kwargs.get('filename', None),
+                                    folderpath = kwargs.get('folderpath', None))
         network.load_paths(paths=paths, update_incidence_matrices=kwargs.get('update_incidence_matrices', False))
 
     def write_paths(self, network, **kwargs):
