@@ -128,8 +128,8 @@ class DataReader:
 
         options['tt_units'] = 'minutes'
 
-        options['data_processing'] = {'inrix_segments': False, 'inrix_data': False, 'census': False,
-                                      'incidents': False, 'bus_stops': False, 'streets_intersections': False}
+        options['data_processing'] = {'inrix_segments': True, 'inrix_data': True, 'census': True, 'incidents': True,
+                                      'bus_stops': True, 'streets_intersections': True}
 
         options['write_inrix_daily_data'] = False
 
@@ -289,69 +289,69 @@ class DataReader:
 
             link.Z_dict['tt_cv'] = 0
 
-            link.Z_dict['tt_sd_adj'] = 0
+            # link.Z_dict['tt_sd_adj'] = 0
 
             link.Z_dict['road_closures'] = 0
 
-            if link.inrix_id is not None:
-                # speed_segment_sdf = speed_sdf.where(self.F.col("segment_id").isin([link.inrix_id]))
-                inrix_features = speed_df.loc[speed_df.segment_id == int(link.inrix_id)]
+            # if not np.isnan(link.inrix_id):
+            # speed_segment_sdf = speed_sdf.where(self.F.col("segment_id").isin([link.inrix_id]))
+            inrix_features = speed_df.loc[speed_df.segment_id == link.inrix_id]
 
-                if len(inrix_features) > 0:
+            if len(inrix_features) > 0:
 
-                    # print(inrix_features['speed_avg'])
-                    # print(link.inrix_id)
-                    link.inrix_features = {
-                        'speed_max': float(inrix_features['speed_max'])
-                        , 'speed_avg': float(inrix_features['speed_avg'])
-                        , 'speed_sd': float(inrix_features['speed_sd'])
-                        , 'speed_cv': float(inrix_features['speed_cv'])
+                # print(inrix_features['speed_avg'])
+                # print(link.inrix_id)
+                link.inrix_features = {
+                    'speed_max': float(inrix_features['speed_max'])
+                    , 'speed_avg': float(inrix_features['speed_avg'])
+                    , 'speed_sd': float(inrix_features['speed_sd'])
+                    , 'speed_cv': float(inrix_features['speed_cv'])
 
-                        , 'speed_ref_avg': float(inrix_features['speed_ref_avg'])
-                        , 'speed_ref_sd': float(inrix_features['speed_ref_sd'])
+                    , 'speed_ref_avg': float(inrix_features['speed_ref_avg'])
+                    , 'speed_ref_sd': float(inrix_features['speed_ref_sd'])
 
-                        , 'speed_hist_avg': float(inrix_features['speed_hist_avg'])
-                        , 'speed_hist_sd': float(inrix_features['speed_hist_sd'])
+                    , 'speed_hist_avg': float(inrix_features['speed_hist_avg'])
+                    , 'speed_hist_sd': float(inrix_features['speed_hist_sd'])
 
-                        , 'traveltime_avg': float(inrix_features['traveltime_avg'])
-                        , 'traveltime_sd': float(inrix_features['traveltime_sd'])
-                        , 'traveltime_var': float(inrix_features['traveltime_var'])
-                        , 'traveltime_cv': float(inrix_features['traveltime_cv'])
+                    , 'traveltime_avg': float(inrix_features['traveltime_avg'])
+                    , 'traveltime_sd': float(inrix_features['traveltime_sd'])
+                    , 'traveltime_var': float(inrix_features['traveltime_var'])
+                    , 'traveltime_cv': float(inrix_features['traveltime_cv'])
 
-                        , 'road_closure_avg': float(inrix_features['road_closure_avg'])
-                        , 'road_closure_any': float(inrix_features['road_closure_any'])
+                    , 'road_closure_avg': float(inrix_features['road_closure_avg'])
+                    , 'road_closure_any': float(inrix_features['road_closure_any'])
 
-                    }
+                }
 
-                # link.inrix_features = inrix_features[]
+            # link.inrix_features = inrix_features[]
 
-                    # For travel time, I should consider a normalization
+                # For travel time, I should consider a normalization
 
-                    link.Z_dict['speed_max'] = link.inrix_features['speed_max']
-                    link.Z_dict['speed_avg'] = link.inrix_features['speed_avg']
-                    link.Z_dict['speed_sd'] = link.inrix_features['speed_sd']
+                link.Z_dict['speed_max'] = link.inrix_features['speed_max']
+                link.Z_dict['speed_avg'] = link.inrix_features['speed_avg']
+                link.Z_dict['speed_sd'] = link.inrix_features['speed_sd']
 
-                    link.Z_dict['speed_ref_avg'] = link.inrix_features['speed_ref_avg']
-                    link.Z_dict['speed_ref_sd'] = link.inrix_features['speed_ref_sd']
+                link.Z_dict['speed_ref_avg'] = link.inrix_features['speed_ref_avg']
+                link.Z_dict['speed_ref_sd'] = link.inrix_features['speed_ref_sd']
 
-                    link.Z_dict['speed_hist_avg'] = link.inrix_features['speed_hist_avg']
-                    link.Z_dict['speed_hist_sd'] = link.inrix_features['speed_hist_sd']
+                link.Z_dict['speed_hist_avg'] = link.inrix_features['speed_hist_avg']
+                link.Z_dict['speed_hist_sd'] = link.inrix_features['speed_hist_sd']
 
-                    link.Z_dict['tt_cv'] = link.inrix_features['traveltime_cv']
-                    link.Z_dict['speed_cv'] = link.inrix_features['speed_cv']
+                link.Z_dict['tt_cv'] = link.inrix_features['traveltime_cv']
+                link.Z_dict['speed_cv'] = link.inrix_features['speed_cv']
 
-                    if options['tt_units'] == 'seconds':
-                        tt_factor = 60
+                if options['tt_units'] == 'seconds':
+                    tt_factor = 60
 
-                    if options['tt_units'] == 'minutes':
-                        tt_factor = 1
+                if options['tt_units'] == 'minutes':
+                    tt_factor = 1
 
-                    link.Z_dict['tt_avg'] = tt_factor*link.inrix_features['traveltime_avg']
-                    link.Z_dict['tt_sd'] = tt_factor*link.inrix_features['traveltime_sd']
-                    link.Z_dict['tt_var'] = tt_factor**2 * link.inrix_features['traveltime_var']
+                link.Z_dict['tt_avg'] = tt_factor*link.inrix_features['traveltime_avg']
+                link.Z_dict['tt_sd'] = tt_factor*link.inrix_features['traveltime_sd']
+                link.Z_dict['tt_var'] = tt_factor**2 * link.inrix_features['traveltime_var']
 
-                    #Road closures are an interesting features from INRIX data but they occur 0.01% of the time.
-                    link.Z_dict['road_closures'] = link.inrix_features['road_closure_any']
+                #Road closures are an interesting features from INRIX data but they occur 0.01% of the time.
+                link.Z_dict['road_closures'] = link.inrix_features['road_closure_any']
 
 
         # # Filter rows from segment ids that were matched with network links
@@ -535,7 +535,7 @@ class SparkReader:
 
             assert selected_period['duration']>0, 'duration must be greater than 0'
 
-            print('Reading pems counts starting at ' + str(selected_period['hour']) + ':00' + ' and during ' + str(
+            print('\nReading pems counts starting at ' + str(selected_period['hour']) + ':00' + ' and during ' + str(
                 selected_period['duration']) + ' minutes')
 
         else:
@@ -1203,9 +1203,9 @@ def read_spatiotemporal_data_fresno(network,
                     filepaths,
                     output_folderpath=config.dirs['input_folder'] + '/private/Fresno/inrix/speed/by-day/')
 
-            if options['read_inrix_daily_data']:
+            if options['read_inrix_selected_date_data']:
 
-                print("Reading daily Inrix data")
+                # print("Reading daily Inrix data")
 
                 filepaths = config.dirs['input_folder'] + '/private/Fresno/inrix/speed/by-day/' + \
                             options['selected_date'] + '.csv'
@@ -1216,7 +1216,7 @@ def read_spatiotemporal_data_fresno(network,
                 )
 
             else:
-                print("Reading all Inrix data")
+                # print("Reading all Inrix data")
                 # Generate a pandas dataframe with the average and standard deviaetion of the speed among INRIX link segments
                 inrix_data_df = data_analyst.generate_inrix_data_by_segment(
                     filepaths=filepaths,
