@@ -519,7 +519,7 @@ def write_links_features_map_shp(network,
 
     features_data.insert(0,'link_key', pd.Series(network.links_keys).astype(str))
 
-    features_data['pems_ids'] = features_data['pems_ids'].astype(str)
+    # features_data['pems_ids'] = features_data['pems_ids'].astype(str)
 
     features_data['inrix_id'] = features_data['inrix_id'].astype(str)
 
@@ -990,6 +990,9 @@ def manual_match_network_and_stations_fresno(network_gdf: gpd.GeoDataFrame,
     network_gdf = network_gdf.where(pd.notnull(network_gdf), None)
 
     for link in links:
+
+        link.pems_stations_ids = []
+
         link_info = network_gdf.loc[pd.to_numeric(network_gdf['id']) == link.id]
 
         # bus_stops_network_gdf.loc[bus_stops_network_gdf['key'] == str(link.key)]
@@ -1022,7 +1025,7 @@ def manual_match_network_and_stations_fresno(network_gdf: gpd.GeoDataFrame,
                 link.pems_stations_ids.append(int(pems_id3))
                 # print(link.pems_stations_ids)
 
-            link.Z_dict['pems_ids'] = link.pems_stations_ids
+            # link.Z_dict['pems_ids'] = link.pems_stations_ids
 
 def match_network_and_stations_fresno(network_gdf: gpd.GeoDataFrame,
                                       stations_gdf: gpd.GeoDataFrame,
@@ -1308,11 +1311,11 @@ def match_network_links_and_fresno_streets_intersections(network_gdf: gpd.GeoDat
             n_matched_links += 1
             n_matched_streets_intersections += len(link.streets_intersections_list)
 
-    # config.gis_results['matching_stats']['streets_intersections'] = {'perc_matching': "{:.1%}".format(n_matched_links / len(links))}
+    # config.gis_results['matching_stats']['streets_intersections'] \
+    #     = {'perc_matching': "{:.1%}".format(n_matched_links / len(links))}
 
-    print(str(n_matched_streets_intersections)+ ' street intersecions were matched to ' + str(n_matched_links) + ' links (' + "{:.1%}".format(n_matched_links / len(links)) + ' of links)'  )
-
-
+    print(str(n_matched_streets_intersections)+ ' street intersecions were matched to ' + str(n_matched_links)
+          + ' links (' + "{:.1%}".format(n_matched_links / len(links)) + ' of links)'  )
 
     # #To show in a map
     # incidents_buffer_gdf = incidents_buffer_gdf.to_crs(config.gis_options['crs_mercator'])
