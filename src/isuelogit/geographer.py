@@ -367,7 +367,7 @@ def update_nodes_from_links_coordinates(links_gdf, nodes):
 
         position_2 = links_gdf[(links_gdf['term_id'] == node_id)]['geometry']
 
-        if len(position_2)>0 is not None:
+        if len(position_2)>0:
             position = position_2.values[0].coords[1]
 
         # position = list({position_1, position_2})[0]
