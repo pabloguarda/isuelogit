@@ -1,8 +1,8 @@
 # isuelogit
 
-Stochastic user equilibrium with logit assignment (`sue-logit`) gives an assignment of travelers in a transportation network where no individual believes that he can unilaterally improve his utility by choosing an alternative paths. A key limitation of `sue-logit` is that it requires to know the parameters of the traveler's utility function beforehand. 
+Stochastic user equilibrium with logit assignment (`sue-logit`) outputs an assignment of travelers in a transportation network where no individual believes that he can unilaterally improve his utility by choosing an alternative path. A key limitation of `sue-logit` is that it requires to know the parameters of the traveler's utility function beforehand. 
 
-The `isuelogit` package addresses this limitation by solving the inverse problem, namely, estimating the parameters of the travelers' utility function using traffic counts, which an output of `sue-logit`.
+The `isuelogit` package addresses the aforementioned limitation by solving the inverse problem of estimating the parameters of the travelers' utility function using traffic counts, which is the output of `sue-logit`.
 
 ## Development setup
 
@@ -18,3 +18,6 @@ The `isuelogit` package addresses this limitation by solving the inverse problem
 2. Install ipython kernel for jupyter: `pip install ipykernel`
 3. Add your virtual environment to Jupyter:  `python3 -m ipykernel install --user --name=venv-isuelogit`
 4. Open any of the notebooks include in folder `notebooks` and choose kernel `myvenv` to run it
+
+## Collaboration
+For any questions or interest of collaborating in this project, please contact pabloguarda@cmu.edu.
