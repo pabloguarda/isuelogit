@@ -246,7 +246,7 @@ def adjust_by_base_coordinates(nodes: Nodes,
 #     return nodes
 
 def adjust_fresno_nodes_coordinates(nodes: Nodes,
-                                    rescale_factor = None) -> None:
+                                    rescale_factor = None) -> Nodes:
     # Mirroring x coordinates to match the visualization of the network shown in papers
     nodes = mirror_x_coordinates(nodes=nodes)
 
@@ -336,6 +336,8 @@ def adjust_fresno_nodes_coordinates(nodes: Nodes,
                                        , base_coordinates=base_coordinates_3
                                        , bbox_ranges=(xrange_bbox_3, yrange_bbox_3), nodes=nodes)
 
+    # return nodes
+
 
     # return nodes
 
@@ -351,6 +353,38 @@ def adjust_fresno_nodes_coordinates(nodes: Nodes,
 #         node.position = NodePosition(*new_positions[i], crs=node.position.crs)
 #
 #     return nodes
+
+
+def update_nodes_from_links_coordinates(links_gdf, nodes):
+
+    for node in nodes:
+        node_id = node.id
+
+        position_1 = links_gdf[(links_gdf['init_id'] == node_id)]['geometry']
+
+        if len(position_1)>0:
+            position = position_1.values[0].coords[0]
+
+        position_2 = links_gdf[(links_gdf['term_id'] == node_id)]['geometry']
+
+        if len(position_2)>0 is not None:
+            position = position_2.values[0].coords[1]
+
+        # position = list({position_1, position_2})[0]
+
+        node.position = NodePosition(x = position[0], y = position[1], crs='xy')
+
+
+def write_nodes_gdf(nodes_df, folderpath, filename):
+
+    nodes_gdf = gpd.GeoDataFrame(nodes_df,
+                                 geometry=gpd.points_from_xy(nodes_df.lon, nodes_df.lat),
+                                 crs=config.gis_options['crs_ca'])
+
+    # Save shapefile
+    nodes_gdf.to_file(driver='ESRI Shapefile', filename=folderpath + '/' + filename)
+
+
 
 
 def set_cardinal_direction_links(links):
@@ -461,6 +495,48 @@ def write_line_segments_shp(links,
     print('\nShapefile with links of ' + networkname + ' was written')
 
 
+def write_links_features_map_shp(network,
+                                 folderpath: str,
+                                 filename: str) -> None:
+
+    links = network.links
+    set_cardinal_direction_links(links)
+
+    df = pd.DataFrame()
+
+    df['geometry'] = [LineString(link.position) for link in links]
+    # df['id'] = [str(link.id) for link in links]
+    df['link_key'] = [str(link.key) for link in links]
+    df['init_id'] = [str(link.init_node.id) for link in links]
+    df['term_id'] = [str(link.term_node.id) for link in links]
+    df['init_xy'] = [str(np.round(link.init_node.position.get_xy())) for link in links]
+    df['term_xy'] = [str(np.round(link.term_node.position.get_xy())) for link in links]
+    df['direction'] = [str(link.direction) for link in links]
+    # df['direction_confidence'] = [str((round(link.direction_confidence[0],1),
+    #                                    round(link.direction_confidence[1],1))) for link in links]
+
+    features_data = network.link_data.Z_data
+
+    features_data.insert(0,'link_key', pd.Series(network.links_keys).astype(str))
+
+    features_data['pems_ids'] = features_data['pems_ids'].astype(str)
+
+    features_data['inrix_id'] = features_data['inrix_id'].astype(str)
+
+    df = pd.merge(df, features_data, on = 'link_key')
+
+    gdf = gpd.GeoDataFrame(df, geometry=df.geometry)
+
+    gdf.set_crs(config.gis_options['crs_ca'])
+
+    if not os.path.exists(folderpath):
+        os.makedirs(folderpath)
+
+    gdf.to_file(driver='ESRI Shapefile', filename= folderpath + '/' + filename)
+
+    print('\nShapefile with links features  of ' + network.key + ' was written')
+
+
 def write_links_congestion_map_shp(links,
                                    predicted_counts,
                                    folderpath: str,
@@ -480,7 +556,8 @@ def write_links_congestion_map_shp(links,
     df['init_xy'] = [str(np.round(link.init_node.position.get_xy())) for link in links]
     df['term_xy'] = [str(np.round(link.term_node.position.get_xy())) for link in links]
     df['direction'] = [str(link.direction) for link in links]
-    df['direction_confidence'] = [str((round(link.direction_confidence[0],1),round(link.direction_confidence[1],1))) for link in links]
+    df['direction_confidence'] = [str((round(link.direction_confidence[0],1),
+                                       round(link.direction_confidence[1],1))) for link in links]
     df['lane'] = [str(link.Z_dict['lane']) for link in links]
     df['link_type'] = [str(link.link_type) for link in links]
     df['capacity'] = [str(link.bpr.k) for link in links]
@@ -490,17 +567,8 @@ def write_links_congestion_map_shp(links,
 
     gdf = gpd.GeoDataFrame(df, geometry=df.geometry)
 
-    # gdf.keys()
-
-    # crs = {'init': 'epsg:27700'}
-
-    # gdf.plot()
-
-    # plt.show()
-
     gdf.set_crs(config.gis_options['crs_ca'])
 
-    # Save shapefile
     gdf.to_file(driver='ESRI Shapefile', filename=folderpath + '/' + networkname + "_congestion_map.shp")
 
     print('\nShapefile with links congestion of ' + networkname + ' was written')
@@ -712,7 +780,7 @@ def match_network_links_and_inrix_segments_fresno(network_gdf: gpd.GeoDataFrame,
                                                   inrix_gdf: gpd.GeoDataFrame,
                                                   links: Links,
                                                   buffer_size: float = 0,
-                                                  centroids: bool = False):
+                                                  centroids: bool = True):
 
     """
     :param buffer_size: in feets if crs from CA is used
@@ -723,6 +791,8 @@ def match_network_links_and_inrix_segments_fresno(network_gdf: gpd.GeoDataFrame,
 
 
     crs_ca = config.gis_options['crs_ca']
+
+    set_cardinal_direction_links(links)
 
     # i) Buffer around INRIX segments
 
@@ -800,6 +870,8 @@ def match_network_links_and_inrix_segments_fresno(network_gdf: gpd.GeoDataFrame,
 
                         match = True
 
+            link.Z_dict['inrix_id'] = link.inrix_id
+
         # print({'link_key': link_key, 'inrix_id': link.inrix_id})
 
         if match is True:
@@ -816,8 +888,6 @@ def match_network_links_and_inrix_segments_fresno(network_gdf: gpd.GeoDataFrame,
     # Compute proportion matching
     print(str(counter) + ' network links were matched (' + "{:.1%}".format(counter / len(links)) + ' of links) with a '
           + "{:.1%}".format(sum_confidence/counter)+ ' confidence')
-
-
 
     return link_centroids_buffer_gdf
 
@@ -951,6 +1021,8 @@ def manual_match_network_and_stations_fresno(network_gdf: gpd.GeoDataFrame,
             if pems_id3.isdigit():
                 link.pems_stations_ids.append(int(pems_id3))
                 # print(link.pems_stations_ids)
+
+            link.Z_dict['pems_ids'] = link.pems_stations_ids
 
 def match_network_and_stations_fresno(network_gdf: gpd.GeoDataFrame,
                                       stations_gdf: gpd.GeoDataFrame,
@@ -1194,7 +1266,7 @@ def match_network_links_and_fresno_streets_intersections(network_gdf: gpd.GeoDat
     print('\nMatching street intersections (N=' + str(len(streets_intersections_gdf)) + ') with network links')
 
     #Reproject coordinates into CA system
-    incidents_gdf = streets_intersections_gdf.to_crs(epsg=config.gis_options['crs_ca'])
+    intersections_gdf = streets_intersections_gdf.to_crs(epsg=config.gis_options['crs_ca'])
     network_gdf = network_gdf.to_crs(epsg=config.gis_options['crs_ca'])
 
     # Generate buffer around network links
@@ -1202,15 +1274,15 @@ def match_network_links_and_fresno_streets_intersections(network_gdf: gpd.GeoDat
     links_buffer_gdf['geometry'] = network_gdf.geometry.buffer(buffer_size)
 
     # Spatial join of traffic incidents and links geometries
-    streets_intersections_network_gdf = gpd.sjoin(links_buffer_gdf, incidents_gdf, how='inner', predicate='intersects')
+    streets_intersections_network_gdf = gpd.sjoin(links_buffer_gdf, intersections_gdf, how='inner', predicate='intersects')
 
     n_matched_links = 0
     n_matched_streets_intersections = 0
 
-    # Add list of incidents in each link
+    # Add list of intesections in each link
     for link in links:
 
-        link.incidents_list = []
+        link.streets_intersections_list = []
 
         if inrix_matching:
             streets_intersections = streets_intersections_network_gdf.loc[
@@ -1228,15 +1300,12 @@ def match_network_links_and_fresno_streets_intersections(network_gdf: gpd.GeoDat
             streets_intersection_dict = dict(
                 zip(streets_intersection_dict.keys(), streets_intersection_dict.values()))
 
-
             link.streets_intersections_list.append(streets_intersection_dict)
 
         link.Z_dict['intersections'] = len(link.streets_intersections_list)
 
-
-
         if len(link.streets_intersections_list) > 0:
-            n_matched_links+= 1
+            n_matched_links += 1
             n_matched_streets_intersections += len(link.streets_intersections_list)
 
     # config.gis_results['matching_stats']['streets_intersections'] = {'perc_matching': "{:.1%}".format(n_matched_links / len(links))}
