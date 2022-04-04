@@ -125,8 +125,8 @@ class DataReader:
 
         # - Buffer (in feets, which is the unit of the CA crs)
         options['buffer_size'] = {'inrix': 0, 'bus_stops': 0, 'incidents': 0, 'streets_intersections': 0}
+
         options['tt_units'] = 'minutes'
-        options['update_ff_tt_inrix'] = False
 
         options['data_processing'] = {'inrix_segments': False, 'inrix_data': False, 'census': False,
                                       'incidents': False, 'bus_stops': False, 'streets_intersections': False}
@@ -184,14 +184,7 @@ class DataReader:
         # self.options['selected_date'] = '2019-10-01'
         # print('\nSelected period is October 1, 2019, Tuesday at ' + str(self.options['selected_hour']) + ':00' )
 
-        self.options['selected_period_inrix'] = \
-            {'year': [self.options['selected_year']],
-             'month': [self.options['selected_month']],
-             'day_month': [self.options['selected_day_month']],
-             'hour': [self. options['selected_hour'] - 1,
-                      self.options['selected_hour']]}
-
-        self.options['selected_period_inrix'] = {}
+        # self.options['selected_period_inrix'] = {}
 
         # config.estimation_options['selected_period_inrix'] = \
         #     {'year': [config.estimation_options['selected_year']], 'month': [config.estimation_options['selected_month']]}
@@ -388,7 +381,6 @@ class DataReader:
         if self._setup_spark is False:
             self.spark_reader = SparkReader()
             self._setup_spark = True
-
 
         return read_spatiotemporal_data_fresno(data_analyst = self,
                                                network = network,
@@ -851,9 +843,7 @@ class SparkReader:
 
         print('\nReading and processing INRIX data with pyspark')
 
-        # TODO: specify attribute for time period of analysis. There should be some consistency with period of traffic count data
-
-        # Read data from a selected perido
+        # Read data from a selected period
         inrix_selected_period_sdf = self.read_inrix_data(filepaths, selected_period)
 
         # Compute variance, mean and std by segment id
@@ -1096,14 +1086,13 @@ def read_spatiotemporal_data_fresno(network,
 
     # i) Network data
 
-    # Rescaling coordinates to ease the matching of the x,y coordinates to real coordinates in Qqis
-    geographer.adjust_fresno_nodes_coordinates(nodes=network.nodes,
-                                               rescale_factor=1)
-
-    # Set link orientation according to the real coordinates
-    geographer.set_cardinal_direction_links(links=links)
-
     if build_fresno_gis_files:
+        # Rescaling coordinates to ease the matching of the x,y coordinates to real coordinates in Qqis
+        # geographer.adjust_fresno_nodes_coordinates(nodes=network.nodes, rescale_factor=1)
+
+        # Set link orientation according to the real coordinates
+        # geographer.set_cardinal_direction_links(links=links)
+
         # a) Write line and points shapefiles for further processing (need to be done only once)
 
         geographer.write_node_points_shp(
@@ -1128,7 +1117,9 @@ def read_spatiotemporal_data_fresno(network,
 
     network_gdf = geographer.read_qgis_shp_fresno(filepath=network_filepath)
 
-    # TODO: update node/link coordinates consisently
+    geographer.update_nodes_from_links_coordinates(links_gdf = network_gdf, nodes = network.nodes)
+
+
 
     # ii) PEMS stations
 
@@ -1193,7 +1184,7 @@ def read_spatiotemporal_data_fresno(network,
         geographer.export_buffer_shp(
             gdf=links_buffer_inrix_gdf,
             folderpath=config.dirs['output_folder'] + 'gis/Fresno/inrix/',
-            filename='links_buffer_inrix'
+            filename='network_links_buffer_inrix_matching'
         )
 
         if options['data_processing']['inrix_data']:
