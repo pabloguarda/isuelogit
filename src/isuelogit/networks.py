@@ -1003,7 +1003,7 @@ class TNetwork(nx.Graph):
 
         self.paths_od = paths_od
 
-        print(str(len(self.paths)) + ' paths were loaded in the network')
+        print('\n' + str(len(self.paths)) + ' paths were loaded in the network')
 
         if update_incidence_matrices:
             self.update_incidence_matrices(paths_od = paths_od)
