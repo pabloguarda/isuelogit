@@ -1244,7 +1244,7 @@ class OD:
     # def q_true(self, value):
     #     self._q_true = value
 
-    def sample_ods_by_demand(self, proportion, k = 1):
+    def sample_ods_by_demand_sequentially(self, proportion, k = 0):
 
         ods_sorted = list(np.dstack(np.unravel_index(np.argsort(-self.Q.ravel()), self.Q.shape)))[0]
 
@@ -1265,6 +1265,10 @@ class OD:
         ods_sample = [tuple(ods_sorted[idx]) for idx in np.arange(start,end)]
 
         return ods_sample
+
+    def sample_ods_by_demand(self, proportion):
+
+        return self.sample_ods_by_demand_sequentially(proportion, k = 0)
 
     def random_ods(self, percentage):
 
