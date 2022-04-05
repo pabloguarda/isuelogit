@@ -674,7 +674,7 @@ class TNetwork(nx.Graph):
 
         for path, i in zip(paths, range(total_paths)):
 
-            printer.printProgressBar(i, total_paths-1, prefix='Progress(D):', suffix='', length=20)
+            printer.printProgressBar(i, total_paths-1, prefix='Generating D:', suffix='', length=20)
 
             links_path_list = path.links
             for link in links_path_list:
@@ -686,7 +686,7 @@ class TNetwork(nx.Graph):
 
         assert D.shape[0] > 0, 'No matrix D generated'
 
-        print('Matrix D ' + str(D.shape) + ' generated in ' + str(round(time.time() - t0, 1)) + '[s]')
+        print('Matrix D ' + str(D.shape) + ' generated in ' + str(round(time.time() - t0, 1)) + '[s]\n')
 
         return D
 
@@ -730,7 +730,7 @@ class TNetwork(nx.Graph):
         # print('\n')
         for od, od_i in zip(ods, range(n_ods)):
 
-            printer.printProgressBar(counter, n_ods-1, prefix='Progress(M):', suffix='', length=20, eraseBar = True)
+            printer.printProgressBar(counter, n_ods-1, prefix='Generating M:', suffix='', length=20, eraseBar = True)
 
 
             ods_paths_ids[od] = []
@@ -744,7 +744,7 @@ class TNetwork(nx.Graph):
 
         assert M.shape[0] > 0, 'No matrix M generated'
 
-        print('Matrix M ' + str(M.shape) + ' generated in ' + str(round(time.time() - t0, 1)) + '[s]')
+        print('Matrix M ' + str(M.shape) + ' generated in ' + str(round(time.time() - t0, 1)) + '[s]\n')
 
         if ods_paths_idxs:
             return M, ods_paths_ids
@@ -774,7 +774,7 @@ class TNetwork(nx.Graph):
 
         C = np.repeat(wide_matrix, repeats=np.sum(wide_matrix, axis=1), axis=0)
 
-        print('Matrix C ' + str(C.shape) + ' generated in ' + str(round(time.time() - t0, 1)) + '[s]')
+        print('Matrix C ' + str(C.shape) + ' generated in ' + str(round(time.time() - t0, 1)) + '[s]\n')
 
         return C
 
@@ -976,7 +976,7 @@ class TNetwork(nx.Graph):
         if paths_od is None:
             paths_od = self.paths_od
 
-        print('Updating incidence matrices')
+        print('\nUpdating incidence matrices\n')
 
         # printer.blockPrint()
 
@@ -1272,7 +1272,7 @@ class OD:
 
     def random_ods(self, percentage):
 
-        ods = []
+        # ods = []
 
         if self.options['remove_zeros_Q']:
             ods = self.nonzero_ods_fromQ()
