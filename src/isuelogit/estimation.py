@@ -2880,11 +2880,14 @@ def loss_counts_uncongested_network(equilibrator: LUE_Equilibrator,
     theta = utility_function.values
 
     with block_output(show_stdout=False, show_stderr=False):
-        results_uncongested_eq = equilibrator.sue_logit_iterative(theta=theta,
-                                                                  network=network,
-                                                                  features_Y=features_Y,
-                                                                  features_Z=features_Z,
-                                                                  uncongested_mode=True)
+        results_uncongested_eq = equilibrator.sue_logit_iterative(
+            theta=theta,
+            network=network,
+            features_Y=features_Y,
+            features_Z=features_Z,
+            column_generation = {'n_paths': None, 'paths_selection':  None},
+            path_size_correction = 0,
+            uncongested_mode=True)
 
     predicted_counts = np.array(list(results_uncongested_eq['x'].values()))[:, np.newaxis]
 
