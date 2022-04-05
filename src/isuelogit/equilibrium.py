@@ -847,9 +847,10 @@ class LUE_Equilibrator(Equilibrator):
                 ods_sample = network.OD.random_ods(ods_coverage)
 
             if ods_sampling == 'demand':
-                ods_sample = network.OD.sample_ods_by_demand(proportion= ods_coverage,
-                                                             k = self.options['column_generation']['n_ods_sampling'])
-                self.options['column_generation']['n_ods_sampling']+=1
+                ods_sample = network.OD.sample_ods_by_demand(proportion=ods_coverage)
+                # ods_sample = network.OD.sample_ods_by_demand_sequentially(proportion= ods_coverage,
+                #                                              k = self.options['column_generation']['n_ods_sampling'])
+                # self.options['column_generation']['n_ods_sampling']+=1
 
         else:
             ods_sample = network.ods
