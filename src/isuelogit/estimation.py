@@ -1501,7 +1501,7 @@ class Learner:
 
         with block_output(show_stdout=iteration_report, show_stderr=iteration_report):
             # Initial objective function
-            results_eq[1] = self.equilibrator.sue_logit_iterative(
+            results_eq[1] = self.equilibrator.path_based_suelogit_equilibrium(
                 theta=theta_current,
                 q=q_current,
                 features_Z=features_Z,
@@ -1650,7 +1650,7 @@ class Learner:
 
                 # Inner problem
                 results_eq[iter] \
-                    = self.equilibrator.sue_logit_iterative(
+                    = self.equilibrator.path_based_suelogit_equilibrium(
                     theta=theta_current,
                     q=q_current,
                     features_Z=features_Z,
@@ -2589,12 +2589,12 @@ def grid_search_theta_ttest(network: TNetwork,
 
         theta_current[feature] = theta_attr_val
 
-        results_eq = equilibrator.sue_logit_iterative(network=network,
-                                                      theta=theta_current,
-                                                      features_Y=features_Y,
-                                                      features_Z=features_Z,
-                                                      silent_mode=True
-                                                      )
+        results_eq = equilibrator.path_based_suelogit_equilibrium(network=network,
+                                                                  theta=theta_current,
+                                                                  features_Y=features_Y,
+                                                                  features_Z=features_Z,
+                                                                  silent_mode=True
+                                                                  )
         predicted_counts = np.array(list(results_eq['x'].values()))[:, np.newaxis]
 
         print('current theta: ', "{0:.3}".format(float(theta_attr_val)))
@@ -2637,12 +2637,12 @@ def grid_search_Q_ttest(network: TNetwork,
 
         network.scale_OD(scale)
 
-        results_eq = equilibrator.sue_logit_iterative(network=network,
-                                                      theta=theta_current,
-                                                      features_Y=features_Y,
-                                                      features_Z=features_Z,
-                                                      silent_mode=True
-                                                      )
+        results_eq = equilibrator.path_based_suelogit_equilibrium(network=network,
+                                                                  theta=theta_current,
+                                                                  features_Y=features_Y,
+                                                                  features_Z=features_Z,
+                                                                  silent_mode=True
+                                                                  )
         predicted_counts = np.array(list(results_eq['x'].values()))[:, np.newaxis]
 
         print('current scale: ', "{0:.1}".format(float(scale)))
@@ -2705,12 +2705,12 @@ def grid_search_optimization(network: TNetwork,
 
         theta_current[feature] = theta_attr_val
 
-        results_eq = equilibrator.sue_logit_iterative(network=network,
-                                                      theta=theta_current,
-                                                      features_Y=features_Y,
-                                                      features_Z=features_Z,
-                                                      silent_mode=True
-                                                      )
+        results_eq = equilibrator.path_based_suelogit_equilibrium(network=network,
+                                                                  theta=theta_current,
+                                                                  features_Y=features_Y,
+                                                                  features_Z=features_Z,
+                                                                  silent_mode=True
+                                                                  )
 
         network.load_traveltimes(results_eq['tt_x'])
 
@@ -2821,7 +2821,7 @@ def random_search_optimization(network: TNetwork,
         else:
 
             # Do not generate new paths via column generation to save computation
-            results_eq = equilibrator.sue_logit_iterative(
+            results_eq = equilibrator.path_based_suelogit_equilibrium(
                 Nt=network,
                 theta=theta_current,
                 features_Y=features_Y,
@@ -2858,10 +2858,10 @@ def loss_predicted_counts_congested_network(equilibrator: LUE_Equilibrator,
     features_Z = utility_function.features_Z
     theta = utility_function.values
 
-    results_congested_eq = equilibrator.sue_logit_iterative(network=network,
-                                                            theta=theta,
-                                                            features_Y=features_Y,
-                                                            features_Z=features_Z)
+    results_congested_eq = equilibrator.path_based_suelogit_equilibrium(network=network,
+                                                                        theta=theta,
+                                                                        features_Y=features_Y,
+                                                                        features_Z=features_Z)
 
     predicted_counts = np.array(list(results_congested_eq['x'].values()))[:, np.newaxis]
 
@@ -2880,7 +2880,7 @@ def loss_counts_uncongested_network(equilibrator: LUE_Equilibrator,
     theta = utility_function.values
 
     with block_output(show_stdout=False, show_stderr=False):
-        results_uncongested_eq = equilibrator.sue_logit_iterative(
+        results_uncongested_eq = equilibrator.path_based_suelogit_equilibrium(
             theta=theta,
             network=network,
             features_Y=features_Y,
@@ -2924,12 +2924,12 @@ def monotonocity_traffic_count_functions(network: TNetwork,
 
         theta_current[feature] = theta_attr_val
 
-        results_eq = equilibrator.sue_logit_iterative(network=network,
-                                                      theta=theta_current,
-                                                      features_Y=features_Y,
-                                                      features_Z=features_Z,
-                                                      silent_mode=True
-                                                      )
+        results_eq = equilibrator.path_based_suelogit_equilibrium(network=network,
+                                                                  theta=theta_current,
+                                                                  features_Y=features_Y,
+                                                                  features_Z=features_Z,
+                                                                  silent_mode=True
+                                                                  )
         x_eq = list(results_eq['x'].values())
 
         thetas_list.extend([theta_attr_val] * len(x_eq))
@@ -3360,13 +3360,13 @@ def lasso_regularization(network,
         regularized_thetas[lambda_hp] = lasso_soft_thresholding_operator(lambda_hp, theta_estimate)
 
         # Run stochastic user equilibrium
-        results_eq = equilibrator.sue_logit_iterative(Nt=network,
-                                                      theta=regularized_thetas[lambda_hp],
-                                                      features_Y=features_Y,
-                                                      features_Z=features_Z,
-                                                      params=equilibrator,
-                                                      silent_mode=True,
-                                                      standardization=standardization)
+        results_eq = equilibrator.path_based_suelogit_equilibrium(Nt=network,
+                                                                  theta=regularized_thetas[lambda_hp],
+                                                                  features_Y=features_Y,
+                                                                  features_Z=features_Z,
+                                                                  params=equilibrator,
+                                                                  silent_mode=True,
+                                                                  standardization=standardization)
 
         x_eq = np.array(list(results_eq['x'].values()))[:, np.newaxis]
 
