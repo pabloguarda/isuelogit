@@ -483,48 +483,16 @@ def scatter_plots_features_vs_counts(links_df):
 
     # plt.figure()
 
-    fig1 = plt.figure()
+    fig = plt.figure()
 
     # https://seaborn.pydata.org/tutorial/axis_grids.html
 
-    g1 = sns.PairGrid(links_df)
-    g1.map_diag(sns.histplot)
+    g = sns.PairGrid(links_df)
+    g.map_diag(sns.histplot)
     # g.map(sns.scatterplot)
-    g1.map_offdiag(sns.regplot)
+    g.map_offdiag(sns.regplot)
     # fig1.show()
     # g1.savefig('output1.png')
-
-    # plt.show()
-
-    # Save figure
-
-
-
-
-    # Plot differentiating relationship based on capacity
-
-    fig2 = plt.figure()
-
-    # https://seaborn.pydata.org/tutorial/axis_grids.html
-
-    g2 = sns.PairGrid(links_df, hue="capacity [veh]")
-    g2.map_diag(sns.histplot)
-    # g.map(sns.scatterplot)
-    g2.map_offdiag(sns.regplot)
-    g2.add_legend()
-    # g2.savefig('output2.png')
-
-    # g.fig.show()
-    # plt.show()
-
-    # Bar plots to depict relationships between ordinal predictions
-
-    # g = sns.FacetGrid(tips, col="day", height=4, aspect=.5)
-    # g.map(sns.barplot, "sex", "total_bill", order=["Male", "Female"])
-
-
-
-
 
     # matplotlib.rcParams['text.usetex'] = True
 
@@ -542,8 +510,38 @@ def scatter_plots_features_vs_counts(links_df):
     # sns.scatterplot(data=summary_links_df, x='income [1K USD]', y="counts")
 
     # plt.show()
+
+    # # TODO: visualize box plot for the non continuous features
+    # categorical_features = ['high_inc', 'stops', 'ints']
     
-    return g1, g2
+    return g
+
+
+def scatter_plots_features_vs_counts_by_capacity(links_df):
+    """ Scatter plot between traffic counts and travel time/speed reliability and average. Repeat the same but for the remaining covariates """
+
+    # Plot differentiating relationship based on capacity
+
+    fig = plt.figure()
+
+    # https://seaborn.pydata.org/tutorial/axis_grids.html
+
+    g = sns.PairGrid(links_df, hue="capacity [veh]")
+    g.map_diag(sns.histplot)
+    # g.map(sns.scatterplot)
+    g.map_offdiag(sns.regplot)
+    g.add_legend()
+    # g2.savefig('output2.png')
+
+    # g.fig.show()
+    # plt.show()
+
+    # Bar plots to depict relationships between ordinal predictions
+
+    # g = sns.FacetGrid(tips, col="day", height=4, aspect=.5)
+    # g.map(sns.barplot, "sex", "total_bill", order=["Male", "Female"])
+
+    return g
 
 def summary_table_networks(networks: List[TNetwork]) -> None:
 
