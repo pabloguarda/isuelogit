@@ -523,7 +523,7 @@ def k_path_generation_nx(A: Matrix,
             # print(od)
 
             # printer.enablePrint()
-            printer.printProgressBar(counter, len(ods)-1, prefix='Progress:', suffix='', length=20)
+            printer.printProgressBar(counter+1, len(ods), prefix='Progress:', suffix='', length=20)
 
             if silent_mode is True:
                 printer.blockPrint()
