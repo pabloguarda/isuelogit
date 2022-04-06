@@ -1038,19 +1038,15 @@ class SparkReader:
         return incidents_df
 
 
-def load_pems_stations_ids(network):
-
-    filepath = config.dirs['input_folder'] + "private/Fresno/network/qgis/adjusted/Fresno_links_adj.shp"
-
-    network_gdf = geographer.read_qgis_shp_fresno(filepath=filepath)
-
-    geographer.manual_match_network_and_stations_fresno(
-        network_gdf=network_gdf,
-        links=network.get_regular_links())
-
-
-
-
+# def load_pems_stations_ids(network):
+#
+#     filepath = config.dirs['input_folder'] + "private/Fresno/network/qgis/adjusted/Fresno_links_adj.shp"
+#
+#     network_gdf = geographer.read_qgis_shp_fresno(filepath=filepath)
+#
+#     geographer.manual_match_network_and_stations_fresno(
+#         network_gdf=network_gdf,
+#         links=network.get_regular_links())
 
 def read_spatiotemporal_data_fresno(network,
                                     data_analyst,
