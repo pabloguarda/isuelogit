@@ -138,6 +138,8 @@ def get_loss_and_estimates_over_iterations(results_norefined: pd.DataFrame,
     results_norefined_bilevelopt = results_norefined
     results_refined_bilevelopt = results_refined
 
+    results_norefined_bilevelopt[1].keys()
+
     refined_bilevel_iters = len(list(results_refined_bilevelopt.keys()))
     norefined_bilevel_iters = len(list(results_norefined_bilevelopt.keys()))
 
@@ -147,7 +149,7 @@ def get_loss_and_estimates_over_iterations(results_norefined: pd.DataFrame,
         if key not in theta_keys:
             theta_keys.append(key)
 
-    columns_df = ['stage'] + ['iter'] + ['theta_' + str(i) for i in theta_keys] + ['objective']
+    columns_df = ['stage'] + ['iter'] + ['theta_' + str(i) for i in theta_keys] + ['objective'] + ['n_paths']
 
     df_bilevel_norefined = pd.DataFrame(columns=columns_df)
     df_bilevel_refined = pd.DataFrame(columns=columns_df)
@@ -165,11 +167,12 @@ def get_loss_and_estimates_over_iterations(results_norefined: pd.DataFrame,
                 estimates.append(float(np.nan))
 
         df_bilevel_norefined.loc[iter] = ['norefined'] + [iter] + estimates + [
-            results_norefined_bilevelopt[iter]['objective']]
+            results_norefined_bilevelopt[iter]['objective']] + [len(results_norefined_bilevelopt[iter]['f'])]
 
     if 'c' in list(results_norefined_bilevelopt[1]['theta'].keys()):
         # Create additional variables
-        df_bilevel_norefined['vot'] = df_bilevel_norefined['theta_tt'].div( df_bilevel_norefined['theta_c'].where(df_bilevel_norefined['theta_c'] != 0, np.nan))
+        df_bilevel_norefined['vot'] = df_bilevel_norefined['theta_tt'].\
+            div( df_bilevel_norefined['theta_c'].where(df_bilevel_norefined['theta_c'] != 0, np.nan))
 
     elif 'tt_sd' in list(results_norefined_bilevelopt[1]['theta'].keys()):
         # Create additional variables
@@ -192,27 +195,23 @@ def get_loss_and_estimates_over_iterations(results_norefined: pd.DataFrame,
                 estimates.append(float(np.nan))
 
         df_bilevel_refined.loc[iter] = ['refined'] + [iter] + estimates + [
-            results_refined_bilevelopt[iter]['objective']]
+            results_refined_bilevelopt[iter]['objective']]  + [len(results_refined_bilevelopt[iter]['f'])]
 
     if 'c' in list(results_refined_bilevelopt[iter]['theta'].keys()):
         # Create additional variables
-        df_bilevel_refined['vot'] = df_bilevel_refined['theta_tt'].div( df_bilevel_refined['theta_c'].where(df_bilevel_refined['theta_c'] != 0, np.nan))
+        df_bilevel_refined['vot'] = df_bilevel_refined['theta_tt']\
+            .div( df_bilevel_refined['theta_c'].where(df_bilevel_refined['theta_c'] != 0, np.nan))
 
 
     elif 'tt_sd' in list(results_refined_bilevelopt[1]['theta'].keys()):
-
         # Create additional variables
-
         df_bilevel_refined['vot'] = df_bilevel_refined['theta_tt'] / df_bilevel_refined['theta_tt_sd']
 
-
     elif 'tt_sd_adj' in list(results_refined_bilevelopt[1]['theta'].keys()):
-
         df_bilevel_refined['vot'] = df_bilevel_refined['theta_tt'] / df_bilevel_refined['theta_tt_sd_adj']
 
 
     else:
-
         df_bilevel_refined['vot'] = float('nan')
 
     # Adjust the iteration numbers
@@ -224,14 +223,14 @@ def get_loss_and_estimates_over_iterations(results_norefined: pd.DataFrame,
     return bilevel_estimation_df
 
 
-def get_gap_estimates_over_iterations(results_norefined: pd.DataFrame, results_refined: pd.DataFrame, theta_true: dict):
+def get_gap_estimates_over_iterations(results_norefined: pd.DataFrame,
+                                      results_refined: pd.DataFrame,
+                                      theta_true: dict):
 
     gap_estimates_over_iterations_df = get_loss_and_estimates_over_iterations(results_norefined,results_refined)
 
     # Drop objective value column as it is unnecessary
     gap_estimates_over_iterations_df = gap_estimates_over_iterations_df.drop(['objective'], axis = 1)
-
-
 
     for attr, theta_true_i in theta_true.items():
 
