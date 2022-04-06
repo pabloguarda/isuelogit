@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from mytypes import Union, Dict, List
+    from mytypes import Union, Dict, List, Matrix, Proportion
 
 import matplotlib
 import pylab
@@ -25,6 +25,7 @@ import pandas as pd
 pd.options.mode.chained_assignment = None  # default='warn'
 
 import numpy as np
+
 
 
 # To write with scienfic notation in y axis
@@ -1426,7 +1427,7 @@ class Artist:
 
         # results_dfs['model_2']['theta_tt'] = 2*results_dfs['model_2']['theta_tt']
 
-        fig,ax = plt.subplots(figsize=(10, 12), nrows = 4, ncols = n_models)
+        fig,ax = plt.subplots(figsize=(int(3.5*n_models), 12), nrows = 4, ncols = n_models)
         # ax = fig.subplots(nrows=self.dim_subplots[0], ncols=self.dim_subplots[1])
         axs_paths = ax[0, :]
         axs_loss = ax[1, :]
@@ -1450,7 +1451,7 @@ class Artist:
 
         # X ticks are shared within plots of the same column
         for n_model in range(n_models):
-            ax[0][n_model].get_shared_x_axes().join(ax[0][n_model], *ax[1:][n_model])
+            ax[3][n_model].get_shared_x_axes().join(*[ax[2][n_model], ax[1][n_model],ax[0][n_model]])
             ax[-1][n_model].set_xlabel("iteration")
             for axi in ax[:][n_model]:
                 plt.setp(axi.get_xticklabels(), visible=False)
@@ -1464,7 +1465,11 @@ class Artist:
 
         acc_iters = 0
         n_model = 0
+        max_paths = 0
         for model, results_df in results_dfs.items():
+
+            if results_df['n_paths'].max() > max_paths:
+                max_paths = results_df['n_paths'].max()
 
             counter = 0
             for feature in features.keys():
@@ -1473,25 +1478,30 @@ class Artist:
                     axs_traveltime[n_model].plot('iter', parameter, data=results_df[['iter', parameter]],
                                                            label=feature, color = 'blue')
                 if feature != 'tt':
-                    axs_exogenous_parameters[n_model].plot('iter', parameter, data=results_df[['iter',parameter]],
-                                                           label=feature, color=colors[counter])
+                    if parameter in results_df.keys():
+                        axs_exogenous_parameters[n_model].plot('iter', parameter, data=results_df[['iter',parameter]],
+                                                               label=feature, color=colors[counter])
                     counter += 1
 
             # Set xticks
-            plt.sca(ax[3,n_model])
-            plt.xticks(list(np.arange(results_df.iter.min(),results_df.iter.max(),5)) + [results_df.iter.max()],
-                       list(np.arange(acc_iters+1,acc_iters+results_df.iter.max(),5))+ [acc_iters+results_df.iter.max()])
+
+            for i in [0,1,2,3]:
+                plt.sca(ax[i,n_model])
+                plt.xticks(list(np.arange(results_df.iter.min()+1,results_df.iter.max()-1,2)) + [results_df.iter.max()],
+                           list(np.arange(acc_iters+2,acc_iters+results_df.iter.max()-1,2))+ [acc_iters+results_df.iter.max()])
+
             acc_iters += results_df.shape[0]
 
             # Add horizontal line at y = 0 in parameter estimates plots
-            axs_traveltime[n_model].axhline(0, linestyle='dashed')
-            axs_exogenous_parameters[n_model].axhline(0, linestyle='dashed')
+            axs_traveltime[n_model].axhline(0, linestyle='dashed', color = 'gray')
+            axs_exogenous_parameters[n_model].axhline(0, linestyle='dashed', color = 'gray')
 
             axs_loss[n_model].plot('iter', 'objective', data=results_df[['iter', 'objective']])
 
             #Paths plots
             axs_paths[n_model].plot('iter', 'n_paths', data=results_df[['iter', 'n_paths']])
-            axs_paths[n_model].axhline(0, linestyle='dashed')
+            axs_paths[n_model].set_ylim(0,int(max_paths*1.1))
+            # axs_paths[n_model].axhline(0, linestyle='dashed', color = 'gray')
 
             #Add proper legend
             # Feature Engineering model should have separate exogenous feature legend but using the same colors from their raw counterparts
@@ -3487,6 +3497,85 @@ class Artist:
             plt.clf()
             plt.cla()
             plt.close()
+
+    def heatmap_demand(self,
+                       Q: Matrix,
+                       folderpath: str,
+                       filename: str):
+
+        rows, cols = Q.shape
+
+        od_df = pd.DataFrame({'origin': pd.Series([], dtype=int)
+                                 , 'destination': pd.Series([], dtype=int)
+                                 , 'trips': pd.Series([], dtype=int)})
+
+        counter = 0
+        for origin in range(0, rows):
+            for destination in range(0, cols):
+                # od_df.loc[counter] = [(origin+1,destination+1), N['train'][current_network].Q[(origin,destination)]]
+                od_df.loc[counter] = [int(origin + 1), int(destination + 1), Q[(origin, destination)]]
+                counter += 1
+
+        od_df.origin = od_df.origin.astype(int)
+        od_df.destination = od_df.destination.astype(int)
+
+        od_pivot_df = od_df.pivot_table(index='origin', columns='destination', values='trips')
+
+        # uniform_data = np.random.rand(10, 12)
+        fig, ax = plt.subplots()
+        ax = sns.heatmap(od_pivot_df, linewidth=0.5, cmap="Blues")
+
+        plt.show()
+
+        fig.savefig( folderpath + '/' + filename, pad_inches=0.1, bbox_inches="tight")
+
+        plt.close(fig)
+
+    def cumulative_demand(self,
+                          Q: Matrix,
+                          filename: str,
+                          threshold: Proportion = None,
+                          folderpath: str = None):
+
+        # ods_sorted = list(np.dstack(np.unravel_index(np.argsort(-Q.ravel()), Q.shape)))[0]
+
+        def find_nearest(array, value):
+            array = np.asarray(array)
+            idx = (np.abs(array - value)).argmin()
+            return array[idx]
+
+        fig, axs = plt.subplots(nrows = 1, ncols = 2, tight_layout=True, figsize=(9, 4))
+
+        abs_x = sorted(Q.flatten(),reverse=True)
+        abs_y = np.cumsum(abs_x).astype("float32")
+        # abs_x = np.linspace(0, len(abs_x)+1, abs_y.size)
+        abs_x = np.arange(0,len(abs_x),1)
+        axs[0].plot(abs_x, abs_y)
+
+        rel_x = sorted(Q.flatten(),reverse=True)
+        rel_y = np.cumsum(rel_x).astype("float32")
+        rel_y /= rel_y.max()
+        rel_y *= 100.
+        # rel_x = np.arange(1,100+0.1,1)
+        rel_x = np.linspace(0,100, rel_y.size)
+        nearest_perc = np.array([find_nearest(rel_x, i) for i in np.arange(0, 101, 10)])
+        plt.sca(axs[1])
+        plt.xticks(-nearest_perc,list(map(round,nearest_perc)))
+        axs[1].plot(-rel_x, rel_y)
+
+        for axi in axs:
+            axi.tick_params(axis='y', labelsize=self.fontsize)
+            axi.tick_params(axis='x', labelsize=self.fontsize)
+            axi.xaxis.label.set_size(self.fontsize)
+            axi.yaxis.label.set_size(self.fontsize)
+
+        plt.show()
+
+        fig.savefig(folderpath + '/' + filename, pad_inches=0.1, bbox_inches="tight")
+
+        plt.close(fig)
+
+
 
 
 def draw_networkx_digraph_edge_labels(G, pos,
