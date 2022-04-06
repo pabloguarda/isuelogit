@@ -392,7 +392,7 @@ class LUE_Equilibrator(Equilibrator):
                 # Generating new paths at every iteration is costly
                 if options['column_generation']['n_paths'] is not None and column_generation_done is False:
 
-                    if options['column_generation'].get('ods_sampling', None) == 'demand_sequential':
+                    if options['column_generation'].get('ods_sampling', None) == 'sequential':
                         ods_coverage = options['column_generation'].get('ods_coverage', 1)
                         options['column_generation']['ods_coverage'] = ods_coverage / kwargs.get('bilevel_iters', 1)
 
