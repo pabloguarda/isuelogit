@@ -77,7 +77,7 @@ class Parameter:
     @sign.setter
     def sign(self, value):
         self._sign = value
-        
+
     @property
     def fixed(self):
         return self._fixed
@@ -149,7 +149,7 @@ class UtilityFunction:
         # Create parameters
         self.add_features(features_Y=self._features_Y,
                           features_Z=self._features_Z,
-                          fixed = fixed,
+                          fixed=fixed,
                           signs=signs,
                           initial_values=initial_values,
                           true_values=true_values)
@@ -188,7 +188,7 @@ class UtilityFunction:
 
         if signs is None:
             signs = dict.fromkeys(features_Y + features_Z)
-        
+
         if fixed is None:
             fixed = dict.fromkeys(features_Y + features_Z, False)
 
@@ -302,7 +302,7 @@ class UtilityFunction:
                 value = values[feature]
                 assert value in ['-', '+']
                 self.parameters[feature].sign = values[feature]
-                
+
     @property
     def fixed(self):
         return {key: parameter.fixed for key, parameter in self.parameters.items()}
@@ -409,7 +409,7 @@ class FirstOrderMethod(OuterMethod):
 
         self.type = 'first-order'
 
-    def update_parameters(self, theta, gradient, features_idxs = None):
+    def update_parameters(self, theta, gradient, features_idxs=None):
         raise NotImplementedError
 
     def reset_gradients(self):
@@ -425,7 +425,7 @@ class NormalizedGradientDescent(FirstOrderMethod):
     def __init__(self, **kwargs):
         super().__init__(key='ngd', **kwargs)
 
-    def update_parameters(self, theta, gradient, features_idxs = None):
+    def update_parameters(self, theta, gradient, features_idxs=None):
 
         epsilon = 1e-12
 
@@ -452,7 +452,7 @@ class GradientDescent(FirstOrderMethod):
     def __init__(self, **kwargs):
         super().__init__(key='gd', **kwargs)
 
-    def update_parameters(self, theta, gradient,features_idxs = None):
+    def update_parameters(self, theta, gradient, features_idxs=None):
         # theta_update_new = gamma * (theta_update_old) + eta * grad_new
 
         if features_idxs is not None:
@@ -466,7 +466,6 @@ class GradientDescent(FirstOrderMethod):
                 if feature_idx not in features_idxs:
                     theta[feature_idx] = previous_theta[feature_idx]
 
-
         # theta_update_old = theta_update_new
 
         return theta
@@ -476,7 +475,7 @@ class StochasticGradientDescent(GradientDescent):
     def __init__(self, **kwargs):
         super().__init__(key='gd', **kwargs)
 
-    def update_parameters(self, theta, gradient,features_idxs = None):
+    def update_parameters(self, theta, gradient, features_idxs=None):
         pass
 
 
@@ -484,7 +483,7 @@ class Adagrad(FirstOrderMethod):
     def __init__(self, **kwargs):
         super().__init__(key='adagrad', **kwargs)
 
-    def update_parameters(self, theta, gradient,features_idxs = None):
+    def update_parameters(self, theta, gradient, features_idxs=None):
         # TODO: Fix adagrad using diagonal matrix for accumulated gradients and use acumulated gradients from past bilevel iterations. The same applies for Adam and momentum updates
 
         # TODO: Review gradients update Adagrad
@@ -509,7 +508,7 @@ class Adam(FirstOrderMethod):
         self.beta_1 = kwargs.get('beta_1', 0.5)  # 0.9
         self.beta_2 = kwargs.get('beta_2', 0.5)  # 0.999
 
-    def update_parameters(self, theta, gradient,features_idxs = None):
+    def update_parameters(self, theta, gradient, features_idxs=None):
         epsilon = 1e-7
 
         # Compute and update first moments (m) and second moments (v)
@@ -541,7 +540,7 @@ class Newton(SecondOrderMethod):
     def __init__(self, **kwargs):
         super().__init__(key='newton', **kwargs)
 
-    def update_parameters(self, theta, hessian, gradient,features_idxs):
+    def update_parameters(self, theta, hessian, gradient, features_idxs):
 
         if features_idxs is not None:
             previous_theta = theta.copy()
@@ -552,7 +551,6 @@ class Newton(SecondOrderMethod):
             for feature_idx in np.arange(theta.size):
                 if feature_idx not in features_idxs:
                     theta[feature_idx] = previous_theta[feature_idx]
-
 
         # # Stable version
         # theta = theta + np.linalg.lstsq(hessian, -g, rcond=None)[0]
@@ -572,7 +570,7 @@ class LevenbergMarquardt(SecondOrderMethod):
         # https://mljs.github.io/levenberg-marquardt/
         # Source: https://en.wikipedia.org/wiki/Levenberg%E2%80%93Marquardt_algorithm
 
-    def update_parameters(self, theta, lambda_lm, jacobian, delta_y,features_idxs = None):
+    def update_parameters(self, theta, lambda_lm, jacobian, delta_y, features_idxs=None):
         J = jacobian
 
         J_T_J = J.T.dot(J)
@@ -586,7 +584,6 @@ class LevenbergMarquardt(SecondOrderMethod):
             for feature_idx in np.arange(theta.size):
                 if feature_idx not in features_idxs:
                     theta[feature_idx] = previous_theta[feature_idx]
-
 
         return theta
 
@@ -597,7 +594,7 @@ class LevenbergMarquardtRevised(LevenbergMarquardt):
         self.key = 'lm-rev'
         # SecondOrderMethod.__init__(key='lm-revised', **kwargs)
 
-    def update_parameters(self, theta, lambda_lm, jacobian, delta_y,features_idxs = None):
+    def update_parameters(self, theta, lambda_lm, jacobian, delta_y, features_idxs=None):
 
         J = jacobian
 
@@ -613,17 +610,17 @@ class LevenbergMarquardtRevised(LevenbergMarquardt):
                 if feature_idx not in features_idxs:
                     theta[feature_idx] = previous_theta[feature_idx]
 
-
         return theta
+
 
 class GaussNewton(LevenbergMarquardt):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.key ='gn'
+        self.key = 'gn'
 
     def update_parameters(self, **kwargs):
-        kwargs.update({'lambda_lm':0})
+        kwargs.update({'lambda_lm': 0})
         return super().update_parameters(**kwargs)
 
     # def update_parameters(self, theta, jacobian, delta_y):
@@ -656,7 +653,6 @@ def od_estimation(network,
                   q_0,
                   q_bar
                   ):
-
     D = network.D
     M = network.M
     q = network.q
@@ -814,7 +810,7 @@ class OuterOptimizer:
                                                          D=network.D,
                                                          M=network.M,
                                                          C=network.C,
-                                                         q = network.q,
+                                                         q=network.q,
                                                          counts=network.observed_counts_vector,
                                                          **kwargs
                                                          ))
@@ -882,7 +878,6 @@ class OuterOptimizer:
                                                   q=network.q,
                                                   **kwargs)
 
-
     def project_parameters_constraints(self, theta):
         counter = 0
         signs = self.utility_function.signs
@@ -897,7 +892,6 @@ class OuterOptimizer:
             counter += 1
 
         return theta
-
 
     def solve_outer_problem(self,
                             Y: DataFrame,
@@ -944,7 +938,6 @@ class OuterOptimizer:
                                           Z=Z,
                                           features_Z=self.utility_function.features_Z,
                                           features_Y=self.utility_function.features_Y)
-
 
         if theta_0 is None:
             print('No initial values of the utility function parameters have been provided')
@@ -1003,7 +996,7 @@ class OuterOptimizer:
                 theta=theta,
                 design_matrix=design_matrix.dot(thetas[0].dot(float(theta))),
                 network=self.network,
-                features_idxs = features_idxs,
+                features_idxs=features_idxs,
                 paths_probabilities=paths_probabilities,
                 paths_specific_utility=paths_specific_utility)
 
@@ -1043,7 +1036,7 @@ class OuterOptimizer:
 
         for iter in range(0, iters):
 
-            #printProgressBar(iter, iters-1, prefix='Progress:', suffix='', length=20)
+            # printProgressBar(iter, iters-1, prefix='Progress:', suffix='', length=20)
 
             # It is very expensive to compute p_f so adequating the code is important
             if iter > 0:
@@ -1106,12 +1099,10 @@ class OuterOptimizer:
 
                 grad_adj = grad_current
 
-                theta = self.method.update_parameters(theta=theta, gradient=grad_current, features_idxs = features_idxs)
+                theta = self.method.update_parameters(theta=theta, gradient=grad_current, features_idxs=features_idxs)
 
                 if options['parameters_constraints']['sign']:
-
                     theta = self.project_parameters_constraints(theta)
-
 
                 # print('gradient_diff : ' + str(gradient_check(theta=theta)))
 
@@ -1131,7 +1122,7 @@ class OuterOptimizer:
                         theta=theta,
                         design_matrix=design_matrix,
                         network=self.network,
-                        features_idxs = features_idxs,
+                        features_idxs=features_idxs,
                         paths_probabilities=paths_probabilities,
                         paths_specific_utility=paths_specific_utility)
 
@@ -1145,8 +1136,8 @@ class OuterOptimizer:
                     if features_idxs is not None:
                         previous_theta = theta.copy()
 
-                    theta = self.method.update_parameters(theta = theta, hessian = H, gradient = g,
-                                                          features_idxs = features_idxs)
+                    theta = self.method.update_parameters(theta=theta, hessian=H, gradient=g,
+                                                          features_idxs=features_idxs)
 
                     for feature_idx in features_idxs:
                         theta[feature_idx] = previous_theta[feature_idx]
@@ -1160,7 +1151,6 @@ class OuterOptimizer:
                         theta = theta_0
 
                         if iters > 1 and isinstance(self.method, (LevenbergMarquardt, LevenbergMarquardtRevised)):
-
                             previous_objective = self.compute_objective_function(
                                 theta=thetas[iter],
                                 design_matrix=design_matrix,
@@ -1179,7 +1169,7 @@ class OuterOptimizer:
                         network=self.network,
                         paths_probabilities=paths_probabilities,
                         paths_specific_utility=paths_specific_utility,
-                        features_idxs = features_idxs
+                        features_idxs=features_idxs
                     )
 
                     predicted_counts = self.compute_response_function(network=self.network,
@@ -1192,12 +1182,12 @@ class OuterOptimizer:
                     delta_y = np.delete(delta_y, idxs_nan, axis=0)
                     J = np.delete(J, idxs_nan, axis=0)
 
-                    theta = self.method.update_parameters(theta = theta, lambda_lm = lambda_lm, jacobian = J,
-                                                          delta_y = delta_y, features_idxs = features_idxs)
+                    theta = self.method.update_parameters(theta=theta, lambda_lm=lambda_lm, jacobian=J,
+                                                          delta_y=delta_y, features_idxs=features_idxs)
 
                     objective_value = self.compute_objective_function(theta=theta,
                                                                       design_matrix=design_matrix,
-                                                                      network = self.network,
+                                                                      network=self.network,
                                                                       paths_specific_utility=paths_specific_utility
                                                                       )
 
@@ -1586,8 +1576,6 @@ class Learner:
             with pd.option_context('display.float_format', '{:0.1f}'.format):
                 print('\n' + summary_table.to_string())
 
-
-
         best_objective = initial_objective
         best_predicted_counts = copy.deepcopy(predicted_counts)
         best_iter = 1
@@ -1604,11 +1592,13 @@ class Learner:
         if iteration_report is False:
 
             if isinstance(self.outer_optimizer.method, FirstOrderMethod):
-                print('\nEstimating parameters via ' + self.outer_optimizer.method.key + ' (' + str(int(self.outer_optimizer.options['iters']))
+                print('\nEstimating parameters via ' + self.outer_optimizer.method.key + ' (' + str(
+                    int(self.outer_optimizer.options['iters']))
                       + ' iters, eta = ' + "{0:.1E}".format(self.outer_optimizer.method.eta) + ')\n')
 
             if self.outer_optimizer.method.type == 'second-order':
-                print('\nEstimating parameters via ' + self.outer_optimizer.method.key + ' (' + str(int(self.outer_optimizer.options['iters'])) + ' iters)\n')
+                print('\nEstimating parameters via ' + self.outer_optimizer.method.key + ' (' + str(
+                    int(self.outer_optimizer.options['iters'])) + ' iters)\n')
 
         for iter in np.arange(2, iters + 1, 1):
 
@@ -1634,7 +1624,7 @@ class Learner:
                     paths_specific_utility=paths_specific_utility,
                     q_0=q_current,
                     q_bar=q_bar,
-                    parameters_constraints = options.get('parameters_constraints')
+                    parameters_constraints=options.get('parameters_constraints')
                 )
 
             q_current = q_new.copy()
@@ -1704,7 +1694,6 @@ class Learner:
                     print('Marginal objective improvement value: ' + '{:,}'.format(
                         np.round(objective_values[-2] - objective_values[-1], 1)))
                     print('')
-
 
             # if network.key == 'Fresno':
 
@@ -2195,7 +2184,7 @@ class Learner:
         if kwargs.get('link_selection', False):
             counts, _ = get_informative_links(learning_results=learning_results, network=self.network)
             # self.network.load_traffic_counts(new_counts)
-            counts = np.array(list(counts.values()))[:,np.newaxis]
+            counts = np.array(list(counts.values()))[:, np.newaxis]
 
         parameter_inference_table, model_inference_table = hypothesis_tests(
             network=self.network,
@@ -2316,7 +2305,6 @@ def hypothesis_tests(theta: ParametersDict,
                      predicted_counts: Optional[ColumnVector] = None,
                      **kwargs
                      ):
-
     t0 = time.time()
 
     pct_lowest_sse = kwargs.get('pct_lowest_sse', 100)
@@ -2374,7 +2362,7 @@ def hypothesis_tests(theta: ParametersDict,
 
     var_error = sum_sse / (n - p)
 
-    features_idxs = np.arange(0,theta_array.shape[0])
+    features_idxs = np.arange(0, theta_array.shape[0])
 
     if numeric_hessian is True:
 
@@ -2441,11 +2429,10 @@ def hypothesis_tests(theta: ParametersDict,
     #     if not np.allclose(theta_array[feature_idx], 0):
     #         diag_cov_theta[feature_idx] = float(cov_theta[(feature_idx,feature_idx)])
 
-
     # i) T-tests
     critical_tvalue = stats.t.ppf(1 - alpha / 2, df=n - p)
 
-    ttest = np.zeros_like(theta_array, dtype = np.float64)
+    ttest = np.zeros_like(theta_array, dtype=np.float64)
 
     for feature_idx in features_idxs:
         if not np.allclose(theta_array[feature_idx] - h0, 0):
@@ -2741,7 +2728,7 @@ def grid_search_optimization(network: TNetwork,
                     M=network.M,
                     C=network.C,
                     paths_probabilities=p_f)[index_feature]
-                ))
+                      ))
 
         if hessians:
             second_derivatives = diagonal_hessian_objective_function(theta=theta_current_vector,
@@ -2885,8 +2872,8 @@ def loss_counts_uncongested_network(equilibrator: LUE_Equilibrator,
             network=network,
             features_Y=features_Y,
             features_Z=features_Z,
-            column_generation = {'n_paths': None, 'paths_selection':  None},
-            path_size_correction = 0,
+            column_generation={'n_paths': None, 'paths_selection': None},
+            path_size_correction=0,
             uncongested_mode=True)
 
     predicted_counts = np.array(list(results_uncongested_eq['x'].values()))[:, np.newaxis]
@@ -3097,12 +3084,12 @@ def jacobian_response_function(theta,
 
         counter += 1
 
-    jacobian = np.zeros((J.shape[0],theta.shape[0]))
+    jacobian = np.zeros((J.shape[0], theta.shape[0]))
 
     counter = 0
     for feature_idx in features_idxs:
-        jacobian[:,feature_idx] = J[:,counter]
-        counter+=1
+        jacobian[:, feature_idx] = J[:, counter]
+        counter += 1
 
     if counts is not None:
         return jacobian, paths_probabilities, D, M
@@ -3568,12 +3555,12 @@ def gradient_objective_function(theta: ColumnVector,
 
         counter += 1
 
-    gradient = np.zeros_like(theta, dtype = np.float64)
+    gradient = np.zeros_like(theta, dtype=np.float64)
 
     counter = 0
     for feature_idx in features_idxs:
         gradient[feature_idx] = gradient_l2norm[counter]
-        counter+=1
+        counter += 1
 
     return gradient
 
