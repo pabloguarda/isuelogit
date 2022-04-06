@@ -623,7 +623,7 @@ class LinkDataGenerator(Generator):
         # eq_params
         # theta['tt'] = 0
         results_equilibrium \
-            = equilibrator.sue_logit_iterative(
+            = equilibrator.path_based_suelogit_equilibrium(
             theta= utility_function.true_values,
             features_Z=utility_function.features_Z,
             network=network,
