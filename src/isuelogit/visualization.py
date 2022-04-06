@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from mytypes import Union, Dict
+    from mytypes import Union, Dict, List
 
 import matplotlib
 import pylab
@@ -1397,6 +1397,142 @@ class Artist:
             axi.yaxis.set_major_formatter(yfmt)
 
         fig.tight_layout()
+
+        if folder is not None:
+            fig.savefig(folder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
+
+        return fig
+
+    def convergence_models(self,
+                    results_dfs: Dict[str, pd.DataFrame],
+                    features: Dict[str, str],
+                    filename: str,
+                    folder: str = None):
+
+        '''
+     Plot convergence to the true ratio of theta and the reduction of the objective function over iterations
+
+     :argument results
+
+     '''
+
+        if folder is None:
+            folder = self.folder
+
+        colors = ['black', 'gray', 'red', 'green', 'c', 'm', 'y', 'b', 'w']
+        # colors = [u'black', u'g', u'r', u'c', u'm', u'y', u'k']
+
+        n_models = len(list(results_dfs.keys()))
+
+        # results_dfs['model_2']['theta_tt'] = 2*results_dfs['model_2']['theta_tt']
+
+        fig,ax = plt.subplots(figsize=(10, 12), nrows = 4, ncols = n_models)
+        # ax = fig.subplots(nrows=self.dim_subplots[0], ncols=self.dim_subplots[1])
+        axs_paths = ax[0, :]
+        axs_loss = ax[1, :]
+        axs_traveltime = ax[2,:]#plt.subplot(2, n_models, 1)
+        axs_exogenous_parameters = ax[3,:]
+        # axs_loss = plt.subplot(2, n_models, 2, sharex=axs_parameters)
+
+        axs_traveltime[0].set_ylabel("Travel time parameter")
+        axs_exogenous_parameters[0].set_ylabel("Parameters of \n exogenous features")
+        axs_loss[0].set_ylabel("Objective function")
+
+
+        # Paths plots
+        axs_paths[0].set_ylabel("Number of paths")
+
+        #Y axes are shared and are removed from all plots starting from second column
+        for row in range(0,ax.shape[0]):
+            ax[row][0].get_shared_y_axes().join(ax[row][0], *ax[row][1:])
+            for axi in ax[row][1:]:
+                plt.setp(axi.get_yticklabels(), visible=False)
+
+        # X ticks are shared within plots of the same column
+        for n_model in range(n_models):
+            ax[0][n_model].get_shared_x_axes().join(ax[0][n_model], *ax[1:][n_model])
+            ax[-1][n_model].set_xlabel("iteration")
+            for axi in ax[:][n_model]:
+                plt.setp(axi.get_xticklabels(), visible=False)
+
+        # axs_traveltime[0].get_shared_y_axes().join(axs_traveltime[0], *axs_traveltime[1:])
+        # axs_exogenous_parameters[0].get_shared_y_axes().join(axs_traveltime[0], *axs_traveltime[1:])
+        # axs_loss[0].get_shared_y_axes().join(axs_traveltime[0], *axs_traveltime[1:])
+        # axs_paths[0].get_shared_y_axes().join(axs_paths[0], *axs_paths[1:])
+        # axs_traveltime[0].get_shared_x_axes().join(*axs_traveltime)
+        # axs_traveltime[0].get_shared_x_axes().join(*axs_traveltime)
+
+        acc_iters = 0
+        n_model = 0
+        for model, results_df in results_dfs.items():
+
+            counter = 0
+            for feature in features.keys():
+                parameter = 'theta_' + feature
+                if feature == 'tt':
+                    axs_traveltime[n_model].plot('iter', parameter, data=results_df[['iter', parameter]],
+                                                           label=feature, color = 'blue')
+                if feature != 'tt':
+                    axs_exogenous_parameters[n_model].plot('iter', parameter, data=results_df[['iter',parameter]],
+                                                           label=feature, color=colors[counter])
+                    counter += 1
+
+            # Set xticks
+            plt.sca(ax[3,n_model])
+            plt.xticks(list(np.arange(results_df.iter.min(),results_df.iter.max(),5)) + [results_df.iter.max()],
+                       list(np.arange(acc_iters+1,acc_iters+results_df.iter.max(),5))+ [acc_iters+results_df.iter.max()])
+            acc_iters += results_df.shape[0]
+
+            # Add horizontal line at y = 0 in parameter estimates plots
+            axs_traveltime[n_model].axhline(0, linestyle='dashed')
+            axs_exogenous_parameters[n_model].axhline(0, linestyle='dashed')
+
+            axs_loss[n_model].plot('iter', 'objective', data=results_df[['iter', 'objective']])
+
+            #Paths plots
+            axs_paths[n_model].plot('iter', 'n_paths', data=results_df[['iter', 'n_paths']])
+            axs_paths[n_model].axhline(0, linestyle='dashed')
+
+            #Add proper legend
+            # Feature Engineering model should have separate exogenous feature legend but using the same colors from their raw counterparts
+
+            n_model += 1
+
+        for axi in fig.get_axes():
+            axi.tick_params(axis='y', labelsize=self.fontsize)
+            axi.tick_params(axis='x', labelsize=self.fontsize)
+            axi.xaxis.label.set_size(self.fontsize)
+            axi.yaxis.label.set_size(self.fontsize)
+
+        # To write with scienfic notation in y axis
+        class ScalarFormatterForceFormat(ScalarFormatter):
+            def _set_format(self):  # Override function that finds format to use.
+                self.format = "%0.1f"  # Give format here
+
+        for axi in axs_loss:
+            yfmt = ScalarFormatterForceFormat()
+            yfmt.set_powerlimits((0, 0))
+            axi.yaxis.set_major_formatter(yfmt)
+
+        lines1, labels1 = axs_traveltime[1].get_legend_handles_labels()
+        lines2, labels2 = axs_exogenous_parameters[1].get_legend_handles_labels()
+        # lines2, labels2 = axs_exogenous_parameters[2].get_legend_handles_labels()
+        lines = lines1 + lines2
+        labels = labels1 + labels2
+
+        #Replace labels
+        for idx, label in zip(range(len(labels)),labels):
+            labels[idx] = features.get(label, labels[idx])
+
+
+        # g.fig.legend(handles=handles, labels=labels, loc='lower center', ncol=4)
+        fig.legend(lines, labels, title="Features", loc='upper center', ncol=len(features), prop={'size': self.fontsize}
+                   , bbox_to_anchor=[0.52, -0.25]
+                   , bbox_transform=BlendedGenericTransform(fig.transFigure, ax[-1,0].transAxes))
+
+        fig.tight_layout()
+
+        plt.show()
 
         if folder is not None:
             fig.savefig(folder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
