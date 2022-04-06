@@ -332,15 +332,14 @@ class LUE_Equilibrator(Equilibrator):
         return x,f,p_f
 
     # @blockPrinting
-    def sue_logit_iterative(self,
-                            features_Z = None,
-                            theta=None,
-                            q: ColumnVector = None,
-                            silent_mode = False,
-                            network=None,
-                            **kwargs):
+    def path_based_suelogit_equilibrium(self,
+                                        features_Z = None,
+                                        theta=None,
+                                        q: ColumnVector = None,
+                                        silent_mode = False,
+                                        network=None,
+                                        **kwargs):
 
-        # TODO: set default values for everything that is required
 
         t0 = time.time()
 
