@@ -71,8 +71,7 @@ def read_colombus_paths(network:TNetwork,
 
         for path_line, counter in zip(path_reader, range(total_paths)):
 
-            printer.printProgressBar(counter, total_paths, prefix='Progress (paths):', suffix='',
-                                     length=20)
+            printer.printProgressBar(counter, total_paths-1, prefix='Progress (paths):', suffix='',length=20)
 
             links = []
 
@@ -224,7 +223,7 @@ def read_internal_C(network: TNetwork,
             rows_reader = csv.reader(csvfile, delimiter=',')
 
             for C_row, counter in zip(rows_reader, range(rows_reader)):
-                printer.printProgressBar(counter, total_rows, prefix='Progress (C):', suffix='', length=20)
+                printer.printProgressBar(counter, total_rows, prefix='Reading C:', suffix='', length=20)
 
                 C_rows.append(list(map(float, C_row)))
 
@@ -262,7 +261,7 @@ def read_internal_D(network: TNetwork,
             rows_reader = csv.reader(csvfile, delimiter=',')
 
             for D_row, counter in zip(rows_reader, range(total_rows)):
-                printer.printProgressBar(counter, total_rows, prefix='Progress (D):', suffix='', length=20)
+                printer.printProgressBar(counter, total_rows, prefix='Reading D:', suffix='', length=20)
 
                 D_rows.append(list(map(float, D_row)))
 
@@ -303,7 +302,7 @@ def read_internal_M(network: TNetwork,
             rows_reader = csv.reader(csvfile, delimiter=',')
 
             for M_row, counter in zip(rows_reader, range(total_rows)):
-                printer.printProgressBar(counter, total_rows, prefix='Progress (M):', suffix='', length=20)
+                printer.printProgressBar(counter, total_rows, prefix='Reading M:', suffix='', length=20)
 
                 M_rows.append(list(map(float, M_row)))
 
@@ -342,7 +341,7 @@ def read_internal_Q(network: TNetwork,
             rows_reader = csv.reader(csvfile, delimiter=',')
 
             for Q_row, counter in zip(rows_reader, range(rows_reader)):
-                printer.printProgressBar(counter, total_rows, prefix='Progress (Q):', suffix='', length=20)
+                printer.printProgressBar(counter, total_rows, prefix='Reading Q:', suffix='', length=20)
 
                 Q_rows.append(list(map(float, Q_row)))
 
