@@ -509,7 +509,7 @@ class LUE_Equilibrator(Equilibrator):
                     total_paths_od = len(paths)
 
                     if total_paths_od > options['column_generation']['paths_selection']:
-                        network.paths_od[od], best_score \
+                        network.paths_od[od] \
                             = self.path_set_selection(
                             paths=paths,
                             paths_probabibilities=pf_dict,
@@ -741,7 +741,7 @@ class LUE_Equilibrator(Equilibrator):
                            paths,
                            paths_probabibilities: Dict[str, ColumnVector],
                            k,
-                           dissimilarity_weight) -> Tuple[List, float]:
+                           dissimilarity_weight) -> List:
 
         if dissimilarity_weight == 0:
 
@@ -754,7 +754,7 @@ class LUE_Equilibrator(Equilibrator):
             # Return best path set
             best_path_set = [paths[idx] for idx in idxs]
 
-            return best_path_set, _
+            return best_path_set
 
         # Combinatoric case: when dissimilary weight is different than 0
 
@@ -790,7 +790,7 @@ class LUE_Equilibrator(Equilibrator):
                 best_average_probability = average_probability
                 best_average_dissimilarity = average_dissimilarity
 
-        return list(best_path_set), best_score
+        return list(best_path_set)
 
     def sue_column_generation(self,
                               network,
