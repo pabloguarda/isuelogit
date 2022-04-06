@@ -128,7 +128,7 @@ class LUE_Equilibrator(Equilibrator):
         # Coverage of OD pairs to sample new paths
         self.options['column_generation']['ods_coverage']  = 1
 
-        # Select ods at 'random' or by 'demand'
+        # Select ods at 'random', 'demand', 'demand_sequential'
         self.options['column_generation']['ods_sampling'] = 'demand'
 
         # Record the number of times that the ods sampling has been performed
@@ -398,9 +398,14 @@ class LUE_Equilibrator(Equilibrator):
                 # Generating new paths at every iteration is costly
                 if options['column_generation']['n_paths'] is not None and column_generation_done is False:
 
+                    if options['column_generation'].get('ods_sampling', None) == 'demand_sequential':
+                        ods_coverage = options['column_generation'].get('ods_coverage', 1)
+                        options['column_generation']['ods_coverage'] = ods_coverage / kwargs.get('bilevel_iters',1)
+
                     self.sue_column_generation(theta=theta,
                                                n_paths=options['column_generation']['n_paths'],
-                                               ods_coverage=options['column_generation']['ods_coverage'],
+                                               ods_coverage= options['column_generation']['ods_coverage'],
+                                               ods_sampling = options['column_generation']['ods_sampling'],
                                                network=network
                                                )
                     column_generation_done = True
@@ -847,9 +852,12 @@ class LUE_Equilibrator(Equilibrator):
 
             if ods_sampling == 'demand':
                 ods_sample = network.OD.sample_ods_by_demand(proportion=ods_coverage)
-                # ods_sample = network.OD.sample_ods_by_demand_sequentially(proportion= ods_coverage,
-                #                                              k = self.options['column_generation']['n_ods_sampling'])
-                # self.options['column_generation']['n_ods_sampling']+=1
+
+            if ods_sampling == 'demand_sequential':
+                ods_sample = network.OD.sample_ods_by_demand_sequentially(
+                    proportion= ods_coverage,
+                    k = self.options['column_generation']['n_ods_sampling'])
+                self.options['column_generation']['n_ods_sampling']+=1
 
         else:
             ods_sample = network.ods
