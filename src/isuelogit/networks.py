@@ -1251,7 +1251,7 @@ class OD:
         if self.options['remove_zeros_Q']:
             n = len(self.q)
 
-        n_samples = int(np.floor(proportion * n))
+        n_samples = int(np.ceil(proportion * n))
 
         # k select the kth set of ODs with largest demand
         max_k = int(n/n_samples)
