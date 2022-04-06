@@ -3542,32 +3542,58 @@ class Artist:
         def find_nearest(array, value):
             array = np.asarray(array)
             idx = (np.abs(array - value)).argmin()
-            return array[idx]
+            return idx, array[idx]
 
         fig, axs = plt.subplots(nrows = 1, ncols = 2, tight_layout=True, figsize=(9, 4))
 
-        abs_x = sorted(Q.flatten(),reverse=True)
-        abs_y = np.cumsum(abs_x).astype("float32")
-        # abs_x = np.linspace(0, len(abs_x)+1, abs_y.size)
-        abs_x = np.arange(0,len(abs_x),1)
-        axs[0].plot(abs_x, abs_y)
+        #Cumulative absolute trips
+        q = Q[Q.nonzero()]
 
-        rel_x = sorted(Q.flatten(),reverse=True)
+        abs_x = sorted(q,reverse=True)
+        abs_y = np.cumsum(abs_x).astype("float32")
+
+        abs_y = np.hstack([0,abs_y])
+        # abs_x = np.linspace(0, len(abs_x)+1, abs_y.size)
+        abs_x = np.arange(0,len(abs_y),1)
+        axs[0].plot(abs_x, abs_y)
+        axs[0].set_xlabel('o-d pair (sorted by demand)')
+        axs[0].set_ylabel('cumulative trips')
+
+        #Cumulative proportion of trips
+
+        rel_x = sorted(q,reverse=True)+[0]
         rel_y = np.cumsum(rel_x).astype("float32")
         rel_y /= rel_y.max()
         rel_y *= 100.
+        rel_y = np.hstack([0, rel_y])
         # rel_x = np.arange(1,100+0.1,1)
         rel_x = np.linspace(0,100, rel_y.size)
-        nearest_perc = np.array([find_nearest(rel_x, i) for i in np.arange(0, 101, 10)])
-        plt.sca(axs[1])
-        plt.xticks(-nearest_perc,list(map(round,nearest_perc)))
-        axs[1].plot(-rel_x, rel_y)
+        # nearest_perc = np.array([find_nearest(rel_x, i) for i in np.arange(0, 101, 10)])
+        # plt.sca(axs[1])
+        # plt.xticks(-nearest_perc,list(reversed(list(map(round,nearest_perc)))))
+        # axs[1].plot(-rel_x, rel_y)
+        axs[1].plot(rel_x, rel_y)
+        axs[1].set_xlabel('percentile of o-d pairs')
+        axs[1].set_ylabel('percentage of total trips')
+
+        if threshold is not None:
+            idx, x_vline = find_nearest(rel_x, threshold*100)
+            axs[1].vlines(x=x_vline, ymin = -0.01, ymax = rel_y[idx],
+                           color='black', linestyle='dashed', linewidth=0.5)
+            axs[1].hlines(y=rel_y[idx], xmin=-0.01, xmax=x_vline,
+                          color='black', linestyle='dashed', linewidth=0.5)
+            axs[0].vlines(x=int(x_vline/100*len(abs_x)), ymin = -0.01, ymax = int(abs_y[idx]),
+                           color='black', linestyle='dashed', linewidth=0.5)
+            axs[0].hlines(y=int(abs_y[idx]), xmin=-0.01, xmax=int(x_vline/100*len(abs_x)),
+                          color='black', linestyle='dashed', linewidth=0.5)
+
 
         for axi in axs:
             axi.tick_params(axis='y', labelsize=self.fontsize)
             axi.tick_params(axis='x', labelsize=self.fontsize)
             axi.xaxis.label.set_size(self.fontsize)
             axi.yaxis.label.set_size(self.fontsize)
+            axi.margins(x=0.01, y =0.01)
 
         plt.show()
 
