@@ -451,7 +451,7 @@ def write_internal_paths(paths: [Path],
     total_paths = len(paths)
 
     for path, counter in zip(paths, range(total_paths)):
-        printer.printProgressBar(counter, total_paths-1, prefix='Progress (paths):', suffix='', length=20)
+        printer.printProgressBar(counter, total_paths-1, prefix='Writing paths:', suffix='', length=20)
 
         line = []
         for node in path.nodes:
@@ -500,7 +500,7 @@ def write_internal_C(C: np.ndarray,
         total_rows = C.shape[0]
 
         for row, counter in zip(C, range(total_rows)):
-            printer.printProgressBar(counter, total_rows, prefix='Progress (C):', suffix='', length=20)
+            printer.printProgressBar(counter, total_rows, prefix='Writing C:', suffix='', length=20)
 
             lines.append(row)
 
@@ -546,7 +546,7 @@ def write_internal_D(D: np.ndarray,
         total_rows = D.shape[0]
 
         for row, counter in zip(D, range(total_rows)):
-            printer.printProgressBar(counter, total_rows, prefix='Progress (D):', suffix='', length=20)
+            printer.printProgressBar(counter, total_rows, prefix='Writing D:', suffix='', length=20)
 
             lines.append(row)
 
@@ -594,7 +594,7 @@ def write_internal_M(M: np.ndarray,
         total_rows = M.shape[0]
 
         for row, counter in zip(M, range(total_rows)):
-            printer.printProgressBar(counter, total_rows, prefix='Progress (M):', suffix='', length=20)
+            printer.printProgressBar(counter, total_rows, prefix='Writing M:', suffix='', length=20)
 
             lines.append(row)
 
@@ -638,7 +638,7 @@ def write_internal_Q(Q: np.ndarray,
         total_rows = Q.shape[0]
 
         for row, counter in zip(Q, range(total_rows)):
-            printer.printProgressBar(counter, total_rows, prefix='Progress (Q):', suffix='', length=20)
+            printer.printProgressBar(counter, total_rows, prefix='Writing Q:', suffix='', length=20)
 
             lines.append(row)
 
