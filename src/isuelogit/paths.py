@@ -119,7 +119,8 @@ class Path:
 
     @property
     def key(self):
-        return self._key
+        # return self._key
+        return str(self.get_nodes_keys())
 
     @key.setter
     def key(self, value):
