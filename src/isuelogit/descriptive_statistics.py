@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from mytypes import List
+    from mytypes import List, Dict
     from networks import TNetwork
 
 import pandas as pd
@@ -13,16 +13,14 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 import matplotlib
-# matplotlib.rcParams['text.usetex'] = False
-# plt.rcParams['figure.dpi'] = 30
-# plt.rcParams['savefig.dpi'] = 30
-
 
 import seaborn as sns
-# sns.set(rc={"figure.dpi":30, 'savefig.dpi':30})
+
 import copy
 
 from etl import masked_link_counts_after_path_coverage
+
+from scipy.stats import pearsonr
 
 
 def distribution_pems_counts(filepath,
@@ -30,8 +28,8 @@ def distribution_pems_counts(filepath,
                              data_reader,
                              selected_links = None,
                              col_wrap = 2):
-    """ Analyze counts from a selected group of links. We may compare counts in 2019 and 2020 and over the same day of the week during each month to analyze the validity of Gaussian distribution and see differences between years """
-
+    """ Analyze counts from a selected group of links. We may compare counts in 2019 and 2020 and over the same day
+    of the week during each month to analyze the validity of Gaussian distribution and see differences between years """
 
     # Selection of an arbitrary of links to show the distribution of traffic counts via selected_links
 
@@ -477,22 +475,49 @@ def summary_table_links(links: List = None,
 
     return summary_links_df
 
-def scatter_plots_features_vs_counts(links_df):
+def corrfunc(x, y, ax=None, **kws):
+    """Plot the correlation coefficient in the top left hand corner of a plot."""
+    r, _ = pearsonr(x, y)
+    ax = ax or plt.gca()
+    ax.annotate(f'ρ = {r:.2f}', xy=(.7, .9), xycoords=ax.transAxes)
+
+def scatter_plots_features(links_df, features: Dict[str, str]):
 
     """ Scatter plot between traffic counts and travel time/speed reliability and average. Repeat the same but for the remaining covariates """
 
     # plt.figure()
 
+    df = links_df.copy()
+
+    df.rename(columns = features, inplace = True)
+
+    # existing_continous_features = set(links_df.keys()).intersection(set(features))
+    existing_continous_features = [label for feature, label in features.items() if feature in links_df.keys()]
+
+    df = df[existing_continous_features]
+
+    #Randomly sample points to avoid having a heavy figure
+    df = df.sample(frac=0.5, replace=False, random_state=1)
+
     fig = plt.figure()
 
     # https://seaborn.pydata.org/tutorial/axis_grids.html
 
-    g = sns.PairGrid(links_df)
+    g = sns.PairGrid(df, corner=True)
     g.map_diag(sns.histplot)
+    g.map_lower(corrfunc)
     # g.map(sns.scatterplot)
     g.map_offdiag(sns.regplot)
     # fig1.show()
     # g1.savefig('output1.png')
+
+    g.fig.set_size_inches(14, 12)
+
+    for ax in plt.gcf().axes:
+        ax.set_xlabel(ax.get_xlabel(), fontsize=12)
+        ax.set_ylabel(ax.get_ylabel(), fontsize=12)
+        ax.tick_params(axis='y', labelsize=12)
+        ax.tick_params(axis='x', labelsize=12)
 
     # matplotlib.rcParams['text.usetex'] = True
 
@@ -531,6 +556,7 @@ def scatter_plots_features_vs_counts_by_capacity(links_df):
     # g.map(sns.scatterplot)
     g.map_offdiag(sns.regplot)
     g.add_legend()
+
     # g2.savefig('output2.png')
 
     # g.fig.show()
