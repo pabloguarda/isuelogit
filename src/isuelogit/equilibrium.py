@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from mytypes import Links, Matrix, ColumnVector, Features, Paths, Options, Option, Vector, Optional, List
+    from mytypes import Links, Matrix, ColumnVector, Features, Paths, Dict, Options, Option, Vector, Optional, List, Tuple
 
 from printer import block_output
 
@@ -494,7 +494,7 @@ class LUE_Equilibrator(Equilibrator):
             if options['column_generation']['paths_selection'] is not None and path_set_selection_done is False:
 
                 # Create dictionary with path probabilities
-                pf_dict = {str(path.get_nodes_keys()): p_f[i] for i, path in zip(np.arange(len(p_f)), network.paths)}
+                pf_dict = {path.key: p_f[i] for i, path in zip(np.arange(len(p_f)), network.paths)}
 
                 print('\nPath selection:', 'probability_weight: '
                       + str(round(1 - options['column_generation']['dissimilarity_weight'], 1)) +
@@ -504,7 +504,6 @@ class LUE_Equilibrator(Equilibrator):
                 total_ods = 0
                 total_paths_removed = 0
 
-                # Combinatorial problem which works well for small path set
                 for od, paths in network.paths_od.items():
 
                     total_paths_od = len(paths)
@@ -513,7 +512,7 @@ class LUE_Equilibrator(Equilibrator):
                         network.paths_od[od], best_score \
                             = self.path_set_selection(
                             paths=paths,
-                            pf_dict=pf_dict,
+                            paths_probabibilities=pf_dict,
                             k=options['column_generation']['paths_selection'],
                             dissimilarity_weight=options['column_generation']['dissimilarity_weight']
                         )
@@ -740,12 +739,27 @@ class LUE_Equilibrator(Equilibrator):
 
     def path_set_selection(self,
                            paths,
-                           pf_dict,
+                           paths_probabibilities: Dict[str, ColumnVector],
                            k,
-                           dissimilarity_weight):
+                           dissimilarity_weight) -> Tuple[List, float]:
 
-        # https://www.geeksforgeeks.org/python-percentage-similarity-of-lists/
-        # https://stackoverflow.com/questions/41680388/how-do-i-iterate-through-combinations-of-a-list
+        if dissimilarity_weight == 0:
+
+            # Obtain paths probabilities for paths in OD pair
+            paths_probabilities = [paths_probabibilities[path.key] for path in paths]
+
+            # Sort paths by probabilities
+            idxs = np.argsort(-np.array(paths_probabilities).flatten())[:k]
+
+            # Return best path set
+            best_path_set = [paths[idx] for idx in idxs]
+
+            return best_path_set, _
+
+        # Combinatoric case: when dissimilary weight is different than 0
+
+        # Sources: # https://www.geeksforgeeks.org/python-percentage-similarity-of-lists/
+        #         # https://stackoverflow.com/questions/41680388/how-do-i-iterate-through-combinations-of-a-list
 
         best_score = -float('inf')
 
@@ -755,7 +769,7 @@ class LUE_Equilibrator(Equilibrator):
             total_similarity = 0
 
             for path in path_set:
-                total_probability = pf_dict[str(path.get_nodes_keys())]
+                total_probability = paths_probabibilities[str(path.get_nodes_keys())]
 
             for paths_pair in combinations(paths, 2):
                 path1_sequence = paths_pair[0].get_nodes_keys()
