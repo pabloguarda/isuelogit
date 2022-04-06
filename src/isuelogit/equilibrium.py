@@ -12,7 +12,7 @@ from itertools import combinations
 from paths import compute_path_size_factors
 from networks import TNetwork
 from estimation import UtilityFunction
-from utils import v_normalization,almost_zero, Options
+from utils import v_normalization, almost_zero, Options
 
 import math
 import time
@@ -23,15 +23,15 @@ from scipy import optimize
 from abc import ABC, abstractmethod
 import copy
 
+
 class Equilibrator(ABC):
 
     def __init__(self,
                  network: TNetwork = None,
                  utility_function: UtilityFunction = None,
-                 paths_generator = None,
+                 paths_generator=None,
                  **kwargs
                  ):
-
         self.network = network
         self.utility_function = utility_function
         self.paths_generator = paths_generator
@@ -65,12 +65,12 @@ class Equilibrator(ABC):
     def update_utility_parameters(self, value):
         self.utility_function = value
 
+
 class LUE_Equilibrator(Equilibrator):
 
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
-
 
         # Check that a matrix M and D has been provided
 
@@ -126,7 +126,7 @@ class LUE_Equilibrator(Equilibrator):
         self.options['column_generation']['dissimilarity_weight'] = 0
 
         # Coverage of OD pairs to sample new paths
-        self.options['column_generation']['ods_coverage']  = 1
+        self.options['column_generation']['ods_coverage'] = 1
 
         # Select ods at 'random', 'demand', 'demand_sequential'
         self.options['column_generation']['ods_sampling'] = 'demand'
@@ -134,20 +134,20 @@ class LUE_Equilibrator(Equilibrator):
         # Record the number of times that the ods sampling has been performed
         self.options['column_generation']['n_ods_sampling'] = 0
 
-        #Correction using path size logit
+        # Correction using path size logit
         self.options['path_size_correction'] = 0
 
-# TODO: Implement frankwolfe and MSE using as reference ta.py and comparing result with observed predicted_counts in files.
+    # TODO: Implement frankwolfe and MSE using as reference ta.py and comparing result with observed predicted_counts in files.
 
     def derivative_sue_objective_function_fisk(self,
-                                    f1: np.array,
-                                    f2: np.array,
-                                    lambda_bs: float,
-                                    theta: dict,
-                                    k_Z: List = [],
-                                    k_Y: List = ['tt'],
-                                    network=None
-                                    ):
+                                               f1: np.array,
+                                               f2: np.array,
+                                               lambda_bs: float,
+                                               theta: dict,
+                                               k_Z: List = [],
+                                               k_Y: List = ['tt'],
+                                               network=None
+                                               ):
 
         ''' Numerical issues generates innacuracy to compute the derivative and thus, to perofrm the binary search later. '''
 
@@ -161,7 +161,7 @@ class LUE_Equilibrator(Equilibrator):
         # x1 = network.D.dot(f1)
         # x2 = network.D.dot(f2)
 
-        delta_x2x1 =  network.D.dot(f2 - f1)
+        delta_x2x1 = network.D.dot(f2 - f1)
 
         # x_weighted = x1 + lambda_bs*(x2-x1)
         # np.allclose(x1 + lambda_bs * (x2 - x1), network.D.dot(f))
@@ -174,22 +174,23 @@ class LUE_Equilibrator(Equilibrator):
 
         if k_Z:
             for attr in k_Z:
-                Zx_vector = np.array(list(network.Z_data[attr]))[:,np.newaxis]
-                Z_dlambda += theta[attr]*Zx_vector
+                Zx_vector = np.array(list(network.Z_data[attr]))[:, np.newaxis]
+                Z_dlambda += theta[attr] * Zx_vector
 
             Z_dlambda = float(Z_dlambda.T.dot(delta_x2x1))
 
         # Component for endogeonous attributes dependent on link flow
-        traveltimes = [link.bpr.bpr_function_x(x=float(x)) for link, x in zip(network.links, x_weighted.flatten().tolist())]
+        traveltimes = [link.bpr.bpr_function_x(x=float(x)) for link, x in
+                       zip(network.links, x_weighted.flatten().tolist())]
 
-        traveltimes_dlambda = theta[k_Y[0]] * np.array(traveltimes)[:,np.newaxis].T.dot(delta_x2x1)
+        traveltimes_dlambda = theta[k_Y[0]] * np.array(traveltimes)[:, np.newaxis].T.dot(delta_x2x1)
 
         # Entropy term
 
         epsilon = 1e-12
-        #f1 + mid_lambda * (f2 - f1)
+        # f1 + mid_lambda * (f2 - f1)
         # entropy_dlambda = np.sum((f2-f1)*(np.log(f)+1))
-        entropy_dlambda = np.sum(almost_zero(f2-f1, tol = epsilon) * (np.log(f+epsilon) + 1))
+        entropy_dlambda = np.sum(almost_zero(f2 - f1, tol=epsilon) * (np.log(f + epsilon) + 1))
 
         # np.sum(almost_zero(f2-f1))
 
@@ -207,11 +208,9 @@ class LUE_Equilibrator(Equilibrator):
 
         epsilon = 1e-12
 
-        return np.sum(almost_zero(f, tol = epsilon)*(np.log(f+epsilon)))
+        return np.sum(almost_zero(f, tol=epsilon) * (np.log(f + epsilon)))
 
         # return np.log(f) * f
-
-
 
     def sue_objective_function_fisk(self,
                                     f: Vector,
@@ -228,25 +227,25 @@ class LUE_Equilibrator(Equilibrator):
         # x_vector = np.array(list(x_dict.values()))
         x_vector = network.D.dot(f)
 
-        if not np.all(f >=0):
+        if not np.all(f >= 0):
             print('some elements in the path flow vector are negative')
-
 
         # Objective function
 
         # Component for endogeonous attributes dependent on link flow
-        bpr_integrals = [float(link.bpr.bpr_integral_x(x=x)) for link, x in zip(network.links, x_vector.flatten().tolist())]
+        bpr_integrals = [float(link.bpr.bpr_integral_x(x=x)) for link, x in
+                         zip(network.links, x_vector.flatten().tolist())]
         # bpr_integrals = [float(link.bpr.bpr_integral_x(x=x_dict[i])) for i, link in links_dict.items()]
 
         tt_utility_integral = float(theta[k_Y[0]]) * np.sum(np.sum(bpr_integrals))
 
         # Component for exogenous attributes (independent on link flow)
-        Z_utility_integral =0
+        Z_utility_integral = 0
 
         if k_Z:
             for attr in k_Z:
-                Zx_vector = np.array(list(network.Z_data[attr]))[:,np.newaxis]
-                Z_utility_integral += float(theta[attr])*Zx_vector.T.dot(x_vector)
+                Zx_vector = np.array(list(network.Z_data[attr]))[:, np.newaxis]
+                Z_utility_integral += float(theta[attr]) * Zx_vector.T.dot(x_vector)
 
         # Objective function in multiattribute problem
         utility_integral = tt_utility_integral + float(Z_utility_integral)
@@ -264,16 +263,12 @@ class LUE_Equilibrator(Equilibrator):
         # objective_function = utility_integral #- entropy_function
         objective_function = utility_integral - entropy_function
 
-
         return float(objective_function)
-
-
-
 
     def traffic_assignment_path_space(self,
                                       q,
                                       vf: ColumnVector,
-                                      network = None):
+                                      network=None):
 
         """
 
@@ -308,12 +303,12 @@ class LUE_Equilibrator(Equilibrator):
 
         f = np.multiply(network.M.T.dot(q), p_f)
 
-        return f,p_f
+        return f, p_f
 
     def traffic_assignment(self,
                            q,
                            vf: Vector,
-                           network = None
+                           network=None
                            ):
 
         """ vf is assumed to be a column vector"""
@@ -323,23 +318,22 @@ class LUE_Equilibrator(Equilibrator):
 
         assert vf.shape[1] == 1, 'vector of path predicted_counts is not a column vector'
 
-        f,p_f = self.traffic_assignment_path_space(network = network,
-                                                   q = q,
-                                                   vf = vf)
+        f, p_f = self.traffic_assignment_path_space(network=network,
+                                                    q=q,
+                                                    vf=vf)
 
         x = network.D.dot(f)
 
-        return x,f,p_f
+        return x, f, p_f
 
     # @blockPrinting
     def path_based_suelogit_equilibrium(self,
-                                        features_Z = None,
+                                        features_Z=None,
                                         theta=None,
                                         q: ColumnVector = None,
-                                        silent_mode = False,
+                                        silent_mode=False,
                                         network=None,
                                         **kwargs):
-
 
         t0 = time.time()
 
@@ -365,7 +359,7 @@ class LUE_Equilibrator(Equilibrator):
             max_iters = 0
 
         if not silent_mode:
-            print("\nSUE via " + options['method'] +  " (max iters: " + str(max_iters) + ')', end = '\n')
+            print("\nSUE via " + options['method'] + " (max iters: " + str(max_iters) + ')', end='\n')
 
         gap = float("inf")
         gap_x = []
@@ -383,7 +377,7 @@ class LUE_Equilibrator(Equilibrator):
 
         while end_algorithm is False:
 
-            #Step 0
+            # Step 0
             if it == 0:
 
                 if exogenous_traveltimes:
@@ -400,12 +394,12 @@ class LUE_Equilibrator(Equilibrator):
 
                     if options['column_generation'].get('ods_sampling', None) == 'demand_sequential':
                         ods_coverage = options['column_generation'].get('ods_coverage', 1)
-                        options['column_generation']['ods_coverage'] = ods_coverage / kwargs.get('bilevel_iters',1)
+                        options['column_generation']['ods_coverage'] = ods_coverage / kwargs.get('bilevel_iters', 1)
 
                     self.sue_column_generation(theta=theta,
                                                n_paths=options['column_generation']['n_paths'],
-                                               ods_coverage= options['column_generation']['ods_coverage'],
-                                               ods_sampling = options['column_generation']['ods_sampling'],
+                                               ods_coverage=options['column_generation']['ods_coverage'],
+                                               ods_sampling=options['column_generation']['ods_sampling'],
                                                network=network
                                                )
                     column_generation_done = True
@@ -428,13 +422,13 @@ class LUE_Equilibrator(Equilibrator):
                     # (1618, 1775), (1618, 1776), (1618, 1777)
 
                 # Traffic assignment
-                x,f,p_f = self.traffic_assignment(
-                    network = network,
-                    q = q,
-                    vf = network.get_paths_utility(theta=theta,features_Z=features_Z))
+                x, f, p_f = self.traffic_assignment(
+                    network=network,
+                    q=q,
+                    vf=network.get_paths_utility(theta=theta, features_Z=features_Z))
 
                 initial_fisk_objective_function = self.sue_objective_function_fisk(
-                    network = network,
+                    network=network,
                     f=f,
                     theta=theta,
                     k_Z=features_Z)
@@ -451,22 +445,20 @@ class LUE_Equilibrator(Equilibrator):
                     vf=network.get_paths_utility(theta=theta, features_Z=features_Z))
 
                 if options['method'] == 'msa':
-
                     alpha_n = 1 / (it + 1)
 
                     # x = x + alpha_n * (y-x)
-                    f = f + alpha_n * (f_y-f)
+                    f = f + alpha_n * (f_y - f)
 
                 if options['method'] == 'fw':
-
                     lambda_ls, xmin_ls, fmin_ls, objectivemin_ls \
-                        = self.sue_line_search(theta = theta,
-                                               features_Z= features_Z,
-                                               iters = options['iters_fw'],
-                                               search_type=  options['search_fw'],
-                                               network = network,
-                                               f1 = f,
-                                               f2 = f_y)
+                        = self.sue_line_search(theta=theta,
+                                               features_Z=features_Z,
+                                               iters=options['iters_fw'],
+                                               search_type=options['search_fw'],
+                                               network=network,
+                                               f1=f,
+                                               f2=f_y)
 
                     x = xmin_ls
                     f = fmin_ls
@@ -475,16 +467,16 @@ class LUE_Equilibrator(Equilibrator):
 
                     # print('fisk objective', sue_objective_function_fisk(network=network, x_dict=x_dict , f=f_weighted, theta=theta, features=features))
 
-                #evaluate sue objective function
-                fisk_objective_function = self.sue_objective_function_fisk(network = network,
+                # evaluate sue objective function
+                fisk_objective_function = self.sue_objective_function_fisk(network=network,
                                                                            f=f,
                                                                            theta=theta,
                                                                            k_Z=features_Z)
 
                 fisk_objective_functions.append(fisk_objective_function)
 
-                if len(fisk_objective_functions)>=2:
-                # if it >= 2:
+                if len(fisk_objective_functions) >= 2:
+                    # if it >= 2:
                     # max_fisk_objective_functions = np.max(fisk_objective_functions[:-1])
                     # #TODO: Definition for equilibrium gap does not apply for SUE-logit but may adapt it
                     # change = (fisk_objective_function - max_fisk_objective_functions)
@@ -494,7 +486,8 @@ class LUE_Equilibrator(Equilibrator):
                     change = (fisk_objective_functions[-1] - fisk_objective_functions[-2])
 
                     gap = np.linalg.norm(
-                        np.divide(change, fisk_objective_functions[-1], out=np.zeros_like(change), where=fisk_objective_functions[-1] != 0))
+                        np.divide(change, fisk_objective_functions[-1], out=np.zeros_like(change),
+                                  where=fisk_objective_functions[-1] != 0))
 
                     gap_x.append(gap)
 
@@ -504,7 +497,7 @@ class LUE_Equilibrator(Equilibrator):
                 pf_dict = {str(path.get_nodes_keys()): p_f[i] for i, path in zip(np.arange(len(p_f)), network.paths)}
 
                 print('\nPath selection:', 'probability_weight: '
-                      + str(round(1-options['column_generation']['dissimilarity_weight'],1)) +
+                      + str(round(1 - options['column_generation']['dissimilarity_weight'], 1)) +
                       ', maximum number of paths per od: ' + str(options['column_generation']['paths_selection']))
 
                 total_paths = 0
@@ -517,23 +510,22 @@ class LUE_Equilibrator(Equilibrator):
                     total_paths_od = len(paths)
 
                     if total_paths_od > options['column_generation']['paths_selection']:
-
                         network.paths_od[od], best_score \
                             = self.path_set_selection(
-                            paths = paths,
-                            pf_dict = pf_dict,
-                            k = options['column_generation']['paths_selection'],
+                            paths=paths,
+                            pf_dict=pf_dict,
+                            k=options['column_generation']['paths_selection'],
                             dissimilarity_weight=options['column_generation']['dissimilarity_weight']
                         )
 
-                        total_paths_removed += total_paths_od-options['column_generation']['paths_selection']
+                        total_paths_removed += total_paths_od - options['column_generation']['paths_selection']
 
-                        total_ods+=1
+                        total_ods += 1
 
                     total_paths += len(network.paths_od[od])
 
                 with block_output(show_stdout=False, show_stderr=False):
-                    network.load_paths(paths_od = network.paths_od)
+                    network.load_paths(paths_od=network.paths_od)
 
                 path_set_selection_done = True
 
@@ -545,7 +537,6 @@ class LUE_Equilibrator(Equilibrator):
 
                 # New paths change trajectory of equilibria so the process is restarted
                 it = -1
-
 
             if not options['uncongested_mode'] and not exogenous_traveltimes:
                 for link, j in zip(network.links, range(len(x))):
@@ -564,7 +555,6 @@ class LUE_Equilibrator(Equilibrator):
                 print("Assignment did not converge with the desired gap")
                 # print("Traffic assignment did not converge with the desired gap and max iterations are reached")
 
-
         if not silent_mode and max_iters > 0:
 
             print('\nEquilibrium gaps:', ["{0:.0E}".format(val) for val in gap_x])
@@ -575,14 +565,16 @@ class LUE_Equilibrator(Equilibrator):
             final_fisk_objective_function = fisk_objective_functions[-1]
 
             print('Initial Fisk Objective: ' + '{:,}'.format(
-                round(initial_fisk_objective_function,2)))
+                round(initial_fisk_objective_function, 2)))
             print('Final Fisk Objective: ' + '{:,}'.format(
-                round(final_fisk_objective_function,2)))
+                round(final_fisk_objective_function, 2)))
 
             if initial_fisk_objective_function != 0:
                 print('Improvement Fisk Objective: ' + "{:.2%}".format(
-                    np.round((final_fisk_objective_function - initial_fisk_objective_function)/abs(initial_fisk_objective_function), 4)))
-            print('Final gap: ' + "{0:.0E}".format(gap) + '. Acc. bound: ' + "{0:.0E}".format(options['accuracy'])+  '. Time: ' + str(round(time.time() - t0, 1)) + ' [s]')
+                    np.round((final_fisk_objective_function - initial_fisk_objective_function) / abs(
+                        initial_fisk_objective_function), 4)))
+            print('Final gap: ' + "{0:.0E}".format(gap) + '. Acc. bound: ' + "{0:.0E}".format(
+                options['accuracy']) + '. Time: ' + str(round(time.time() - t0, 1)) + ' [s]')
             # print('Iters:',str(it - 1))
 
         links_keys = list(network.links_dict.keys())
@@ -641,7 +633,6 @@ class LUE_Equilibrator(Equilibrator):
             lambdas_bs = np.arange(0, 1, 0.01)
 
             for lambda_bs in np.arange(0, 1, 0.01):
-
                 fopt = f1 + lambda_bs * (f2 - f1)
 
                 values.append(self.sue_objective_function_fisk(f=fopt,
@@ -650,11 +641,11 @@ class LUE_Equilibrator(Equilibrator):
                                                                k_Z=features_Z))
 
                 derivatives.append(self.derivative_sue_objective_function_fisk(
-                    f1 = f1,
-                    f2 = f2,
-                    theta = theta,
-                    lambda_bs = lambda_bs,
-                    network = network,
+                    f1=f1,
+                    f2=f2,
+                    theta=theta,
+                    lambda_bs=lambda_bs,
+                    network=network,
                     k_Z=features_Z
                 ))
 
@@ -665,7 +656,6 @@ class LUE_Equilibrator(Equilibrator):
             plt.show()
 
             return values, derivatives
-
 
         if network is None:
             network = self.network
@@ -686,16 +676,16 @@ class LUE_Equilibrator(Equilibrator):
                 # print(derivative)
 
                 derivative = self.derivative_sue_objective_function_fisk(
-                    f1 = f1,
-                    f2 = f2,
-                    theta = theta,
-                    lambda_bs = mid_lambda,
-                    network = network,
+                    f1=f1,
+                    f2=f2,
+                    theta=theta,
+                    lambda_bs=mid_lambda,
+                    network=network,
                     k_Z=features_Z
                 )
                 # print(derivative)
 
-                if derivative<0:
+                if derivative < 0:
                     left_lambda = left_lambda
                     right_lambda = 0.5 * (left_lambda + right_lambda)
 
@@ -704,13 +694,13 @@ class LUE_Equilibrator(Equilibrator):
 
             lambda_opt = mid_lambda
 
-            fopt = f1 + mid_lambda * (f2-f1)
+            fopt = f1 + mid_lambda * (f2 - f1)
 
             xopt = network.D.dot(fopt)
 
             objective_opt = self.sue_objective_function_fisk(f=fopt,
                                                              theta=theta,
-                                                             network = network,
+                                                             network=network,
                                                              k_Z=features_Z)
 
         if search_type == 'grid':
@@ -719,19 +709,19 @@ class LUE_Equilibrator(Equilibrator):
             xopt = None
             fopt = None
 
-            grid_lambda = np.linspace(0,1, iters)
+            grid_lambda = np.linspace(0, 1, iters)
             objectives = []
 
             for lambda_ls in grid_lambda:
 
                 # From Damberg (1996)
-                fnew = f1 + lambda_ls * (f2-f1)
+                fnew = f1 + lambda_ls * (f2 - f1)
                 xnew = network.D.dot(fnew)
 
                 objective_new = self.sue_objective_function_fisk(f=fnew,
                                                                  theta=theta,
                                                                  k_Z=features_Z,
-                                                                 network = network
+                                                                 network=network
                                                                  )
 
                 objectives.append(objective_new)
@@ -746,7 +736,7 @@ class LUE_Equilibrator(Equilibrator):
                     # Assume that the objective function is always concave to save iterations
                     break
 
-        return lambda_opt, xopt, fopt,objective_opt
+        return lambda_opt, xopt, fopt, objective_opt
 
     def path_set_selection(self,
                            paths,
@@ -759,7 +749,7 @@ class LUE_Equilibrator(Equilibrator):
 
         best_score = -float('inf')
 
-        for path_set in combinations(paths, k): # 2 for pairs, 3 for triplets, etc
+        for path_set in combinations(paths, k):  # 2 for pairs, 3 for triplets, etc
 
             total_probability = 0
             total_similarity = 0
@@ -768,17 +758,17 @@ class LUE_Equilibrator(Equilibrator):
                 total_probability = pf_dict[str(path.get_nodes_keys())]
 
             for paths_pair in combinations(paths, 2):
-
                 path1_sequence = paths_pair[0].get_nodes_keys()
                 path2_sequence = paths_pair[1].get_nodes_keys()
 
-                similarity = len(set(path1_sequence) & set(path2_sequence)) / float(len(set(path1_sequence) | set(path2_sequence)))
+                similarity = len(set(path1_sequence) & set(path2_sequence)) / float(
+                    len(set(path1_sequence) | set(path2_sequence)))
                 total_similarity += similarity
 
-            average_dissimilarity = 1-total_similarity/len(path_set)
-            average_probability = total_probability/len(path_set)
+            average_dissimilarity = 1 - total_similarity / len(path_set)
+            average_probability = total_probability / len(path_set)
 
-            score = dissimilarity_weight*average_dissimilarity + (1-dissimilarity_weight)*average_probability
+            score = dissimilarity_weight * average_dissimilarity + (1 - dissimilarity_weight) * average_probability
 
             if score >= best_score:
                 best_score = score
@@ -786,18 +776,15 @@ class LUE_Equilibrator(Equilibrator):
                 best_average_probability = average_probability
                 best_average_dissimilarity = average_dissimilarity
 
-
-
         return list(best_path_set), best_score
-
 
     def sue_column_generation(self,
                               network,
                               theta,
                               n_paths,
-                              ods_coverage = None,
-                              ods_sampling = None,
-                              silent_mode = False) -> None:
+                              ods_coverage=None,
+                              ods_sampling=None,
+                              silent_mode=False) -> None:
 
         '''
 
@@ -842,7 +829,10 @@ class LUE_Equilibrator(Equilibrator):
         if ods_sampling is None:
             ods_sampling = self.options['column_generation']['ods_sampling']
 
-        print('\nColumn generation:', str(n_paths) + ' paths per od, '+ "{:.1%}". format(ods_coverage) + ' od coverage, ' + ods_sampling + ' sampling' )
+        print('\nColumn generation:', str(n_paths) + ' paths per od, ' + "{:.1%}".format(
+            ods_coverage) + ' od coverage, ' + ods_sampling + ' sampling')
+
+        ods_sample = None
 
         # Sample part of the ods according to the coverage defined for column generation
         if ods_coverage > 0 and ods_coverage <= 1:
@@ -853,22 +843,22 @@ class LUE_Equilibrator(Equilibrator):
             if ods_sampling == 'demand':
                 ods_sample = network.OD.sample_ods_by_demand(proportion=ods_coverage)
 
-            if ods_sampling == 'demand_sequential':
+            if ods_sampling == 'sequential':
                 ods_sample = network.OD.sample_ods_by_demand_sequentially(
-                    proportion= ods_coverage,
-                    k = self.options['column_generation']['n_ods_sampling'])
-                self.options['column_generation']['n_ods_sampling']+=1
+                    proportion=ods_coverage,
+                    k=self.options['column_generation']['n_ods_sampling'])
+                self.options['column_generation']['n_ods_sampling'] += 1
 
-        else:
+        if ods_sample is None:
             ods_sample = network.ods
 
         with block_output(show_stdout=False, show_stderr=False):
-            paths, paths_od = self.paths_generator.k_shortest_paths(network = network,
-                                                                    theta = theta,
-                                                                    k = n_paths,
-                                                                    ods = ods_sample,
-                                                                    paths_per_od = n_paths,
-                                                                    silent_mode = True)
+            paths, paths_od = self.paths_generator.k_shortest_paths(network=network,
+                                                                    theta=theta,
+                                                                    k=n_paths,
+                                                                    ods=ods_sample,
+                                                                    paths_per_od=n_paths,
+                                                                    silent_mode=True)
 
         # See if new paths were found so they are added into the existing path set
         paths_added = 0
@@ -896,7 +886,8 @@ class LUE_Equilibrator(Equilibrator):
         # enablePrint()
 
         # print("Total number of links among paths: ", np.sum(network.D))
-        print(str(paths_added) + ' paths added/replaced among ' + str(n_ods_added) + ' ods (New total paths: ' + str(len(network.paths)) + ')')
+        print(str(paths_added) + ' paths added/replaced among ' + str(n_ods_added) + ' ods (New total paths: ' + str(
+            len(network.paths)) + ')')
         # print('- Computation time: ' + str(np.round(time.time() - t0, 1)) + ' [s]')
 
 
@@ -1347,7 +1338,3 @@ def sue_logit_dial(root, subfolder, prefix_filename, options, Z_dict, k_Z, theta
     tt_x = {(int(i[0]) - 1, int(i[1]) - 1, '0'): link.traveltime for i, link in linkSet.items()}
 
     return x, tt_x
-
-
-
-
