@@ -21,6 +21,8 @@ bs4 == 0.0.1
 addfips == 0.3.1
 shapely == 1.8.1.post1
 
+psutil
+
 # geopandas #== 0.10.2
 # rtree == 0.9.7
 
