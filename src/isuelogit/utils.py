@@ -140,11 +140,10 @@ def v_normalization(v, C):
         v = v.flatten()
         # flattened = True
 
-    C = C.astype('float')
-    C[C == 0] = float('nan') #np.nan
-    v_max = np.nanmax(v * C, axis=1)
-    # vC = v * C
-    # vC[np.isnan(vC)] = float('-inf')
+    # C = C.astype('float')
+    # C[C == 0] = float('nan') #np.nan
+    # v_max = np.nanmax(v * C, axis=1)
+    v_max = np.nanmax(v * np.where(C.astype('float')==0, float('nan'),C), axis=1)
 
 
     # Without using npnanmax
