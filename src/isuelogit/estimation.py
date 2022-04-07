@@ -1032,7 +1032,7 @@ class OuterOptimizer:
         mode_lm = 'lambda'
         best_theta_lm = None
 
-        paths_probabilities = paths_probabilities.copy()
+        # paths_probabilities = paths_probabilities.copy()
 
         for iter in range(0, iters):
 
@@ -1471,7 +1471,7 @@ class Learner:
             q0 = network.q
 
         # Update od
-        q_current = copy.deepcopy(q0)
+        q_current = q0 # copy.deepcopy(q0)
 
         # Initialization
         theta_current = {k: v for k, v in self.utility_function.initial_values.items() if
@@ -1627,7 +1627,7 @@ class Learner:
                     parameters_constraints=options.get('parameters_constraints')
                 )
 
-            q_current = q_new.copy()
+            # q_current = q_new.copy()
             theta_current = theta_new.copy()
 
             with block_output(show_stdout=iteration_report, show_stderr=iteration_report):
@@ -1642,7 +1642,7 @@ class Learner:
                 results_eq[iter] \
                     = self.equilibrator.path_based_suelogit_equilibrium(
                     theta=theta_current,
-                    q=q_current,
+                    q=q_new,
                     features_Z=features_Z,
                     **options_copy
                 )
