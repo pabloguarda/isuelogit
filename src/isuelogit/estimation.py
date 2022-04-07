@@ -3037,59 +3037,61 @@ def jacobian_response_function(theta,
         # print('Jacobian is computed analytically')
 
     # TODO: perform the gradient operation for each attribute using autograd
-    J = []
+    # J = []
 
     # Jacobian/gradient of response function
 
     grad_m_terms = {}
 
     grad_m_terms[0] = M.T.dot(q)
-    grad_m_terms[1] = C  # computing M.T.dot(M) is too slow for large networks
     grad_m_terms[2] = paths_probabilities.dot(paths_probabilities.T)
 
     counter = 0
     n_features = theta.shape[0]
+    jacobian = np.zeros((D.shape[0], n_features))
 
     if features_idxs is None:
         features_idxs = np.arange(theta.shape[0])
 
     # This operation is performed for each attribute k
-    for k in features_idxs:  # np.arange(len([*features_Y,*features])):
+    for k in range(n_features):
 
-        # printProgressBar(counter, n_features-1, prefix='Progress:', suffix='', length=20)
+        if k in features_idxs:
 
-        # Attributes vector at link and path level
-        Zk_x = design_matrix[:, k][:, np.newaxis]
-        Zk_f = D.T.dot(Zk_x)
+            # printProgressBar(counter, n_features-1, prefix='Progress:', suffix='', length=20)
 
-        # TODO: These operations are computationally expensive and may be vectorized further to make the complexity to not depend on the dimension of the utility vector
+            # Attributes vector at link and path level
+            Zk_x = design_matrix[:, k][:, np.newaxis]
+            Zk_f = D.T.dot(Zk_x)
 
-        grad_m_terms[3] = -(np.ones(Zk_f.shape).dot(Zk_f.T) - Zk_f.dot(np.ones(Zk_f.shape).T))
+            # TODO: These operations are computationally expensive and may be vectorized further to make the complexity
+            #  to not depend on the dimension of the utility vector
 
-        # grad_m = D.dot(np.multiply(grad_m_terms[0],
-        #                             np.multiply(grad_m_terms[2], grad_m_terms[3]))).dot(
-        #     np.ones(Zk_f.shape))
-        grad_m = D.dot(np.multiply(grad_m_terms[0], np.multiply(grad_m_terms[1], np.multiply(grad_m_terms[2],
-                                                                                             grad_m_terms[
-                                                                                                 3])))).dot(
-            np.ones(Zk_f.shape))
+            grad_m_terms[3] = -(np.ones(Zk_f.shape).dot(Zk_f.T) - Zk_f.dot(np.ones(Zk_f.shape).T))
+
+            # grad_m = D.dot(np.multiply(grad_m_terms[0],
+            #                             np.multiply(grad_m_terms[2], grad_m_terms[3]))).dot(
+            #     np.ones(Zk_f.shape))
+            grad_m = D.dot(np.multiply(grad_m_terms[0],
+                                       np.multiply(C, np.multiply(grad_m_terms[2],grad_m_terms[3])))).dot(np.ones(Zk_f.shape))
+
+        else:
+            grad_m = np.zeros((jacobian.shape[0],1))
 
         # Gradient of objective function
 
-        if k == 0:
-            J = grad_m
+        # if counter == 0:
+        #     jacobian = grad_m
 
-        if k > 0:
-            J = np.column_stack((J, grad_m))
+        # if k > 0:
+        jacobian[:,counter] = grad_m.flatten() #np.column_stack((J, grad_m))
 
         counter += 1
 
-    jacobian = np.zeros((J.shape[0], theta.shape[0]))
-
-    counter = 0
-    for feature_idx in features_idxs:
-        jacobian[:, feature_idx] = J[:, counter]
-        counter += 1
+    # counter = 0
+    # for feature_idx in features_idxs:
+    #     jacobian[:, feature_idx] = J[:, counter]
+    #     counter += 1
 
     if counts is not None:
         return jacobian, paths_probabilities, D, M
@@ -3500,7 +3502,6 @@ def gradient_objective_function(theta: ColumnVector,
         return numeric_grad
 
     # TODO: perform the gradient operation for each attribute using a tensor
-    gradient_l2norm = []
 
     # Jacobian/gradient of response function
 
@@ -3509,8 +3510,7 @@ def gradient_objective_function(theta: ColumnVector,
     grad_m_terms[0] = M.T.dot(q)
 
     # This is the availability matrix and it is very expensive to compute when using matrix operation M.T.dot(M) but not when calling function choice_set_matrix_from_M
-    grad_m_terms[1] = C  # computing M.T.dot(M) is too slow
-    grad_m_terms[2] = paths_probabilities.dot(paths_probabilities.T)
+    grad_m_terms[1] = paths_probabilities.dot(paths_probabilities.T)
 
     # This operation is performed for each attribute k. Then, the compl
 
@@ -3525,41 +3525,41 @@ def gradient_objective_function(theta: ColumnVector,
 
     counter = 0
     n_features = theta.shape[0]
+    gradient = np.zeros_like(theta, dtype=np.float64)
 
     if features_idxs is None:
         features_idxs = np.arange(theta.shape[0])
 
-    for k in features_idxs:
+    for k in range(n_features):
 
-        # printProgressBar(counter, n_features - 1, prefix='Progress:', suffix='', length=20)
+        if k in features_idxs:
 
-        # Attributes vector at link and path levels
-        Zk_x = design_matrix[:, k][:, np.newaxis]
-        Zk_f = D.T.dot(Zk_x)
+            # printProgressBar(counter, n_features - 1, prefix='Progress:', suffix='', length=20)
 
-        if standardization is not None:
-            Zk_f = preprocessing.scale(Zk_f,
-                                       with_mean=standardization['mean'],
-                                       with_std=standardization['sd'],
-                                       axis=0)
-        grad_m_terms[3] = -(np.ones(Zk_f.shape).dot(Zk_f.T) - Zk_f.dot(np.ones(Zk_f.shape).T))
+            # Attributes vector at link and path levels
+            Zk_x = design_matrix[:, k][:, np.newaxis]
+            Zk_f = D.T.dot(Zk_x)
 
-        grad_m = D.dot(np.multiply(grad_m_terms[0],
-                                   np.multiply(grad_m_terms[1],
-                                               np.multiply(grad_m_terms[2], grad_m_terms[3])))).dot(
-            np.ones(Zk_f.shape))
+            if standardization is not None:
+                Zk_f = preprocessing.scale(Zk_f,
+                                           with_mean=standardization['mean'],
+                                           with_std=standardization['sd'],
+                                           axis=0)
 
-        gradient_l2norm_k = float(2 * grad_m.T.dot(m - counts))  # / adjusted_n
+            grad_m_terms[2] = Zk_f.dot(np.ones(Zk_f.shape).T)
+            # grad_m_terms[3] = -(np.ones(Zk_f.shape).dot(Zk_f.T) - Zk_f.dot(np.ones(Zk_f.shape).T))
 
-        gradient_l2norm.append(float(gradient_l2norm_k))
+            grad_m = D.dot(
+                np.multiply(grad_m_terms[0],
+                            np.multiply(C,
+                                        np.multiply(grad_m_terms[1],
+                                                    grad_m_terms[2]-grad_m_terms[2].T)))).dot(np.ones(Zk_f.shape))
 
-        counter += 1
+            gradient[counter] = float(2 * grad_m.T.dot(m - counts))
 
-    gradient = np.zeros_like(theta, dtype=np.float64)
+        else:
+            gradient[counter] = 0
 
-    counter = 0
-    for feature_idx in features_idxs:
-        gradient[feature_idx] = gradient_l2norm[counter]
         counter += 1
 
     return gradient
@@ -3712,10 +3712,10 @@ def diagonal_hessian_objective_function(theta: ColumnVector,
 
             # Gradient for path probabilities
 
-            grad_p_f_terms[0] = C  # grad_m_terms[1]
+              # grad_m_terms[1]
             grad_p_f_terms[1] = paths_probabilities.dot(paths_probabilities.T)  # grad_m_terms[2]
             grad_p_f_terms[2] = (np.ones(Zk_f.shape).dot(Zk_f.T) - Zk_f.dot(np.ones(Zk_f.shape).T))  # grad_m_terms[3]
-            grad_p_f = np.multiply(grad_p_f_terms[0], np.multiply(grad_p_f_terms[1], grad_p_f_terms[2])).dot(
+            grad_p_f = np.multiply(C, np.multiply(grad_p_f_terms[1], grad_p_f_terms[2])).dot(
                 np.ones(Zk_f.shape))
 
             # Gradient of objective function
