@@ -3701,10 +3701,15 @@ def diagonal_hessian_objective_function(theta: ColumnVector,
 
         # print('Hessian is being computed analytically')
 
+        grad_p_f_terms = {}
+        grad_p_f_terms[1] = paths_probabilities.dot(paths_probabilities.T)
+
+        jac_m_k_terms = {}
+        jac_m_k_terms[0] = M.T.dot(q)
+
         # This operation is performed for each attribute k
         for k in np.arange(theta.shape[0]):  # np.arange(len([*features_Y,*features])):
             # k = 0
-            grad_p_f_terms = {}
 
             # Attributes vector at link and path level
             Zk_x = design_matrix[:, k][:, np.newaxis]
@@ -3712,15 +3717,12 @@ def diagonal_hessian_objective_function(theta: ColumnVector,
 
             # Gradient for path probabilities
 
-              # grad_m_terms[1]
-            grad_p_f_terms[1] = paths_probabilities.dot(paths_probabilities.T)  # grad_m_terms[2]
+              # grad_m_terms[1] # grad_m_terms[2]
             grad_p_f_terms[2] = (np.ones(Zk_f.shape).dot(Zk_f.T) - Zk_f.dot(np.ones(Zk_f.shape).T))  # grad_m_terms[3]
             grad_p_f = np.multiply(C, np.multiply(grad_p_f_terms[1], grad_p_f_terms[2])).dot(
                 np.ones(Zk_f.shape))
 
             # Gradient of objective function
-            jac_m_k_terms = {}
-            jac_m_k_terms[0] = M.T.dot(q)
             jac_m_k_terms[1] = C  # computing M.T.dot(M) is too slow
             jac_m_k_terms[2] = grad_p_f_terms[1]
             jac_m_k_terms[3] = (np.ones(Zk_f.shape).dot(Zk_f.T) - Zk_f.dot(np.ones(Zk_f.shape).T))
