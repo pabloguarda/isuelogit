@@ -279,10 +279,6 @@ class LUE_Equilibrator(Equilibrator):
         if network is None:
             network = self.network
 
-        # Network matrices
-        C = network.C
-        # q = network.q
-
         assert q.shape[1] == 1, 'od vector is not a column vector'
 
         # TODO: store this matrix in the network object eventually to save computation
@@ -292,12 +288,12 @@ class LUE_Equilibrator(Equilibrator):
 
         # qM = q.dot(network.M)
 
-        vf = v_normalization(v=vf, C=C)
+        vf = v_normalization(v=vf, C=network.C)
         exp_vf = np.exp(vf)
         # v = np.exp(np.sum(V_Z, axis=1) + V_Y)
 
         # Denominator logit functions
-        sum_exp_vf = C.dot(exp_vf)
+        sum_exp_vf = network.C.dot(exp_vf)
 
         p_f = exp_vf / sum_exp_vf
 
