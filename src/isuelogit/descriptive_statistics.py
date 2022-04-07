@@ -499,7 +499,7 @@ def scatter_plots_features(links_df, features: Dict[str, str]):
     #Randomly sample points to avoid having a heavy figure
     df = df.sample(frac=0.5, replace=False, random_state=1)
 
-    fig = plt.figure()
+    # fig = plt.figure()
 
     # https://seaborn.pydata.org/tutorial/axis_grids.html
 
