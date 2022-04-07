@@ -513,7 +513,13 @@ def scatter_plots_features(links_df, features: Dict[str, str]):
 
     g.fig.set_size_inches(14, 12)
 
+    range_ticks = [0]+list(np.round(np.arange(0.2,1,0.2),1)) + [1]
+    g.set(xlim=[0, 1], ylim=[0, 1], xticks = range_ticks, yticks = range_ticks)
+
+    f = lambda x, pos: str(x).rstrip('0').rstrip('.')
+
     for ax in plt.gcf().axes:
+        ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(f))
         ax.set_xlabel(ax.get_xlabel(), fontsize=12)
         ax.set_ylabel(ax.get_ylabel(), fontsize=12)
         ax.tick_params(axis='y', labelsize=12)
