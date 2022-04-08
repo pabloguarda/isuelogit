@@ -1013,7 +1013,7 @@ def read_tntp_od(network_name: str,
     Q = import_matrix(filepath=filepath, network_name=network_name)
 
     assert Q.shape[0] > 0, 'Matrix Q was not succesfully read'
-    print('Matrix Q ' + str(Q.shape) + ' read in ' + str(round(time.time() - t0, 1)) + '[s]')
+    print('Matrix Q ' + str(Q.shape) + ' read in ' + str(round(time.time() - t0, 1)) + '[s]                        \n')
 
     return Q
 
