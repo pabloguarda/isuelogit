@@ -1404,6 +1404,20 @@ class Artist:
 
         return fig
 
+    class OOMFormatter(matplotlib.ticker.ScalarFormatter):
+        def __init__(self, order=0, fformat="%1.1f", offset=True, mathText=True):
+            self.oom = order
+            self.fformat = fformat
+            matplotlib.ticker.ScalarFormatter.__init__(self, useOffset=offset, useMathText=mathText)
+
+        def _set_orderOfMagnitude(self, nothing=None):
+            self.orderOfMagnitude = self.oom
+
+        def _set_format(self, vmin=None, vmax=None):
+            self.format = self.fformat
+            if self._useMathText:
+                self.format = '$%s$' % matplotlib.ticker._mathdefault(self.format)
+
     def convergence_models(self,
                     results_dfs: Dict[str, pd.DataFrame],
                     features: Dict[str, str],
@@ -1420,7 +1434,7 @@ class Artist:
         if folder is None:
             folder = self.folder
 
-        colors = ['black', 'gray', 'red', 'green', 'c', 'm', 'y', 'b', 'w']
+        colors = ['gray', 'red', 'green', 'c', 'm', 'y', 'b', 'w']
         # colors = [u'black', u'g', u'r', u'c', u'm', u'y', u'k']
 
         n_models = len(list(results_dfs.keys()))
@@ -1435,13 +1449,13 @@ class Artist:
         axs_exogenous_parameters = ax[3,:]
         # axs_loss = plt.subplot(2, n_models, 2, sharex=axs_parameters)
 
-        axs_traveltime[0].set_ylabel("Travel time parameter")
-        axs_exogenous_parameters[0].set_ylabel("Parameters of \n exogenous features")
+        axs_traveltime[0].set_ylabel("Travel time coefficient")
+        axs_exogenous_parameters[0].set_ylabel("Exogenous attributes coefficients")
         axs_loss[0].set_ylabel("Objective function")
 
 
         # Paths plots
-        axs_paths[0].set_ylabel("Number of paths")
+        axs_paths[0].set_ylabel("Paths")
 
         #Y axes are shared and are removed from all plots starting from second column
         for row in range(0,ax.shape[0]):
@@ -1493,14 +1507,26 @@ class Artist:
             acc_iters += results_df.shape[0]
 
             # Add horizontal line at y = 0 in parameter estimates plots
-            axs_traveltime[n_model].axhline(0, linestyle='dashed', color = 'gray')
-            axs_exogenous_parameters[n_model].axhline(0, linestyle='dashed', color = 'gray')
+            axs_traveltime[n_model].axhline(0, linestyle='dashed', color = 'white')
+            axs_exogenous_parameters[n_model].axhline(0, linestyle='dashed', color = 'white')
+            # axs_traveltime[n_model].set_ylim(0, int(max_paths * 1.1))
+            # axs_exogenous_parameters[n_model].set_ylim(0, int(max_paths * 1.1))
 
             axs_loss[n_model].plot('iter', 'objective', data=results_df[['iter', 'objective']])
 
             #Paths plots
-            axs_paths[n_model].plot('iter', 'n_paths', data=results_df[['iter', 'n_paths']])
+            axs_paths[n_model].plot('iter', 'n_paths',
+                                    data=results_df[['iter', 'n_paths']],
+                                    label = 'total', color = 'black', linestyle='solid')
+            axs_paths[n_model].plot('iter', 'n_paths_added',
+                                    data=results_df[['iter', 'n_paths_added']],
+                                    label = 'generated', color = 'black', linestyle='dashed')
+            axs_paths[n_model].plot('iter', 'n_paths_effectively_added',
+                                    data=results_df[['iter', 'n_paths_effectively_added']],
+                                    label = 'added', color = 'black', linestyle='dotted')
+
             axs_paths[n_model].set_ylim(0,int(max_paths*1.1))
+
             # axs_paths[n_model].axhline(0, linestyle='dashed', color = 'gray')
 
             #Add proper legend
@@ -1518,12 +1544,25 @@ class Artist:
         class ScalarFormatterForceFormat(ScalarFormatter):
             def _set_format(self):  # Override function that finds format to use.
                 self.format = "%0.1f"  # Give format here
-
         for axi in axs_loss:
             yfmt = ScalarFormatterForceFormat()
             yfmt.set_powerlimits((0, 0))
             axi.yaxis.set_major_formatter(yfmt)
 
+        for axi in axs_paths:
+            yfmt = OOMFormatter(3, "%1.1f")
+            yfmt.set_powerlimits((0, 0))
+            axi.yaxis.set_major_formatter(yfmt)
+
+
+        # Legend path plots
+        lines1, labels1 = axs_paths[0].get_legend_handles_labels()
+
+        fig.legend(lines1, labels1, title="Paths", loc='upper center', ncol=3, prop={'size': self.fontsize}
+                   , bbox_to_anchor=[0.52, -0.25]
+                   , bbox_transform=BlendedGenericTransform(fig.transFigure, ax[-1, 0].transAxes))
+
+        # Legend attributes
         lines1, labels1 = axs_traveltime[1].get_legend_handles_labels()
         lines2, labels2 = axs_exogenous_parameters[1].get_legend_handles_labels()
         # lines2, labels2 = axs_exogenous_parameters[2].get_legend_handles_labels()
@@ -1536,9 +1575,10 @@ class Artist:
 
 
         # g.fig.legend(handles=handles, labels=labels, loc='lower center', ncol=4)
-        fig.legend(lines, labels, title="Features", loc='upper center', ncol=len(features), prop={'size': self.fontsize}
-                   , bbox_to_anchor=[0.52, -0.25]
+        fig.legend(lines, labels, title="Attributes", loc='upper center', ncol=len(features), prop={'size': self.fontsize}
+                   , bbox_to_anchor=[0.52, -0.5]
                    , bbox_transform=BlendedGenericTransform(fig.transFigure, ax[-1,0].transAxes))
+
 
         fig.tight_layout()
 
