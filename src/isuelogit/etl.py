@@ -710,6 +710,30 @@ class SparkReader:
 
     def read_inrix_data(self, filepaths: [], selected_period: {} = {}) -> pyspark.sql.DataFrame:
 
+        '''
+
+        Date Time	Timestamp in local time
+        Segment ID	INRIX XD segment ID
+        UTC Date Time	Timestamp in UTC
+        Speed(mph or kmh)	Estimated harmonic mean speed
+        Historic Average Speed(mph or kmh) 	Historical average speed for that hour of the day and day of the week
+        Ref Speed(mph or kmh)	The ‘free flow speed’. The speed driven on this road when it is  wide open,
+        based on INRIX historical data.  Note that this is not legal speed limit.
+        Travel Time (Minutes)	The travel time in minutes
+        CValue 	The confidence value is an integer ranging from 0 to 100 inclusive that indicates the confidence that
+        INRIX has in the correctness of a real-time speeds
+        Pct Score30	Percentage of the segment minutes based on actual speeds data for the time period.
+        Pct Score20	Percentage of the segment minutes based on historic average speed.
+        Pct Score10	Percentage of the segment minutes based on the reference ‘free flow’ speed.
+
+        Args:
+            filepaths:
+            selected_period:
+
+        Returns:
+
+        '''
+
         # small_speed_df1 = pd.read_csv(filepaths[0], nrows=1000)
         # small_speed_df2 = pd.read_csv(filepaths[1], nrows=1000)
         #
@@ -879,10 +903,12 @@ class SparkReader:
         inrix_data_segments_df = inrix_data_segments_sdf.toPandas()
 
         # Add coeficient of variation for travel time and speed
-        inrix_data_segments_df['traveltime_cv'] = inrix_data_segments_df['traveltime_sd'] / inrix_data_segments_df[
-            'traveltime_avg']
+        # inrix_data_segments_df['traveltime_cv'] = inrix_data_segments_df['traveltime_sd'] / inrix_data_segments_df[
+        #     'traveltime_avg']
+        inrix_data_segments_df['traveltime_cv'] = inrix_data_segments_df['speed_sd'] / inrix_data_segments_df[
+            'speed_hist_avg']
 
-        inrix_data_segments_df['speed_cv'] = inrix_data_segments_df['speed_sd'] / inrix_data_segments_df['speed_avg']
+        inrix_data_segments_df['speed_cv'] = inrix_data_segments_df['speed_sd'] / inrix_data_segments_df['speed_hist_avg']
 
         return inrix_data_segments_df
 
@@ -1666,11 +1692,12 @@ def feature_engineering_fresno(links, network, lwrlk_only = True):
         for link in links:
             # link.Z_dict['tt_reliability'] = min(1,link.Z_dict['speed_avg']/link.Z_dict['speed_ref_avg'])
             if link.Z_dict['speed_ref_avg'] !=0:
-                link.Z_dict['tt_reliability'] = link.Z_dict['speed_avg'] / link.Z_dict['speed_ref_avg']
+                link.Z_dict['speed_reliability'] = link.Z_dict['speed_hist_avg'] / link.Z_dict['speed_ref_avg']
             else:
-                link.Z_dict['tt_reliability'] = 0
+                link.Z_dict['speed_reliability'] = 0
 
-    new_features = ['low_inc', 'high_inc','no_incidents','no_bus_stops','no_intersections','tt_sd_adj','tt_reliability']
+    new_features = ['low_inc', 'high_inc','no_incidents','no_bus_stops',
+                    'no_intersections','tt_sd_adj','speed_reliability']
 
     if lwrlk_only:
         for key in new_features:
