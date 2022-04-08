@@ -519,7 +519,10 @@ def scatter_plots_features(links_df, features: Dict[str, str], hue = None):
     # existing_continous_features = set(links_df.keys()).intersection(set(features))
     existing_continous_features = [label for feature, label in features.items() if feature in links_df.keys()]
 
-    df = df[existing_continous_features + ['date']]
+    if hue is not None:
+        df = df[existing_continous_features + [hue]]
+    else:
+        df = df[existing_continous_features]
 
     #Randomly sample points to avoid having a heavy figure
     df = df.sample(frac=0.5, replace=False, random_state=1)
@@ -531,7 +534,6 @@ def scatter_plots_features(links_df, features: Dict[str, str], hue = None):
         g = sns.PairGrid(df, corner=True, hue = hue)
         g.map_lower(corrfunc_hue)
     else:
-        df = df.drop('date',axis = 1)
         g = sns.PairGrid(df, corner=True)
         g.map_lower(corrfunc)
 
@@ -557,7 +559,8 @@ def scatter_plots_features(links_df, features: Dict[str, str], hue = None):
         ax.tick_params(axis='y', labelsize=12)
         ax.tick_params(axis='x', labelsize=12)
 
-    g.add_legend()
+    if hue is not None:
+        g.add_legend()
 
     # matplotlib.rcParams['text.usetex'] = True
 
