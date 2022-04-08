@@ -9,7 +9,6 @@ if TYPE_CHECKING:
     from links import Link
 
 from utils import Options
-from printer import blockPrinting, block_output
 import config
 import geographer
 
