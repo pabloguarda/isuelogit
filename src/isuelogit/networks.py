@@ -686,7 +686,7 @@ class TNetwork(nx.Graph):
 
         assert D.shape[0] > 0, 'No matrix D generated'
 
-        print('Matrix D ' + str(D.shape) + ' generated in ' + str(round(time.time() - t0, 1)) + '[s]\n')
+        print('Matrix D ' + str(D.shape) + ' generated in ' + str(round(time.time() - t0, 1)) + '[s]               \n')
 
         return D
 
@@ -744,7 +744,7 @@ class TNetwork(nx.Graph):
 
         assert M.shape[0] > 0, 'No matrix M generated'
 
-        print('Matrix M ' + str(M.shape) + ' generated in ' + str(round(time.time() - t0, 1)) + '[s]\n')
+        print('Matrix M ' + str(M.shape) + ' generated in ' + str(round(time.time() - t0, 1)) + '[s]               \n')
 
         if ods_paths_idxs:
             return M, ods_paths_ids
@@ -774,7 +774,7 @@ class TNetwork(nx.Graph):
 
         C = np.repeat(wide_matrix, repeats=np.sum(wide_matrix, axis=1), axis=0)
 
-        print('Matrix C ' + str(C.shape) + ' generated in ' + str(round(time.time() - t0, 1)) + '[s]\n')
+        print('Matrix C ' + str(C.shape) + ' generated in ' + str(round(time.time() - t0, 1)) + '[s]               \n')
 
         return C
 
