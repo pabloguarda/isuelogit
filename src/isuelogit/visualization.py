@@ -1449,9 +1449,9 @@ class Artist:
         axs_exogenous_parameters = ax[3,:]
         # axs_loss = plt.subplot(2, n_models, 2, sharex=axs_parameters)
 
-        axs_traveltime[0].set_ylabel("Travel time coefficient")
-        axs_exogenous_parameters[0].set_ylabel("Exogenous attributes coefficients")
-        axs_loss[0].set_ylabel("Objective function")
+        axs_traveltime[0].set_ylabel("travel time coefficient")
+        axs_exogenous_parameters[0].set_ylabel("exogenous attributes coefficients")
+        axs_loss[0].set_ylabel("objective function")
 
 
         # Paths plots
@@ -1558,7 +1558,7 @@ class Artist:
         # Legend path plots
         lines1, labels1 = axs_paths[0].get_legend_handles_labels()
 
-        fig.legend(lines1, labels1, title="Paths", loc='upper center', ncol=3, prop={'size': self.fontsize}
+        fig.legend(lines1, labels1, title="paths", loc='upper center', ncol=3, prop={'size': self.fontsize}
                    , bbox_to_anchor=[0.52, -0.25]
                    , bbox_transform=BlendedGenericTransform(fig.transFigure, ax[-1, 0].transAxes))
 
@@ -1575,7 +1575,7 @@ class Artist:
 
 
         # g.fig.legend(handles=handles, labels=labels, loc='lower center', ncol=4)
-        fig.legend(lines, labels, title="Attributes", loc='upper center', ncol=len(features), prop={'size': self.fontsize}
+        fig.legend(lines, labels, title="attributes", loc='upper center', ncol=len(features), prop={'size': self.fontsize}
                    , bbox_to_anchor=[0.52, -0.5]
                    , bbox_transform=BlendedGenericTransform(fig.transFigure, ax[-1,0].transAxes))
 
