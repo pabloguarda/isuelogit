@@ -19,7 +19,7 @@ import pandas as pd
 import addfips
 import webbrowser
 import os
-import shapely.geometry
+
 from shapely.geometry import Point, LineString
 
 
