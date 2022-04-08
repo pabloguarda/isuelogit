@@ -490,6 +490,8 @@ def corrfunc(x, y, ax=None, **kws):
     ax.annotate(f'ρ = {r:.2f}', xy=(.7, .9), xycoords=ax.transAxes)
 
 def corrfunc_hue(x, y, **kws):
+    # https: // stackoverflow.com / questions / 43251021 / show - two - correlation - coefficients - on - pairgrid - plot -
+    # with-hue - categorical - variabl
     r, _ = pearsonr(x, y)
     ax = plt.gca()
     # count how many annotations are already present
@@ -497,7 +499,7 @@ def corrfunc_hue(x, y, **kws):
                   isinstance(c, matplotlib.text.Annotation)])
     pos = (.1, .9 - .1*n)
     # or make positions for every label by hand
-    pos = (.1, .9) if kws['label'] == 'October 2019' else (.1,.8)
+    pos = (.1, .9) if kws['label'] == '2019-10-01' else (.1,.8)
 
     x.annotate(f'ρ = {r:.2f}', xy=(.7, .9), xycoords=ax.transAxes)
 
@@ -517,7 +519,7 @@ def scatter_plots_features(links_df, features: Dict[str, str], hue = None):
     # existing_continous_features = set(links_df.keys()).intersection(set(features))
     existing_continous_features = [label for feature, label in features.items() if feature in links_df.keys()]
 
-    df = df[existing_continous_features]
+    df = df[existing_continous_features + ['date']]
 
     #Randomly sample points to avoid having a heavy figure
     df = df.sample(frac=0.5, replace=False, random_state=1)
@@ -525,11 +527,11 @@ def scatter_plots_features(links_df, features: Dict[str, str], hue = None):
     # fig = plt.figure()
 
     # https://seaborn.pydata.org/tutorial/axis_grids.html
-
     if hue is not None:
         g = sns.PairGrid(df, corner=True, hue = hue)
         g.map_lower(corrfunc_hue)
     else:
+        df = df.drop('date',axis = 1)
         g = sns.PairGrid(df, corner=True)
         g.map_lower(corrfunc)
 
@@ -554,6 +556,8 @@ def scatter_plots_features(links_df, features: Dict[str, str], hue = None):
         ax.set_ylabel(ax.get_ylabel(), fontsize=12)
         ax.tick_params(axis='y', labelsize=12)
         ax.tick_params(axis='x', labelsize=12)
+
+    g.add_legend()
 
     # matplotlib.rcParams['text.usetex'] = True
 
