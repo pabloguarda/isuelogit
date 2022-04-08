@@ -147,7 +147,8 @@ def get_loss_and_estimates_over_iterations(results_norefined: pd.DataFrame,
         if key not in theta_keys:
             theta_keys.append(key)
 
-    columns_df = ['stage'] + ['iter'] + ['theta_' + str(i) for i in theta_keys] + ['objective'] + ['n_paths']
+    columns_df = ['stage'] + ['iter'] + ['theta_' + str(i) for i in theta_keys] + ['objective'] \
+                 + ['n_paths'] + ['n_paths_added'] + ['n_paths_effectively_added']
 
     df_bilevel_norefined = pd.DataFrame(columns=columns_df)
     df_bilevel_refined = pd.DataFrame(columns=columns_df)
@@ -164,8 +165,11 @@ def get_loss_and_estimates_over_iterations(results_norefined: pd.DataFrame,
             else:
                 estimates.append(float(np.nan))
 
-        df_bilevel_norefined.loc[iter] = ['norefined'] + [iter] + estimates + [
-            results_norefined_bilevelopt[iter]['objective']] + [len(results_norefined_bilevelopt[iter]['f'])]
+        df_bilevel_norefined.loc[iter] = ['norefined'] + [iter] + estimates \
+                                       + [results_norefined_bilevelopt[iter]['objective']] \
+                                       + [len(results_norefined_bilevelopt[iter]['f'])] \
+                                       + [results_norefined_bilevelopt[iter]['n_paths_added']] \
+                                       + [results_norefined_bilevelopt[iter]['n_paths_effectively_added']]
 
     if 'c' in list(results_norefined_bilevelopt[1]['theta'].keys()):
         # Create additional variables
@@ -192,8 +196,12 @@ def get_loss_and_estimates_over_iterations(results_norefined: pd.DataFrame,
             else:
                 estimates.append(float(np.nan))
 
-        df_bilevel_refined.loc[iter] = ['refined'] + [iter] + estimates + [
-            results_refined_bilevelopt[iter]['objective']]  + [len(results_refined_bilevelopt[iter]['f'])]
+        df_bilevel_refined.loc[iter] = ['refined'] + [iter] + estimates \
+                                       + [results_refined_bilevelopt[iter]['objective']] \
+                                       + [len(results_refined_bilevelopt[iter]['f'])] \
+                                       + [results_refined_bilevelopt[iter]['n_paths_added']] \
+                                       + [results_refined_bilevelopt[iter]['n_paths_effectively_added']]
+        
 
     if 'c' in list(results_refined_bilevelopt[iter]['theta'].keys()):
         # Create additional variables
