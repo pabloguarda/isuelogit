@@ -489,7 +489,22 @@ def corrfunc(x, y, ax=None, **kws):
     ax = ax or plt.gca()
     ax.annotate(f'ρ = {r:.2f}', xy=(.7, .9), xycoords=ax.transAxes)
 
-def scatter_plots_features(links_df, features: Dict[str, str]):
+def corrfunc_hue(x, y, **kws):
+    r, _ = pearsonr(x, y)
+    ax = plt.gca()
+    # count how many annotations are already present
+    n = len([c for c in ax.get_children() if
+                  isinstance(c, matplotlib.text.Annotation)])
+    pos = (.1, .9 - .1*n)
+    # or make positions for every label by hand
+    pos = (.1, .9) if kws['label'] == 'October 2019' else (.1,.8)
+
+    x.annotate(f'ρ = {r:.2f}', xy=(.7, .9), xycoords=ax.transAxes)
+
+    # ax.annotate("{}: r = {:.2f}".format(kws['label'],r),
+    #             xy=pos, xycoords=ax.transAxes)
+
+def scatter_plots_features(links_df, features: Dict[str, str], hue = None):
 
     """ Scatter plot between traffic counts and travel time/speed reliability and average. Repeat the same but for the remaining covariates """
 
@@ -511,9 +526,15 @@ def scatter_plots_features(links_df, features: Dict[str, str]):
 
     # https://seaborn.pydata.org/tutorial/axis_grids.html
 
-    g = sns.PairGrid(df, corner=True)
+    if hue is not None:
+        g = sns.PairGrid(df, corner=True, hue = hue)
+        g.map_lower(corrfunc_hue)
+    else:
+        g = sns.PairGrid(df, corner=True)
+        g.map_lower(corrfunc)
+
     g.map_diag(sns.histplot)
-    g.map_lower(corrfunc)
+
     # g.map(sns.scatterplot)
     g.map_offdiag(sns.regplot)
     # fig1.show()
