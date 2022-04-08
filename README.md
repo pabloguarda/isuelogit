@@ -14,7 +14,7 @@ The `isuelogit` package addresses the aforementioned limitation by solving the i
 6. Run the tests: `pytest`
 
 ## Jupyter notebooks
-1. Install jupyter lab: `pip install jupyterlab`
+1. Install jupyter lab: `pip install jupyter notebook`
 2. Install ipython kernel for jupyter: `pip install ipykernel`
 3. Add your virtual environment to Jupyter:  `python3 -m ipykernel install --user --name=venv-isuelogit`
 4. Open any of the notebooks include in folder `notebooks` and choose kernel `myvenv` to run it
