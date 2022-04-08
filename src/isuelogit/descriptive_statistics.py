@@ -490,23 +490,28 @@ def corrfunc(x, y, ax=None, **kws):
     ax.annotate(f'ρ = {r:.2f}', xy=(.7, .9), xycoords=ax.transAxes)
 
 def corrfunc_hue(x, y, **kws):
-    # https: // stackoverflow.com / questions / 43251021 / show - two - correlation - coefficients - on - pairgrid - plot -
-    # with-hue - categorical - variabl
-    r, _ = pearsonr(x, y)
+    # https://stackoverflow.com/questions/43251021/show-two-correlation-coefficients-on-pairgrid-plot-with-hue-categorical-variabl
+
+    nas = np.logical_or(np.isnan(x.values), np.isnan(y.values))
+
+    r, _ = pearsonr(x[~nas], y[~nas])
     ax = plt.gca()
     # count how many annotations are already present
     n = len([c for c in ax.get_children() if
                   isinstance(c, matplotlib.text.Annotation)])
-    pos = (.1, .9 - .1*n)
+    # pos = (.1, .9 - .3*n)
     # or make positions for every label by hand
-    pos = (.1, .9) if kws['label'] == '2019-10-01' else (.1,.8)
+    pos = (.7, .9) if kws['label'] == '2019-10-01' else (.7,.8)
+    color = sns.color_palette()[0] if kws['label'] == '2019-10-01' else sns.color_palette()[1]
 
-    x.annotate(f'ρ = {r:.2f}', xy=(.7, .9), xycoords=ax.transAxes)
+    ax.annotate(f'ρ = {r:.2f}', xy=pos, xycoords=ax.transAxes, color = color)
 
     # ax.annotate("{}: r = {:.2f}".format(kws['label'],r),
     #             xy=pos, xycoords=ax.transAxes)
 
-def scatter_plots_features(links_df, features: Dict[str, str], hue = None):
+def scatter_plots_features(links_df,
+                           features: Dict[str, str],
+                           hue = None, normalized = True):
 
     """ Scatter plot between traffic counts and travel time/speed reliability and average. Repeat the same but for the remaining covariates """
 
@@ -546,21 +551,22 @@ def scatter_plots_features(links_df, features: Dict[str, str], hue = None):
 
     g.fig.set_size_inches(14, 12)
 
-    range_ticks = [0]+list(np.round(np.arange(0.2,1,0.2),1)) + [1]
-    g.set(xlim=[-0.03, 1.03], ylim=[-0.03, 1.03], xticks = range_ticks, yticks = range_ticks)
-
-    f = lambda x, pos: str(x).rstrip('0').rstrip('.')
+    if normalized:
+        range_ticks = [0]+list(np.round(np.arange(0.2,1,0.2),1)) + [1]
+        g.set(xlim=[-0.03, 1.03], ylim=[-0.03, 1.03], xticks = range_ticks, yticks = range_ticks)
+        f = lambda x, pos: str(x).rstrip('0').rstrip('.')
 
     for ax in plt.gcf().axes:
-        ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(f))
-        ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(f))
+        if normalized:
+            ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(f))
+            ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(f))
         ax.set_xlabel(ax.get_xlabel(), fontsize=12)
         ax.set_ylabel(ax.get_ylabel(), fontsize=12)
         ax.tick_params(axis='y', labelsize=12)
         ax.tick_params(axis='x', labelsize=12)
 
     if hue is not None:
-        g.add_legend()
+        g.add_legend(loc='upper right')
 
     # matplotlib.rcParams['text.usetex'] = True
 
