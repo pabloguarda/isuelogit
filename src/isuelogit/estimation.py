@@ -1747,6 +1747,9 @@ class Learner:
 
         print('Summary results of bilevel optimization')
 
+        #Reset counter for counter of od sampling
+        self.equilibrator.options['column_generation']['iter_ods_sampling'] = 0
+
         best_theta_array = np.array(list(best_theta.values()))
 
         print('best iter: ' + str(best_iter))
