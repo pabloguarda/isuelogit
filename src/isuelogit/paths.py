@@ -42,6 +42,9 @@ class Path:
         self._Z_dict = {}
         self._key = {}
 
+        # To track if the path was added during column generation
+        self.added_column_generation = False
+
         self._specific_utility = 0
 
     @property
