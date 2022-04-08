@@ -132,7 +132,7 @@ class LUE_Equilibrator(Equilibrator):
         self.options['column_generation']['ods_sampling'] = 'demand'
 
         # Record the number of times that the ods sampling has been performed
-        self.options['column_generation']['n_ods_sampling'] = 0
+        self.options['column_generation']['iter_ods_sampling'] = 0
 
         # Correction using path size logit
         self.options['path_size_correction'] = 0
@@ -366,6 +366,9 @@ class LUE_Equilibrator(Equilibrator):
         path_set_selection_done = False
         column_generation_done = False
 
+        #Keep track of paths added during column generation
+        n_paths_added = 0
+
         fisk_objective_functions = []
 
         # if standardization is not None:
@@ -392,7 +395,7 @@ class LUE_Equilibrator(Equilibrator):
                         ods_coverage = options['column_generation'].get('ods_coverage', 1)
                         options['column_generation']['ods_coverage'] = ods_coverage / kwargs.get('bilevel_iters', 1)
 
-                    self.sue_column_generation(theta=theta,
+                    n_paths_added = self.sue_column_generation(theta=theta,
                                                n_paths=options['column_generation']['n_paths'],
                                                ods_coverage=options['column_generation']['ods_coverage'],
                                                ods_sampling=options['column_generation']['ods_sampling'],
@@ -505,13 +508,11 @@ class LUE_Equilibrator(Equilibrator):
                     total_paths_od = len(paths)
 
                     if total_paths_od > options['column_generation']['paths_selection']:
-                        network.paths_od[od] \
-                            = self.path_set_selection(
-                            paths=paths,
-                            paths_probabibilities=pf_dict,
-                            k=options['column_generation']['paths_selection'],
-                            dissimilarity_weight=options['column_generation']['dissimilarity_weight']
-                        )
+                        network.paths_od[od], n_paths_effectively_added \
+                            = self.path_set_selection(paths=paths, paths_probabibilities=pf_dict,
+                                                      k=options['column_generation']['paths_selection'],
+                                                      dissimilarity_weight=options['column_generation'][
+                                                          'dissimilarity_weight'])
 
                         total_paths_removed += total_paths_od - options['column_generation']['paths_selection']
 
@@ -581,12 +582,12 @@ class LUE_Equilibrator(Equilibrator):
         for link in network.links:
             link.set_traveltime_from_x(x=0)
 
-        return {'x': x_final
-            , 'tt_x': tt_final
-            , 'gap_x': gap_x
-            , 'p_f': p_f
-            , 'f': f
-                }
+        if path_set_selection_done is False:
+            # After doing paths selection
+            n_paths_effectively_added = n_paths_added
+
+        return {'x': x_final, 'tt_x': tt_final, 'gap_x': gap_x, 'p_f': p_f, 'f': f,
+                'n_paths_added': n_paths_added, 'n_paths_effectively_added': n_paths_effectively_added}
 
     def sue_line_search(self,
                         iters,
@@ -737,20 +738,30 @@ class LUE_Equilibrator(Equilibrator):
                            paths,
                            paths_probabibilities: Dict[str, ColumnVector],
                            k,
-                           dissimilarity_weight) -> List:
+                           dissimilarity_weight = 0) -> List:
 
         if dissimilarity_weight == 0:
 
+            n_new_paths_added = 0
+
             # Obtain paths probabilities for paths in OD pair
-            paths_probabilities = [paths_probabibilities[path.key] for path in paths]
+            paths_probabilities = [float(paths_probabibilities[path.key]) for path in paths]
 
             # Sort paths by probabilities
             idxs = np.argsort(-np.array(paths_probabilities).flatten())[:k]
 
             # Return best path set
-            best_path_set = [paths[idx] for idx in idxs]
+            best_path_set = []
 
-            return best_path_set
+            for idx in idxs:
+                path = paths[idx]
+                best_path_set.append(path)
+
+                if path.added_column_generation:
+                    n_new_paths_added += 1
+                    path.added_column_generation = False
+
+            return best_path_set, n_new_paths_added
 
         # Combinatoric case: when dissimilary weight is different than 0
 
@@ -794,7 +805,7 @@ class LUE_Equilibrator(Equilibrator):
                               n_paths,
                               ods_coverage=None,
                               ods_sampling=None,
-                              silent_mode=False) -> None:
+                              silent_mode=False) -> int:
 
         '''
 
@@ -856,8 +867,8 @@ class LUE_Equilibrator(Equilibrator):
             if ods_sampling == 'sequential':
                 ods_sample = network.OD.sample_ods_by_demand_sequentially(
                     proportion=ods_coverage,
-                    k=self.options['column_generation']['n_ods_sampling'])
-                self.options['column_generation']['n_ods_sampling'] += 1
+                    k=self.options['column_generation']['iter_ods_sampling'])
+                self.options['column_generation']['iter_ods_sampling'] += 1
 
         if ods_sample is None:
             ods_sample = network.ods
@@ -881,6 +892,7 @@ class LUE_Equilibrator(Equilibrator):
             existing_paths_keys = [path.get_nodes_keys() for path in network.paths_od[od]]
             for path in paths_od[od]:
                 if path.get_nodes_keys() not in existing_paths_keys:
+                    path.added_column_generation = True
                     network.paths_od[od].append(path)
                     # network.paths.append(path)
                     paths_added += 1
@@ -899,6 +911,8 @@ class LUE_Equilibrator(Equilibrator):
         print(str(paths_added) + ' paths added/replaced among ' + str(n_ods_added) + ' ods (New total paths: ' + str(
             len(network.paths)) + ')')
         # print('- Computation time: ' + str(np.round(time.time() - t0, 1)) + ' [s]')
+
+        return paths_added
 
 
 def sue_logit_dial(root, subfolder, prefix_filename, options, Z_dict, k_Z, theta={'tt': 1}):
