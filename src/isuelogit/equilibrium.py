@@ -502,6 +502,7 @@ class LUE_Equilibrator(Equilibrator):
                 total_paths = 0
                 total_ods = 0
                 total_paths_removed = 0
+                total_paths_effectively_added = 0
 
                 for od, paths in network.paths_od.items():
 
@@ -515,7 +516,7 @@ class LUE_Equilibrator(Equilibrator):
                                                           'dissimilarity_weight'])
 
                         total_paths_removed += total_paths_od - options['column_generation']['paths_selection']
-
+                        total_paths_effectively_added += n_paths_effectively_added
                         total_ods += 1
 
                     total_paths += len(network.paths_od[od])
@@ -584,10 +585,10 @@ class LUE_Equilibrator(Equilibrator):
 
         if path_set_selection_done is False:
             # After doing paths selection
-            n_paths_effectively_added = n_paths_added
+            total_paths_effectively_added = n_paths_added
 
         return {'x': x_final, 'tt_x': tt_final, 'gap_x': gap_x, 'p_f': p_f, 'f': f,
-                'n_paths_added': n_paths_added, 'n_paths_effectively_added': n_paths_effectively_added}
+                'n_paths_added': n_paths_added, 'n_paths_effectively_added': total_paths_effectively_added}
 
     def sue_line_search(self,
                         iters,
