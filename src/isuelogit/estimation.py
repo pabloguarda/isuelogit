@@ -1185,6 +1185,9 @@ class OuterOptimizer:
                     theta = self.method.update_parameters(theta=theta, lambda_lm=lambda_lm, jacobian=J,
                                                           delta_y=delta_y, features_idxs=features_idxs)
 
+                    if options['parameters_constraints']['sign']:
+                        theta = self.project_parameters_constraints(theta)
+
                     objective_value = self.compute_objective_function(theta=theta,
                                                                       design_matrix=design_matrix,
                                                                       network=self.network,
