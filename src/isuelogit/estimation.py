@@ -2188,7 +2188,7 @@ class Learner:
 
         counts = self.network.observed_counts_vector
 
-        if kwargs.get('link_selection', False):
+        if kwargs.get('link_selection', False) and len(learning_results.keys())>2:
             counts, _ = get_informative_links(learning_results=learning_results, network=self.network)
             # self.network.load_traffic_counts(new_counts)
             counts = np.array(list(counts.values()))[:, np.newaxis]
