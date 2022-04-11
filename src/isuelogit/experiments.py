@@ -1240,6 +1240,8 @@ class MonotonicityExperiments(NetworksExperiment):
 
         for network in self.networks:
 
+            print('network:', network.key)
+
             # Generate synthetic traffic counts
             counts, _ = self.linkdata_generator.simulate_counts(
                 network=network,
@@ -1461,7 +1463,7 @@ class ConvergenceExperiments(ConvergenceExperiment):
                     self.utility_function.initial_values = copy.deepcopy(initial_values)
 
                     learning_results_norefined, inference_results_norefined, best_iter_norefined = \
-                        learner_norefined.statistical_inference()
+                        learner_norefined.statistical_inference(iteration_report = False)
 
                     theta_norefined = learning_results_norefined[best_iter_norefined]['theta']
 
@@ -1470,7 +1472,7 @@ class ConvergenceExperiments(ConvergenceExperiment):
                     self.utility_function.initial_values = theta_norefined
 
                     learning_results_refined, inference_results_refined, best_iter_refined = \
-                        learner_refined.statistical_inference()
+                        learner_refined.statistical_inference(iteration_report = False)
 
                     methods_label = methods[0] + '_' + methods[1]
 
@@ -1520,9 +1522,9 @@ class BiasReferenceODExperiment(ConvergenceExperiment):
                 utility_function=self.utility_function)
 
         # Table 4, Yang and Bell (2000)
-        missing_idxs = [0,1,2,3,4,6,7,11,13]
+        #missing_idxs = [0,1,2,3,4,6,7,11,13]
 
-        counts = dict(zip(counts.keys(), masked_observed_counts(counts=np.array(list(counts.values())), idx=missing_idxs).flatten()))
+        #counts = dict(zip(counts.keys(), masked_observed_counts(counts=np.array(list(counts.values())), idx=missing_idxs).flatten()))
 
         self.network.load_traffic_counts(counts=counts)
 
@@ -1564,6 +1566,8 @@ class BiasReferenceODExperiment(ConvergenceExperiment):
             results_df[scenario] = self.write_convergence_table(results_norefined=learning_results_norefined,
                                          results_refined=learning_results_refined,
                                          filename='convergence_' + scenario + '.csv', float_format='%.3f')
+
+            self.network.OD.update_Q_from_q(q=q0s['true_od'], Q=self.network.Q)
 
         # Joint bilevel optimization convergence plot
         self.artist.convergence_experiment_yang(
