@@ -1339,7 +1339,10 @@ class PseudoconvexityExperiments(MonotonicityExperiments):
                  'grad_f_vals': np.array(grad_f_vals).flatten(),
                  'hessian_f_vals': np.array(hessian_f_vals).flatten()})
 
-            sign_grad_f_vals[network] = np.sign(grad_f_vals)
+            # To avoid zero gradient (and sign) because numerical precision
+            epsilon = 1e-12
+
+            sign_grad_f_vals[network] = np.sign(np.array(grad_f_vals)+epsilon)
 
             # Write csv file
             self.write_table(df=pseudoconvexity_experiment_df,
@@ -1561,7 +1564,7 @@ class BiasReferenceODExperiment(ConvergenceExperiment):
 
             self.write_inference_tables(results_norefined = inference_results_norefined,
                                        results_refined = inference_results_refined,
-                                       filename = scenario)
+                                       filename = scenario + '.csv')
 
             results_df[scenario] = self.write_convergence_table(results_norefined=learning_results_norefined,
                                          results_refined=learning_results_refined,
