@@ -36,7 +36,7 @@ output/experiments/SiouxFalls/*
 
 !output/experiments/small-networks
 output/experiments/small-networks/*
-!output/experiments/small-networks/220331
+!output/experiments/small-networks/220411
 
 # Input
 input/private
