@@ -274,8 +274,8 @@ class Reporter(ABC):
             filename_parameters += '_' + filename
             filename_model += '_' + filename
 
-        self.write_table(df=parameters_inference_table, filename=filename_parameters+ '.csv', folder = folder,**kwargs)
-        self.write_table(df=model_inference_table, filename=filename_model + '.csv', folder = folder,**kwargs)
+        self.write_table(df=parameters_inference_table, filename=filename_parameters, folder = folder,**kwargs)
+        self.write_table(df=model_inference_table, filename=filename_model, folder = folder,**kwargs)
 
         # return parameters_inference_table, model_inference_table
 
