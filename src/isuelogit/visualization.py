@@ -1204,9 +1204,9 @@ class Artist:
         # We can set the number of bins with the `bins` kwarg
         # plt.hist([x,y], label = ['non-refined stage','refined stage'])
 
-        bound = max(np.maximum(abs(x),abs(y)))
+        bound = np.ceil(max(np.maximum(abs(x[~np.isnan(x)]),abs(y[~np.isnan(y)])))/1000)*1000
 
-        bins = np.arange(-bound, bound+1, 500)
+        bins = np.arange(-bound, bound + 500, 500)
 
         axs.hist(x, bins, alpha=0.5, label='non-refined')
         axs.hist(y, bins, alpha=0.5, label='refined')
@@ -2264,7 +2264,10 @@ class Artist:
 
         # ax[(0, 2)].set_title("Sign Gradient L2-norm")
         # y_vals = [np.sign(np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1))) for x_val in x_range]
-        y_vals = np.sign(y_vals)
+
+        # To avoid zero gradient (and sign) because numerical precision
+        epsilon = 1e-12
+        y_vals = np.sign(np.array(y_vals)+epsilon)
         ax[(1, 0)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
         ax[(1, 0)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
         ax[(1, 0)].plot(x_range, y_vals, color='red')
