@@ -1688,8 +1688,8 @@ class Artist:
         ax[(1, 1)].set_xticks(np.arange(results_refined_df['iter'].min(), results_refined_df['iter'].max() + 1, int(
             np.ceil((results_refined_df['iter'].max() - results_refined_df['iter'].min()) / 10))))
 
-        # if results_refined_df['objective'].min() != results_refined_df['objective'].max():
         #     ax[(1,1)].set_ylim(results_refined_df['objective'].min(), results_refined_df['objective'].max())
+        # if results_refined_df['objective'].min() != results_refined_df['objective'].max():
 
         ax[(1, 1)].axhline(0, linestyle='dashed')
 
