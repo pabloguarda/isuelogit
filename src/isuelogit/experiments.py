@@ -567,6 +567,8 @@ class PseudoconvexityExperiment(NetworkExperiment):
 
         # Combined pseudo-convexity plot
 
+        print('Coordinate-wise pseudo-convexity')
+
         self.artist.coordinatewise_pseudoconvexity_loss_function(
             filename='coordinatewise_pseudoconvexity_lossfunction_' + self.network.key
             , results_df=pseudoconvexity_experiment_df
@@ -818,14 +820,14 @@ class ConsistencyExperiment(NetworkExperiment):
                 else:
                     plt.close(fig)
 
-        plt.show()
-
         self.artist.consistency_experiment(
             results_experiment=results_experiment,
             range_initial_values=range_initial_values,
             alpha = alpha,
             sd_x=sd_x,
             folder=self.dirs['experiment_folder'])
+
+        plt.show()
 
 
 class CountsExperiment(ConvergenceExperiment):
