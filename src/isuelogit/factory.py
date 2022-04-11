@@ -283,8 +283,8 @@ class LinkDataGenerator(Generator):
             links_keys.append((link_key[0] - 1, link_key[1] - 1, link_key[2]))
 
         bpr_parameters_df = pd.DataFrame({'link_key': links_keys,
-                                          'tf': [1e-1, 2e-1, 3e-1, 4e-1],
-                                          'k': [100,200,300,400],
+                                          'tf': [1e-0, 2e-0, 3e-0, 4e-0],
+                                          'k': [1800,1800,1800,1800],
                                           'alpha': 0.15,
                                           'beta': 4})
 
@@ -1878,13 +1878,13 @@ class NetworkGenerator(Generator):
         A['N4'] = np.array([[0, 1, 1, 1], [0, 0, 0, 1], [0, 1, 0, 1], [0, 0, 1, 0]])
         Q['N4'] = np.array([[0, 0, 100, 200], [0, 0, 300, 400], [0, 0, 0, 500], [0, 0, 0, 0]])
 
-        #TODO: generate test for path correlation factor
-        # Path correction factors (Bovy, P.H.L., Bekhor, S. and Prato, C.G., 2008. The factor of revisited path size: Alternative derivation. Transportation Research Record 132–140)
+        # Path correction factors (Bovy, P.H.L., Bekhor, S. and Prato, C.G., 2008.
+        # The factor of revisited path size: Alternative derivation. Transportation Research Record 132–140)
         A['N5'] = np.array([[0, 2, 1], [0, 0, 1], [0, 0, 0]])
         Q['N5'] = np.array([[0, 0, 100], [0, 0, 0], [0, 0, 0]])
 
         A['Toy'] = np.array([[0, 0, 1, 0], [0, 0, 1, 0], [0, 0, 0, 2], [0, 0, 0, 0]])
-        Q['Toy'] = np.array([[0, 0, 0, 50], [0, 0, 0, 100], [0, 0, 0, 200], [0, 0, 0, 0]])
+        Q['Toy'] = np.array([[0, 0, 0, 500], [0, 0, 0, 500], [0, 0, 0, 500], [0, 0, 0, 0]])
 
         #Sheffi (pp 329)
         A['Sheffi'] = np.array([[0, 2], [0, 0]])
@@ -1965,7 +1965,7 @@ class NetworkGenerator(Generator):
         for od, demand in demand_dict.items():
             Q['Wang'][(od[0] - 1, od[1] - 1)] = demand
 
-        #Q['Wang'] = 0.5*Q['Wang']
+        # Q['Wang'] = 0.5*Q['Wang']
 
         return A,Q
 
