@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from mytypes import Union, Dict, List, Matrix, Proportion
+    from mytypes import Union, Dict, List, Matrix, Proportion, ColumnVector
 
 import matplotlib
 import pylab
@@ -16,6 +16,8 @@ from matplotlib.ticker import FormatStrFormatter, ScalarFormatter
 
 import seaborn as sns
 # sns.set(rc={"figure.dpi":30, 'savefig.dpi':30})
+
+from estimation import error_by_link
 
 import networkx as nx
 from networkx.utils import is_string_like
@@ -1181,6 +1183,51 @@ class Artist:
         plt.show()
 
         return fig_loss, fig_vot, fig_legend
+
+    def histogram_errors(self,
+                         best_results_norefined: pd.DataFrame,
+                         best_results_refined: pd.DataFrame,
+                         observed_counts: ColumnVector,
+                         filename: str,
+                         folder: str
+                         ):
+
+        # Distribution of errors across link counts
+
+        best_x_norefined = np.array(list(best_results_norefined['x'].values()))[:, np.newaxis]
+        best_x_refined = np.array(list(best_results_refined['x'].values()))[:, np.newaxis]
+
+        fig, axs = plt.subplots(1, 1, tight_layout=True, figsize=(5, 5))
+
+        x = error_by_link(observed_counts=observed_counts, predicted_counts=best_x_norefined)
+        y = error_by_link(observed_counts=observed_counts, predicted_counts=best_x_refined)
+        # We can set the number of bins with the `bins` kwarg
+        # plt.hist([x,y], label = ['non-refined stage','refined stage'])
+
+        bound = max(np.maximum(abs(x),abs(y)))
+
+        bins = np.arange(-bound, bound+1, 500)
+
+        axs.hist(x, bins, alpha=0.5, label='non-refined')
+        axs.hist(y, bins, alpha=0.5, label='refined')
+        plt.xlabel("bin for difference between predicted and observed counts")
+        plt.ylabel("frequency")
+        plt.legend(loc='upper center', bbox_to_anchor=[0.52, -0.15], ncol = 2,
+                   prop={'size': self.fontsize}, title = 'optimization stage',
+                   bbox_transform=BlendedGenericTransform(fig.transFigure, axs.transAxes))
+
+        axs.xaxis.label.set_size(self.fontsize)
+        axs.yaxis.label.set_size(self.fontsize)
+        axs.tick_params(axis='y', labelsize=self.fontsize)
+        axs.tick_params(axis='x', labelsize=self.fontsize)
+
+
+        fig.savefig(folder + '/' + filename, pad_inches=0.1, bbox_inches="tight")
+
+        plt.show()
+
+        plt.close(fig)
+
 
     def convergence(self,
                     results_refined_df: pd.DataFrame,
