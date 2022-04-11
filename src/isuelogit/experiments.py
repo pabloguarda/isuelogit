@@ -1305,7 +1305,7 @@ class PseudoconvexityExperiments(MonotonicityExperiments):
         self.write_experiment_report()
 
         f_vals = {}
-
+        sign_grad_f_vals = {}
         for network in self.networks:
 
             print(network.key, 'network')
@@ -1337,12 +1337,14 @@ class PseudoconvexityExperiments(MonotonicityExperiments):
                  'grad_f_vals': np.array(grad_f_vals).flatten(),
                  'hessian_f_vals': np.array(hessian_f_vals).flatten()})
 
+            sign_grad_f_vals[network] = np.sign(grad_f_vals)
+
             # Write csv file
             self.write_table(df=pseudoconvexity_experiment_df,
                              filename='pseudoconvexity_' + network.key+ '.csv',
                              float_format='%.1f')
 
-            self.artist.pseudoconvexity_loss_function_small_networks(
+            self.artist.pseudoconvexity_objective_function_small_networks(
                 filename='pseudo_convexity_loss_function_' + network.key,
                 f_vals=f_vals[network],
                 grad_f_vals=grad_f_vals,
@@ -1354,13 +1356,25 @@ class PseudoconvexityExperiments(MonotonicityExperiments):
 
         print('Plot of objective function in the four networks')
 
-        self.artist.pseudoconvexity_loss_function_small_networks_lite(
-            filename='pseudo_convexity_loss_function_small_networks'
+        self.artist.pseudoconvexity_objective_function_small_networks_lite(
+            filename='pseudoconvexity_objective_function_small_networks'
             , f_vals=f_vals
             , x_range=theta_attr_grid  # np.arange(-3,3, 0.5)
             , colors=['blue', 'red', 'black', 'green']
             , labels=['Toy', 'Wang', 'Lo', 'Yang']
             , theta_true=self.utility_function.true_values['tt'])
+
+        print('Plot of sign of first derivative in the four networks')
+
+        self.artist.pseudoconvexity_objective_function_small_networks_lite(
+            filename='sign_first_derivative_pseudoconvexity_objective_function_small_networks',
+            f_vals= sign_grad_f_vals,
+            sign_first_derivative = True,
+            x_range=theta_attr_grid, # np.arange(-3,3, 0.5)
+            colors=['blue', 'red', 'black', 'green'],
+            labels=['Toy', 'Wang', 'Lo', 'Yang'],
+            theta_true=self.utility_function.true_values['tt'])
+
 
         plt.show()
 
