@@ -1626,77 +1626,92 @@ def feature_engineering_fresno(links, network, lwrlk_only = True):
     # Initial link attributes
     existing_Z_attrs = links[0].Z_dict
 
-    # i) High and low income dummies
+    for link in links:
 
-    # - Percentile used to segmentation income level from CENSUS blocks income data (high income are those links with income higher than pct)
-    pct_income = 30
+        # (v) Travel time variability
 
-    # - Get percentile income distribution first
-    if 'median_inc' in existing_Z_attrs:
-        links_income_list = [link.Z_dict['median_inc'] for link in network.get_regular_links()]
+        # - Adjusted standard deviation of travel time
 
-        # Create dummy variable for high income areas
-        link_pct_income = np.percentile(np.array(links_income_list), pct_income)
+        if 'tt_cv' in existing_Z_attrs:
+            link.Z_dict['tt_sd_adj'] = link.bpr.tf * link.Z_dict['tt_cv']
 
-        for link in links:
+        # - Measure of reliability as PEMS which is relationship between true and free flow travel times
+        if 'speed_avg' in existing_Z_attrs and 'speed_ref_avg' in existing_Z_attrs:
 
-            if 'median_inc' in link.Z_dict:
-                link.Z_dict['high_inc'] = 0
-                link.Z_dict['low_inc'] = 1
+            # link.Z_dict['tt_reliability'] = min(1,link.Z_dict['speed_avg']/link.Z_dict['speed_ref_avg'])
+            if link.Z_dict['speed_ref_avg'] != 0:
+                link.Z_dict['speed_reliability'] = link.Z_dict['speed_hist_avg'] / link.Z_dict['speed_ref_avg']
+            else:
+                link.Z_dict['speed_reliability'] = 0
 
-                if link.Z_dict['median_inc'] >= link_pct_income:
-                    link.Z_dict['high_inc'] = 1
-                    link.Z_dict['low_inc'] = 0
+        # (ii) No incidents
 
-    # (ii) No incidents
-    if 'incidents' in existing_Z_attrs:
-        for link in links:
+        if 'incidents' in existing_Z_attrs:
             link.Z_dict['no_incidents'] = 1
 
             if link.Z_dict['incidents'] > 0:
                 link.Z_dict['no_incidents'] = 0
 
-    # (iii) No bus stops
+        # (iii) No bus stops
 
-    if 'bus_stops' in existing_Z_attrs:
-        for link in links:
+        if 'bus_stops' in existing_Z_attrs:
             link.Z_dict['no_bus_stops'] = 1
 
             if link.Z_dict['bus_stops'] > 0:
                 link.Z_dict['no_bus_stops'] = 0
 
-    # (iv) No street intersections
+        # (iv) No street intersections
 
-    if 'intersections' in existing_Z_attrs:
+        if 'intersections' in existing_Z_attrs:
 
-        for link in links:
             link.Z_dict['no_intersections'] = 1
 
             if link.Z_dict['intersections'] > 0:
                 link.Z_dict['no_intersections'] = 0
 
-    # (v) Travel time variability
+    # Features based on percentiles
 
-    # - Adjusted standard deviation of travel time
+    # Percentile for segmenting income level from CENSUS blocks data (high income are links with income higher than pct)
+    pct_income = 20
+    pct_reliability = 20
 
-    if 'tt_cv' in existing_Z_attrs:
+    # - Get percentile income distribution first
 
-        for link in links:
-            link.Z_dict['tt_sd_adj'] = link.bpr.tf * link.Z_dict['tt_cv']
+    links_income_list = []
+    links_tt_cv_list = []
 
+    for link in network.get_regular_links():
+        Z_dict = link.Z_dict
+        links_income_list.append(Z_dict['median_inc'])
+        links_tt_cv_list.append(Z_dict['tt_cv'])
 
-    # - Measure of reliability as PEMS which is relationship between true and free flow travel times
-    if 'speed_avg' in existing_Z_attrs and 'speed_ref_avg' in existing_Z_attrs:
+    link_pct_income = np.percentile(np.array(links_income_list), pct_income)
+    link_pct_tt_cv = np.percentile(np.array(links_tt_cv_list), pct_reliability)
 
-        for link in links:
-            # link.Z_dict['tt_reliability'] = min(1,link.Z_dict['speed_avg']/link.Z_dict['speed_ref_avg'])
-            if link.Z_dict['speed_ref_avg'] !=0:
-                link.Z_dict['speed_reliability'] = link.Z_dict['speed_hist_avg'] / link.Z_dict['speed_ref_avg']
-            else:
-                link.Z_dict['speed_reliability'] = 0
+    for link in links:
 
-    new_features = ['low_inc', 'high_inc','no_incidents','no_bus_stops',
-                    'no_intersections','tt_sd_adj','speed_reliability']
+        if 'median_inc' in Z_dict:
+
+            # i) High and low income dummies
+
+            link.Z_dict['low_inc'] = 0
+            link.Z_dict['high_inc'] = 1
+
+            if link.Z_dict['median_inc'] <= link_pct_income:
+                link.Z_dict['low_inc'] = 1
+                link.Z_dict['high_inc'] = 0
+
+        if 'tt_cv' in Z_dict:
+            # i) Travel time reliabiility dummies
+            link.Z_dict['reliable_tt'] = 0
+            link.Z_dict['no_reliable_tt'] = 1
+
+            if link.Z_dict['tt_cv'] <= link_pct_tt_cv:
+                link.Z_dict['reliable_tt'] = 1
+                link.Z_dict['no_reliable_tt'] = 0
+
+    new_features = ['no_incidents','no_bus_stops', 'no_intersections','tt_sd_adj','speed_reliability',
+                    'low_inc', 'high_inc', 'no_reliable_tt','reliable_tt']
 
     if lwrlk_only:
         for key in new_features:
