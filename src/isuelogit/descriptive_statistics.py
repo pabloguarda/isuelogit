@@ -13,6 +13,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 import matplotlib
+from matplotlib.transforms import BlendedGenericTransform
 
 import seaborn as sns
 
@@ -511,7 +512,10 @@ def corrfunc_hue(x, y, **kws):
 
 def scatter_plots_features(links_df,
                            features: Dict[str, str],
-                           hue = None, normalized = True):
+                           folder: str,
+                           filename: str,
+                           hue = None,
+                           normalized = True):
 
     """ Scatter plot between traffic counts and travel time/speed reliability and average. Repeat the same but for the remaining covariates """
 
@@ -530,7 +534,7 @@ def scatter_plots_features(links_df,
         df = df[existing_continous_features]
 
     #Randomly sample points to avoid having a heavy figure
-    df = df.sample(frac=0.5, replace=False, random_state=1)
+    df = df.sample(frac=0.1, replace=False, random_state=1)
 
     # fig = plt.figure()
 
@@ -566,7 +570,17 @@ def scatter_plots_features(links_df,
         ax.tick_params(axis='x', labelsize=12)
 
     if hue is not None:
-        g.add_legend(loc='upper right')
+        handles = g._legend_data.values()
+        labels = g._legend_data.keys()
+
+        g.add_legend(fontsize=14, handles=handles, labels=labels, loc='upper center',
+                     title = 'Date', bbox_to_anchor=(.81, .6), frameon=False)
+
+        g. legend.get_title().set_fontsize(14)
+
+        # g.fig.subplots_adjust(top=0.92, bottom=0.08)
+
+    # sns.move_legend(g, "center right")
 
     # matplotlib.rcParams['text.usetex'] = True
 
@@ -587,6 +601,8 @@ def scatter_plots_features(links_df,
 
     # # TODO: visualize box plot for the non continuous features
     # categorical_features = ['high_inc', 'stops', 'ints']
+
+    g.savefig(folder + '/' + filename, pad_inches=0.1, bbox_inches="tight", dpi=200)
     
     return g
 
