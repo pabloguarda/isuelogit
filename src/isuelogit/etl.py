@@ -2108,6 +2108,9 @@ def generate_training_validation_samples(xct: dict, prop_validation, prop_traini
     return xct_training, xct_validation
 
 def get_informative_links(learning_results, network) -> Tuple[Dict,List]:
+
+    assert len(learning_results.keys()) > 2, "the number of iterations must be greater than 2"
+
     d_errors = np.array(learning_results[2]['link_report']['d_error']).astype(np.float)[:, np.newaxis]
 
     # learning_results[3] = {'Fresno_report':learning_results[2]['Fresno_report'] }
