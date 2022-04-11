@@ -1510,12 +1510,17 @@ class Artist:
             for axi in ax[row][1:]:
                 plt.setp(axi.get_yticklabels(), visible=False)
 
+
+
         # X ticks are shared within plots of the same column
         for n_model in range(n_models):
             ax[3][n_model].get_shared_x_axes().join(*[ax[2][n_model], ax[1][n_model],ax[0][n_model]])
             ax[-1][n_model].set_xlabel("iteration")
             for axi in ax[:][n_model]:
                 plt.setp(axi.get_xticklabels(), visible=False)
+
+            plt.setp(axs_traveltime[n_model].get_xticklabels(), visible=False)
+
 
         # axs_traveltime[0].get_shared_y_axes().join(axs_traveltime[0], *axs_traveltime[1:])
         # axs_exogenous_parameters[0].get_shared_y_axes().join(axs_traveltime[0], *axs_traveltime[1:])
@@ -1661,7 +1666,7 @@ class Artist:
         # ax = fig.subplots(nrows=self.dim_subplots[0], ncols=self.dim_subplots[1])
         ax = {}
         ax[(0, 0)] = plt.subplot(dim_subplots[0], dim_subplots[1], 1)
-        ax[(0, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 2, sharey=ax[(0, 0)])
+        ax[(0, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 2) #, sharey=ax[(0, 0)])
         # ax[(0, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 2)
 
         ax[(1, 0)] = plt.subplot(dim_subplots[0], dim_subplots[1], 3)
@@ -1679,20 +1684,28 @@ class Artist:
 
             ax[(0, 0)].plot(results_norefined_df['iter'], results_norefined_df['theta_tt'], color=color, label=label)
 
-        ax[(0, 0)].axhline(float(theta_true['tt']), linestyle='dashed')
+        ax[(0, 0)].axhline(float(theta_true['tt']), linestyle='dashed', color = 'black')
         # ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}$')
         ax[(0, 0)].set_ylabel("travel time coefficient")
         # ax[(0, 0)].set_ticklabels([])
 
         ax[(0, 0)].tick_params(labelbottom=False)
 
+        if results_norefined_df['theta_tt'].max() < 2 and results_norefined_df['theta_tt'].min() > -15:
+            ax[(0, 0)].set_yticks(np.arange(-14, 2 + 2, 2))
+
+
+
         # - Refined
         for network, color, label in zip(results.keys(), colors, labels):
             results_refined_df = results[network][results[network]['stage'] == 'refined']
             ax[(0, 1)].plot(results_refined_df['iter'], results_refined_df['theta_tt'], color=color)
 
-        ax[(0, 1)].axhline(float(theta_true['tt']), linestyle='dashed')
+        ax[(0, 1)].axhline(float(theta_true['tt']), linestyle='dashed', color = 'black')
         ax[(0, 1)].tick_params(labelbottom=False)
+
+        if results_refined_df['theta_tt'].max() < 2 and results_refined_df['theta_tt'].min() > -15:
+            ax[(0, 1)].set_yticks(np.arange(-14, 2 + 2, 2))
         # ax[(0, 1)].yaxis.set_ticklabels([])
         # plt.setp(ax[(0, 1)].get_yticklabels(), visible=False)
         # ax[(0,1)].yaxis.set_major_formatter(yfmt2)
@@ -2271,7 +2284,7 @@ class Artist:
         ax[(1, 0)].axvline(x=theta_true, color='black', linestyle='dashed', linewidth=0.5)
         ax[(1, 0)].axhline(y=0, color='black', linestyle='dashed', linewidth=0.5)
         ax[(1, 0)].plot(x_range, y_vals, color='red')
-        ax[(1, 0)].set_xticks(np.arange(int(round(min(x_range))), int(round(max(x_range))) + 0.1, 5))
+        # ax[(1, 0)].set_xticks(np.arange(int(round(min(x_range))), int(round(max(x_range))) + 0.1, 5))
 
         if matplotlib.rcParams['text.usetex']:
             y_label = r"$\textmd{sign} (\nabla_{\theta} ||x(\hat{\theta})-\bar{x}||_2^2 )$"
@@ -2279,6 +2292,9 @@ class Artist:
             y_label = "Sign of first derivative"
 
         ax[(1, 0)].set_ylabel(y_label)
+        ax[(1, 0)].set_yticks([-1, 0, 1])
+        # plt.setp(ax[(1, 0)].get_yticklabels(), visible=False)
+        # plt.setp(ax[(1, 1)].get_yticklabels(), visible=False)
 
         # ax[(1, 0)].set_xticklabels([])
 
@@ -2314,6 +2330,7 @@ class Artist:
             y_label = "Sign of second derivative"
 
         ax[(1, 1)].set_ylabel(y_label)
+        ax[(1, 1)].set_yticks([-1, 0, 1])
 
         # ax[(0, 2)].set_title("Hessian L2-norm")
         # y_vals = [np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1)) for x_val in x_range]
@@ -2342,9 +2359,6 @@ class Artist:
         for axi in fig.get_axes():
             axi.set_xlabel(x_label)
             # axi.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
-            yfmt = ScalarFormatterForceFormat()
-            yfmt.set_powerlimits((0, 0))
-            axi.yaxis.set_major_formatter(yfmt)
             linei, labeli = axi.get_legend_handles_labels()
             lines = linei + lines
             labels = labeli + labels
@@ -2353,7 +2367,10 @@ class Artist:
             axi.xaxis.label.set_size(self.fontsize)
             axi.yaxis.label.set_size(self.fontsize)
 
-
+        for axi in [ax[(0, 0)],ax[(0, 1)]]:
+            yfmt = ScalarFormatterForceFormat()
+            yfmt.set_powerlimits((0, 0))
+            axi.yaxis.set_major_formatter(yfmt)
 
         # plt.setp(ax[-1, :], xlabel=x_label)
         # plt.setp(ax[:, 0], ylabel=r"$\theta_i$")
@@ -2429,6 +2446,7 @@ class Artist:
             y_label = "Sign of first derivative"
 
         ax[(1, 0)].set_ylabel(y_label)
+        ax[(1, 0)].set_yticks([-1, 0, 1])
 
         for attr, color, label in zip(attrs, colors, labels):
             y_vals = np.sign(results_df[results_df['attr'] == attr]['grad_f_vals'])
@@ -2466,6 +2484,7 @@ class Artist:
             y_label = "Sign of second derivative"
 
         ax[(1, 1)].set_ylabel(y_label)
+        ax[(1, 1)].set_yticks([-1, 0, 1])
 
         for attr, color, label in zip(attrs, colors, labels):
             y_vals = np.sign(results_df[results_df['attr'] == attr]['hessian_f_vals'])
@@ -2500,9 +2519,6 @@ class Artist:
             axi.set_xlabel(x_label)
 
             # axi.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
-            yfmt = ScalarFormatterForceFormat()
-            yfmt.set_powerlimits((0, 0))
-            axi.yaxis.set_major_formatter(yfmt)
             if xticks is not None:
                 axi.set_xticks(xticks)
             linei, labeli = axi.get_legend_handles_labels()
@@ -2512,6 +2528,12 @@ class Artist:
             axi.tick_params(axis='x', labelsize=self.fontsize)
             axi.xaxis.label.set_size(self.fontsize)
             axi.yaxis.label.set_size(self.fontsize)
+
+        for axi in [ax[(0, 0)],ax[(0, 1)]]:
+            yfmt = ScalarFormatterForceFormat()
+            yfmt.set_powerlimits((0, 0))
+            axi.yaxis.set_major_formatter(yfmt)
+
 
         # # Set font sizes
         # for axi in fig.get_axes():
