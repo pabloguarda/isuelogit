@@ -283,10 +283,12 @@ class LinkDataGenerator(Generator):
             links_keys.append((link_key[0] - 1, link_key[1] - 1, link_key[2]))
 
         bpr_parameters_df = pd.DataFrame({'link_key': links_keys,
-                                          'tf': [0.25, 0.5, 0.75, 1.0],
+                                          'tf': [1e-1, 2e-1, 3e-1, 4e-1],
                                           'k': [100,200,300,400],
                                           'alpha': 0.15,
                                           'beta': 4})
+
+        bpr_parameters_df['tf'] = bpr_parameters_df['tf'] * 1.0
 
         return bpr_parameters_df
 
@@ -320,6 +322,8 @@ class LinkDataGenerator(Generator):
                       'alpha':0.15,
                       'beta': 4})
 
+        bpr_parameters_df['tf'] = bpr_parameters_df['tf'] * 1.5
+
         return bpr_parameters_df
 
     def generate_LoChan_bpr_parameters(self) -> pd.DataFrame:
@@ -350,6 +354,8 @@ class LinkDataGenerator(Generator):
                                           'k': 600,
                                           'alpha': 0.15,
                                           'beta': 4})
+
+        bpr_parameters_df['tf'] = bpr_parameters_df['tf'] * 2e-1
 
         return bpr_parameters_df
 
@@ -382,6 +388,8 @@ class LinkDataGenerator(Generator):
                                           'k': [4149, 4149, 8685, 8685, 9683, 9683, 7961, 7961],
                                           'alpha': [0.1450, 0.1450, 0.1035, 0.1035,0.0988,0.0988,0.1242,0.1242],
                                           'beta': [3.5,3.5,2.7,2.7,2.7,2.7,3.5,3.5]})
+
+        bpr_parameters_df['tf'] = bpr_parameters_df['tf']*1.5
 
         return bpr_parameters_df
 
@@ -1876,7 +1884,7 @@ class NetworkGenerator(Generator):
         Q['N5'] = np.array([[0, 0, 100], [0, 0, 0], [0, 0, 0]])
 
         A['Toy'] = np.array([[0, 0, 1, 0], [0, 0, 1, 0], [0, 0, 0, 2], [0, 0, 0, 0]])
-        Q['Toy'] = np.array([[0, 0, 0, 100], [0, 0, 0, 200], [0, 0, 0, 300], [0, 0, 0, 0]])
+        Q['Toy'] = np.array([[0, 0, 0, 50], [0, 0, 0, 100], [0, 0, 0, 200], [0, 0, 0, 0]])
 
         #Sheffi (pp 329)
         A['Sheffi'] = np.array([[0, 2], [0, 0]])
@@ -1956,6 +1964,8 @@ class NetworkGenerator(Generator):
         Q['Wang'] = np.zeros([4, 4])
         for od, demand in demand_dict.items():
             Q['Wang'][(od[0] - 1, od[1] - 1)] = demand
+
+        #Q['Wang'] = 0.5*Q['Wang']
 
         return A,Q
 
