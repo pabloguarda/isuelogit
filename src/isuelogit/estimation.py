@@ -350,14 +350,14 @@ class UtilityFunction:
 
         # print('New initial values', self.utility_function.initial_values)
 
-        return self.initial_values
+        #return self.initial_values
 
     def zero_initializer(self):
         '''Randomly initialize values of the utility parameters based on true values and range'''
 
         self.constant_initializer(0)
 
-        return self.initial_values
+        #return self.initial_values
 
     def default_zero_initializer(self, features):
         '''Set the initial value to zero for all parameters that have initial value None'''
