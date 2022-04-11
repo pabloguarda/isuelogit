@@ -1210,7 +1210,7 @@ class Artist:
 
         axs.hist(x, bins, alpha=0.5, label='non-refined')
         axs.hist(y, bins, alpha=0.5, label='refined')
-        plt.xlabel("bin for difference between predicted and observed counts")
+        plt.xlabel("difference between predicted and observed counts")
         plt.ylabel("frequency")
         plt.legend(loc='upper center', bbox_to_anchor=[0.52, -0.15], ncol = 2,
                    prop={'size': self.fontsize}, title = 'optimization stage',
@@ -1220,7 +1220,6 @@ class Artist:
         axs.yaxis.label.set_size(self.fontsize)
         axs.tick_params(axis='y', labelsize=self.fontsize)
         axs.tick_params(axis='x', labelsize=self.fontsize)
-
 
         fig.savefig(folder + '/' + filename, pad_inches=0.1, bbox_inches="tight")
 
@@ -2427,7 +2426,7 @@ class Artist:
         if matplotlib.rcParams['text.usetex']:
             y_label = r"$\nabla_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)$"
         else:
-            y_label = "First derivative"
+            y_label = "first derivative"
 
         ax[(0, 1)].set_ylabel(y_label)
 
@@ -2443,7 +2442,7 @@ class Artist:
         if matplotlib.rcParams['text.usetex']:
             y_label = r"$\textmd{sign} (\nabla_{\theta} ||x(\hat{\theta})-\bar{x}||_2^2 )$"
         else:
-            y_label = "Sign of first derivative"
+            y_label = "sign of first derivative"
 
         ax[(1, 0)].set_ylabel(y_label)
         ax[(1, 0)].set_yticks([-1, 0, 1])
@@ -2481,7 +2480,7 @@ class Artist:
         if matplotlib.rcParams['text.usetex']:
             y_label = r"$\textmd{sign} (\nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2))$"
         else:
-            y_label = "Sign of second derivative"
+            y_label = "sign of second derivative"
 
         ax[(1, 1)].set_ylabel(y_label)
         ax[(1, 1)].set_yticks([-1, 0, 1])
@@ -2615,7 +2614,7 @@ class Artist:
             if matplotlib.rcParams['text.usetex']:
                 y_label = r"$\nabla_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)$"
             else:
-                y_label = "First derivative"
+                y_label = "first derivative"
             ax[(0, 1)].set_ylabel(y_label)
 
             # ax[(0, 2)].set_title("Sign Gradient L2-norm")
@@ -2627,9 +2626,10 @@ class Artist:
             if matplotlib.rcParams['text.usetex']:
                 y_label = r"$\textmd{sign} (\nabla_{\theta} ||x(\hat{\theta})-\bar{x}||_2^2 )$"
             else:
-                y_label = "Sign of first derivative"
+                y_label = "sign of first derivative"
 
             ax[(1, 0)].set_ylabel(y_label)
+            ax[(1, 0)].set_yticks([-1, 0, 1])
 
             # ax[(1, 0)].set_xticks(np.arange(int(min(x_range)), int(max(x_range)), 3))
             # ax[(1, 0)].set_xticklabels([])
@@ -2663,9 +2663,10 @@ class Artist:
             if matplotlib.rcParams['text.usetex']:
                 y_label = r"$\textmd{sign} (\nabla^2_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2))$"
             else:
-                y_label = "Sign of second derivative"
+                y_label = "sign of second derivative"
 
             ax[(1, 1)].set_ylabel(y_label)
+            ax[(1, 1)].set_yticks([-1, 0, 1])
 
         # ax[(0, 2)].set_title("Hessian L2-norm")
         # y_vals = [np.mean(2*(np.sum(objective_function_sigmoids_system(x_val, q = q, deltatt = deltatt),axis = 1)-linkflow.T)*np.sum(q*gradient_sigmoid(theta = x_val, deltatt = deltatt),axis = 1)) for x_val in x_range]
