@@ -61,3 +61,4 @@ tox.ini
 History.rst
 
 notebooks/.ipynb_checkpoints/
+notebooks/.DS_Store
