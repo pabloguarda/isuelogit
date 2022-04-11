@@ -560,12 +560,13 @@ class Newton(SecondOrderMethod):
 
 class LevenbergMarquardt(SecondOrderMethod):
     def __init__(self, **kwargs):
-        super().__init__(key='lm', **kwargs)
 
         # Adaptive learning rate in L-M
-        self.lambda_lm = kwargs.get('lambda_lm', 1e-2)
-        self.vdown_lm = kwargs.get('vdown_lm', 2)
-        self.vup_lm = kwargs.get('vup_lm', 3)
+        self.lambda_lm = kwargs.pop('lambda_lm', 1e-2)
+        self.vdown_lm = kwargs.pop('vdown_lm', 2)
+        self.vup_lm = kwargs.pop('vup_lm', 3)
+
+        super().__init__(key='lm', **kwargs)
 
         # https://mljs.github.io/levenberg-marquardt/
         # Source: https://en.wikipedia.org/wiki/Levenberg%E2%80%93Marquardt_algorithm
