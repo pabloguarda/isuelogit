@@ -494,7 +494,7 @@ class Artist:
         # ax.plot([true_parameter_t.min(), true_parameter_t.max()], [true_parameter_t.min(), true_parameter_t.max()], 'k--', lw=4)
         # ax.set_xlabel('True theta')
         # ax.set_ylabel('Learned theta')
-        # ax.set_title(filename + '\n Travel time coefficient')
+        # ax.set_title(filename + '\n travel time coefficient')
         # plt.show()
 
         if constraints_theta['Z']['c'] != 0:
@@ -1284,7 +1284,7 @@ class Artist:
             # ax[(0,0)].set_yticks(np.arange(results_norefined_df['vot'].min(), results_norefined_df['vot'].max(), 0.2))
             ax[(0, 0)].axhline(1, linestyle='dashed')
             # ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}/\theta_{\hat{\sigma}}$')
-            ax[(0, 0)].set_ylabel("Value of travel time reliability")
+            ax[(0, 0)].set_ylabel("value of travel time reliability")
             # ax[(0, 0)].yaxis.set_major_formatter(OOMFormatter(-4, "%1.1f"))
             # ax[(0, 0)].yaxis.set_major_formatter(yfmt1)
             ax[(0, 0)].tick_params(labelbottom=False)
@@ -1315,7 +1315,7 @@ class Artist:
 
             # ax[(0,0)].set_yticks(np.arange(results_norefined_df['vot'].min(), results_norefined_df['vot'].max(), 0.2))
             # ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}$')
-            ax[(0, 0)].set_ylabel("Travel time coefficient")
+            ax[(0, 0)].set_ylabel("travel time coefficient")
             # ax[(0, 0)].set_ticklabels([])
 
             ax[(0, 0)].tick_params(labelbottom=False)
@@ -1363,7 +1363,7 @@ class Artist:
         #     ax[(1,0)].set_ylim(results_norefined_df['objective'].min(), results_norefined_df['objective'].max())
 
         # ax[(1, 0)].set_ylabel(r"$ ||(x(\hat{\theta})-\bar{x}||_2^2 $")
-        ax[(1, 0)].set_ylabel("Objective function")
+        ax[(1, 0)].set_ylabel("objective function")
         ax[(1, 0)].set_xlabel("iterations (" + methods[0] + ")")
         # ax[(1, 0)].yaxis.set_major_formatter(yfmt3)
 
@@ -1634,7 +1634,7 @@ class Artist:
 
         ax[(0, 0)].axhline(float(theta_true['tt']), linestyle='dashed')
         # ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}$')
-        ax[(0, 0)].set_ylabel("Travel time coefficient")
+        ax[(0, 0)].set_ylabel("travel time coefficient")
         # ax[(0, 0)].set_ticklabels([])
 
         ax[(0, 0)].tick_params(labelbottom=False)
@@ -1672,7 +1672,7 @@ class Artist:
         ax[(1, 0)].axhline(0, linestyle='dashed')
 
         # ax[(1, 0)].set_ylabel(r"$ ||(x(\hat{\theta})-\bar{x}||_2^2 $")
-        ax[(1, 0)].set_ylabel("Objective function")
+        ax[(1, 0)].set_ylabel("objective function")
         ax[(1, 0)].set_xlabel("iterations (" + methods[0] + ")")
         # ax[(1, 0)].yaxis.set_major_formatter(yfmt3)
 
@@ -1811,7 +1811,7 @@ class Artist:
 
         # ax[(1, 0)].set_ylabel(r"$ ||(x(\hat{\theta})-\bar{x}||_2^2 $")
 
-        ax[(1, 0)].set_ylabel("Objective function")
+        ax[(1, 0)].set_ylabel("objective function")
         ax[(1, 0)].set_xlabel("iterations (" + methods[0] + ")")
         # ax[(1, 0)].yaxis.set_major_formatter(yfmt3)
 
@@ -1907,7 +1907,7 @@ class Artist:
 
         ax[(0, 0)].axhline(float(theta_true['tt']), linestyle='dashed', color='black')
         # ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}$')
-        ax[(0, 0)].set_ylabel("Travel time coefficient")
+        ax[(0, 0)].set_ylabel("travel time coefficient")
         # ax[(0, 0)].set_ticklabels([])
 
         ax[(0, 0)].tick_params(labelbottom=False)
@@ -1950,7 +1950,7 @@ class Artist:
         ax[(1, 0)].axhline(0, linestyle='dashed', color='black')
 
         # ax[(1, 0)].set_ylabel(r"$ ||(x(\hat{\theta})-\bar{x}||_2^2 $")
-        ax[(1, 0)].set_ylabel("Objective function")
+        ax[(1, 0)].set_ylabel("objective function")
         ax[(1, 0)].set_xlabel("iterations (" + methods[0] + ")")
         # ax[(1, 0)].yaxis.set_major_formatter(yfmt3)
 
@@ -2031,8 +2031,8 @@ class Artist:
             x_label = r"$\hat{\theta}_t$"
             y_label = r"$\hat{x(\theta)}$"
         else:
-            x_label = "Travel time coefficient"
-            y_label = "Traffic flow function"
+            x_label = "travel time coefficient"
+            y_label = "traffic flow function"
 
         # Set font sizes
         for axi in reversed(fig.get_axes()):
@@ -2063,13 +2063,15 @@ class Artist:
 
         return fig
 
-    def pseudoconvexity_loss_function_small_networks_lite(self,
-                                                          filename,
-                                                          f_vals: {},
-                                                          x_range,
-                                                          theta_true,
-                                                          colors,
-                                                          labels, folder: str = None):
+    def pseudoconvexity_objective_function_small_networks_lite(self,
+                                                               filename: str,
+                                                               f_vals: Dict,
+                                                               x_range: List,
+                                                               theta_true: Dict,
+                                                               colors,
+                                                               labels,
+                                                               sign_first_derivative: bool = False,
+                                                               folder: str = None):
 
         if folder is None:
             folder = self.folder
@@ -2078,14 +2080,15 @@ class Artist:
 
         dim_subplots = (2, 2)
 
-        fig, ax = plt.subplots(nrows=dim_subplots[0], ncols=dim_subplots[1], figsize=(7, 6))
-        # fig.suptitle("Analysis of  (strict) quasiconvexity of L2 norm"
-        #              "\n(theta_true = " + str(theta_true) + ")")
+        fig = plt.figure(figsize=(7, 6))
+        # ax = fig.subplots(nrows=self.dim_subplots[0], ncols=self.dim_subplots[1])
+        ax = {}
+        ax[(0, 0)] = plt.subplot(dim_subplots[0], dim_subplots[1], 1)
+        ax[(0, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 2)
+        # ax[(0, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 2)
 
-        # Plot objective function over an interval
-        # ax[(0, 0)].set_title("\n\nObj. function (L2)")
-        # ax[(0, 0)].set_title("\n\n")
-        # y_vals = f_vals
+        ax[(1, 0)] = plt.subplot(dim_subplots[0], dim_subplots[1], 3)
+        ax[(1, 1)] = plt.subplot(dim_subplots[0], dim_subplots[1], 4)
 
         for i, j, k, color, label in zip(f_vals.keys(), f_vals.values(), range(0, len(f_vals)), colors, labels):
             pos_plot = int(np.floor(k / dim_subplots[0])), int(k % dim_subplots[1])
@@ -2098,30 +2101,24 @@ class Artist:
         ax[(0, 1)].set_xticklabels([])
 
         ax[(1, 0)].set_xticks(np.arange(int(round(min(x_range))), int(round(max(x_range))) + 0.1, 5))
-
         ax[(1, 1)].set_xticks(np.arange(int(round(min(x_range))), int(round(max(x_range))) + 0.1, 5))
 
-        # set labels
-        if matplotlib.rcParams['text.usetex']:
-            x_label = r"$\hat{\theta}_t$"
-            y_label = r"$||x(\hat{\theta})-\bar{x}||_2^2$"
-        else:
-            x_label = "Travel time coefficient"
-            y_label = "Objective function"
-
-        # plt.setp(ax[-1, :], xlabel=x_label)
-        # plt.setp(ax[:, 0], ylabel=y_label)
+        # ax[(1, 0)].set_ylabel("objective function")
+        # ax[(1, 0)].set_xlabel("iterations (" + methods[0] + ")")
 
         # Legend
 
         lines, labels = [], []
         for axi in reversed(fig.get_axes()):
-            axi.set_xlabel(x_label)
-            axi.set_ylabel(y_label)
             # axi.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
-            yfmt = ScalarFormatterForceFormat()
-            yfmt.set_powerlimits((0, 0))
-            axi.yaxis.set_major_formatter(yfmt)
+
+            if not sign_first_derivative:
+                yfmt = ScalarFormatterForceFormat()
+                yfmt.set_powerlimits((0, 0))
+                axi.yaxis.set_major_formatter(yfmt)
+            else:
+                axi.set_yticks([-1, 0, 1])
+
             linei, labeli = axi.get_legend_handles_labels()
             lines = linei + lines
             labels = labeli + labels
@@ -2130,22 +2127,51 @@ class Artist:
             axi.xaxis.label.set_size(self.fontsize)
             axi.yaxis.label.set_size(self.fontsize)
 
+        if sign_first_derivative:
+
+            plt.setp(ax[(0, 1)].get_yticklabels(), visible=False)
+            plt.setp(ax[(1, 1)].get_yticklabels(), visible=False)
+
+            # set labels
+            if matplotlib.rcParams['text.usetex']:
+                _label = r"$\hat{\theta}_t$"
+                y_label = r"$\nabla_{\theta} (||x(\hat{\theta})-\bar{x}||_2^2)$"
+            else:
+                x_label = "travel time coefficient"
+                y_label = "sign of first derivative"
+
+        else:
+
+            # set labels
+            if matplotlib.rcParams['text.usetex']:
+                x_label = r"$\hat{\theta}_t$"
+                y_label = r"$||x(\hat{\theta})-\bar{x}||_2^2$"
+            else:
+                x_label = "travel time coefficient"
+                y_label = "objective function"
+
+        plt.setp(ax[(1,0)], xlabel=x_label)
+        plt.setp(ax[(1, 1)], xlabel=x_label)
+        plt.setp(ax[(0, 0)], ylabel=y_label)
+        plt.setp(ax[(1, 0)], ylabel=y_label)
+
+
         fig.legend(lines, labels, loc='upper center', ncol=4, prop={'size': self.fontsize}
                    , bbox_to_anchor=[0.52, -0.25]
-                   , bbox_transform=BlendedGenericTransform(fig.transFigure, ax.flatten()[-2].transAxes))
+                   , bbox_transform=BlendedGenericTransform(fig.transFigure, ax[(1, 1)].transAxes))
 
         fig.tight_layout()
 
         fig.savefig(folder + '/' + filename + ".pdf", pad_inches=0.1, bbox_inches="tight")
 
-    def pseudoconvexity_loss_function_small_networks(self,
-                                                     filename,
-                                                     f_vals,
-                                                     grad_f_vals,
-                                                     hessian_f_vals,
-                                                     x_range,
-                                                     theta_true,
-                                                     alpha_bh=0, folder: str = None):
+    def pseudoconvexity_objective_function_small_networks(self,
+                                                          filename,
+                                                          f_vals,
+                                                          grad_f_vals,
+                                                          hessian_f_vals,
+                                                          x_range,
+                                                          theta_true,
+                                                          alpha_bh=0, folder: str = None):
 
         if folder is None:
             folder = self.folder
@@ -2168,7 +2194,7 @@ class Artist:
         if matplotlib.rcParams['text.usetex']:
             y_label = r"$||x(\hat{\theta})-\bar{x}||_2^2$"
         else:
-            y_label = "Objective function"
+            y_label = "objective function"
 
         ax[(0, 0)].set_ylabel(y_label)
 
@@ -2260,7 +2286,7 @@ class Artist:
         if matplotlib.rcParams['text.usetex']:
             x_label = r"$\hat{\theta}$"
         else:
-            x_label = "Travel time coefficient"
+            x_label = "travel time coefficient"
 
         lines, labels = [], []
         for axi in fig.get_axes():
@@ -2316,7 +2342,7 @@ class Artist:
         if matplotlib.rcParams['text.usetex']:
             y_label = r"$||x(\hat{\theta})-\bar{x}||_2^2$"
         else:
-            y_label = "Objective function"
+            y_label = "objective function"
 
         ax[(0, 0)].set_ylabel(y_label)
 
@@ -2417,7 +2443,7 @@ class Artist:
         if matplotlib.rcParams['text.usetex']:
             x_label = r"$\hat{\theta}$"
         else:
-            x_label = "Travel time coefficient"
+            x_label = "travel time coefficient"
 
         lines, labels = [], []
         for axi in fig.get_axes():
@@ -2500,7 +2526,7 @@ class Artist:
         if matplotlib.rcParams['text.usetex']:
             y_label = r"$||x(\hat{\theta})-\bar{x}||_2^2$"
         else:
-            y_label = "Objective function"
+            y_label = "objective function"
 
         ax[(0, 0)].set_ylabel(y_label)
 
@@ -2595,7 +2621,7 @@ class Artist:
         if matplotlib.rcParams['text.usetex']:
             x_label = r"$\hat{\theta}$"
         else:
-            x_label = "Travel time coefficient"
+            x_label = "travel time coefficient"
 
         for axi in fig.get_axes():
             axi.set_xlabel(x_label)
