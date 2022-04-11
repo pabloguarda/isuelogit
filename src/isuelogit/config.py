@@ -35,8 +35,8 @@ def set_main_dir(dir = None):
             }
 
     # Folder to read and write network data
-    dirs['read_network_data'] = dirs['input_folder'] + "/network-data/"
-    dirs['write_network_data'] = dirs['output_folder'] + "/network-data/"
+    dirs['read_network_data'] = dirs['input_folder'] + "network-data/"
+    dirs['write_network_data'] = dirs['output_folder'] + "network-data/"
 
     return dirs
 
