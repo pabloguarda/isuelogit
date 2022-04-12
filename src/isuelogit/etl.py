@@ -1632,8 +1632,9 @@ def feature_engineering_fresno(links, network, lwrlk_only = True):
 
         # - Adjusted standard deviation of travel time
 
-        if 'tt_cv' in existing_Z_attrs:
+        if 'speed_sd' in existing_Z_attrs:
             link.Z_dict['tt_sd_adj'] = link.bpr.tf * link.Z_dict['tt_cv']
+            link.Z_dict['speed_sd_length'] = link.Z_dict['length'] * link.Z_dict['speed_sd']
 
         # - Measure of reliability as PEMS which is relationship between true and free flow travel times
         if 'speed_avg' in existing_Z_attrs and 'speed_ref_avg' in existing_Z_attrs:
@@ -1641,33 +1642,44 @@ def feature_engineering_fresno(links, network, lwrlk_only = True):
             # link.Z_dict['tt_reliability'] = min(1,link.Z_dict['speed_avg']/link.Z_dict['speed_ref_avg'])
             if link.Z_dict['speed_ref_avg'] != 0:
                 link.Z_dict['speed_reliability'] = link.Z_dict['speed_hist_avg'] / link.Z_dict['speed_ref_avg']
+                link.Z_dict['tt_avg_adj'] = link.Z_dict['length'] / link.Z_dict['speed_avg']
             else:
                 link.Z_dict['speed_reliability'] = 0
+                link.Z_dict['tt_avg_adj'] = link.bpr.tf
+
+        if 'median_inc' in existing_Z_attrs:
+            link.Z_dict['median_inc_length'] = link.Z_dict['length'] * link.Z_dict['median_inc']
 
         # (ii) No incidents
 
         if 'incidents' in existing_Z_attrs:
             link.Z_dict['no_incidents'] = 1
+            link.Z_dict['incident'] = 0
 
             if link.Z_dict['incidents'] > 0:
                 link.Z_dict['no_incidents'] = 0
+                link.Z_dict['incident'] = 1
 
         # (iii) No bus stops
 
         if 'bus_stops' in existing_Z_attrs:
             link.Z_dict['no_bus_stops'] = 1
+            link.Z_dict['bus_stop'] = 0
 
             if link.Z_dict['bus_stops'] > 0:
                 link.Z_dict['no_bus_stops'] = 0
+                link.Z_dict['bus_stop'] = 1
 
         # (iv) No street intersections
 
         if 'intersections' in existing_Z_attrs:
 
             link.Z_dict['no_intersections'] = 1
+            link.Z_dict['intersection'] = 0
 
             if link.Z_dict['intersections'] > 0:
                 link.Z_dict['no_intersections'] = 0
+                link.Z_dict['intersection'] = 1
 
     # Features based on percentiles
 
@@ -1710,8 +1722,9 @@ def feature_engineering_fresno(links, network, lwrlk_only = True):
                 link.Z_dict['reliable_tt'] = 1
                 link.Z_dict['no_reliable_tt'] = 0
 
-    new_features = ['no_incidents','no_bus_stops', 'no_intersections','tt_sd_adj','speed_reliability',
-                    'low_inc', 'high_inc', 'no_reliable_tt','reliable_tt']
+    new_features = ['no_incidents', 'incident', 'no_bus_stops', 'bus_stop', 'no_intersections', 'intersection',
+                    'low_inc', 'high_inc', 'median_inc_length',
+                    'tt_sd_adj', 'speed_reliability', 'no_reliable_tt','reliable_tt', 'tt_avg_adj', 'speed_sd_length']
 
     if lwrlk_only:
         for key in new_features:
