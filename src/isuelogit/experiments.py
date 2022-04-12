@@ -1527,9 +1527,11 @@ class BiasReferenceODExperiment(ConvergenceExperiment):
                 utility_function=self.utility_function)
 
         # Table 4, Yang and Bell (2000)
-        #missing_idxs = [0,1,2,3,4,6,7,11,13]
+        missing_idxs = [0,1,2,3,4,6,7,11,13]
+        # idxs = [5,8,9,10,12]
 
-        #counts = dict(zip(counts.keys(), masked_observed_counts(counts=np.array(list(counts.values())), idx=missing_idxs).flatten()))
+        counts = dict(zip(counts.keys(), masked_observed_counts(counts=np.array(list(counts.values())),
+                                                                idx=missing_idxs).flatten()))
 
         self.network.load_traffic_counts(counts=counts)
 
