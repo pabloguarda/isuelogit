@@ -574,7 +574,7 @@ def scatter_plots_features(links_df,
         labels = g._legend_data.keys()
 
         g.add_legend(fontsize=14, handles=handles, labels=labels, loc='upper center',
-                     title = 'Date', bbox_to_anchor=(.81, .6), frameon=False)
+                     title = 'Date', bbox_to_anchor=(.82, .6), frameon=False)
 
         g. legend.get_title().set_fontsize(14)
 
