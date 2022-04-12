@@ -1685,20 +1685,24 @@ def feature_engineering_fresno(links, network, lwrlk_only = True):
 
     # Percentile for segmenting income level from CENSUS blocks data (high income are links with income higher than pct)
     pct_income = 20
-    pct_reliability = 20
+    pct_tt_cv = 20
+    pct_speed_sd = 20
 
     # - Get percentile income distribution first
 
     links_income_list = []
     links_tt_cv_list = []
+    links_speed_sd_list = []
 
     for link in network.get_regular_links():
         Z_dict = link.Z_dict
         links_income_list.append(Z_dict['median_inc'])
         links_tt_cv_list.append(Z_dict['tt_cv'])
+        links_speed_sd_list.append(Z_dict['speed_sd'])
 
     link_pct_income = np.percentile(np.array(links_income_list), pct_income)
-    link_pct_tt_cv = np.percentile(np.array(links_tt_cv_list), pct_reliability)
+    link_pct_tt_cv = np.percentile(np.array(links_tt_cv_list), pct_tt_cv)
+    link_pct_speed_sd = np.percentile(np.array(links_tt_cv_list), pct_speed_sd)
 
     for link in links:
 
@@ -1716,15 +1720,25 @@ def feature_engineering_fresno(links, network, lwrlk_only = True):
         if 'tt_cv' in Z_dict:
             # i) Travel time reliabiility dummies
             link.Z_dict['reliable_tt'] = 0
-            link.Z_dict['no_reliable_tt'] = 1
+            link.Z_dict['unreliable_tt'] = 1
 
             if link.Z_dict['tt_cv'] <= link_pct_tt_cv:
                 link.Z_dict['reliable_tt'] = 1
-                link.Z_dict['no_reliable_tt'] = 0
+                link.Z_dict['unreliable_tt'] = 0
+
+        if 'speed_sd' in Z_dict:
+            # i) Speed reliabiility dummies
+            link.Z_dict['reliable_speed'] = 0
+            link.Z_dict['unreliable_speed'] = 1
+
+            if link.Z_dict['speed_sd'] <= link_pct_speed_sd:
+                link.Z_dict['reliable_speed'] = 1
+                link.Z_dict['unreliable_speed'] = 0
 
     new_features = ['no_incidents', 'incident', 'no_bus_stops', 'bus_stop', 'no_intersections', 'intersection',
                     'low_inc', 'high_inc', 'median_inc_length',
-                    'tt_sd_adj', 'speed_reliability', 'no_reliable_tt','reliable_tt', 'tt_avg_adj', 'speed_sd_length']
+                    'tt_sd_adj', 'speed_reliability', 'unreliable_tt','reliable_tt', 'tt_avg_adj', 'speed_sd_length',
+                    'reliable_speed','unreliable_speed']
 
     if lwrlk_only:
         for key in new_features:
