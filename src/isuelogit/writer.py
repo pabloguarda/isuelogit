@@ -450,6 +450,8 @@ def write_internal_paths(paths: [Path],
 
     total_paths = len(paths)
 
+    print('\n')
+
     for path, counter in zip(paths, range(total_paths)):
         printer.printProgressBar(counter, total_paths-1, prefix='Writing paths:', suffix='', length=20)
 
