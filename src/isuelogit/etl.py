@@ -1694,11 +1694,23 @@ def feature_engineering_fresno(links, network, lwrlk_only = True):
     links_tt_cv_list = []
     links_speed_sd_list = []
 
+    Z_data = network.Z_data
+    mean_speed_sd = Z_data[Z_data.link_type == 'LWRLK']['speed_sd'].mean()
+    mean_speed_avg = Z_data[Z_data.link_type == 'LWRLK']['speed_avg'].mean()
+
     for link in network.get_regular_links():
         Z_dict = link.Z_dict
         links_income_list.append(Z_dict['median_inc'])
         links_tt_cv_list.append(Z_dict['tt_cv'])
+
+        # Impute average of speed_sd in links where there was no matching with Inrix (speed_sd = 0)
+        if Z_dict['speed_sd'] == 0:
+            Z_dict['speed_sd'] = mean_speed_sd
+
         links_speed_sd_list.append(Z_dict['speed_sd'])
+
+        if Z_dict['speed_avg'] == 0:
+            Z_dict['speed_avg'] = mean_speed_avg
 
     link_pct_income = np.percentile(np.array(links_income_list), pct_income)
     link_pct_tt_cv = np.percentile(np.array(links_tt_cv_list), pct_tt_cv)

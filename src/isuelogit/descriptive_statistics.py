@@ -486,23 +486,31 @@ def summary_table_links(links: List = None,
 
 def corrfunc(x, y, ax=None, **kws):
     """Plot the correlation coefficient in the top left hand corner of a plot."""
-    r, _ = pearsonr(x, y)
+
+    matplotlib.rcParams['axes.unicode_minus'] = False
+
+    nas = np.logical_or(np.isnan(x.values), np.isnan(y.values))
+
+    r, _ = pearsonr(x[~nas], y[~nas])
+
     ax = ax or plt.gca()
-    ax.annotate(f'ρ = {r:.2f}', xy=(.7, .9), xycoords=ax.transAxes)
+    ax.annotate(f'ρ = {r:.2f}', xy=(.6, .9), xycoords=ax.transAxes)
 
 def corrfunc_hue(x, y, **kws):
     # https://stackoverflow.com/questions/43251021/show-two-correlation-coefficients-on-pairgrid-plot-with-hue-categorical-variabl
+
+    matplotlib.rcParams['axes.unicode_minus'] = False
 
     nas = np.logical_or(np.isnan(x.values), np.isnan(y.values))
 
     r, _ = pearsonr(x[~nas], y[~nas])
     ax = plt.gca()
-    # count how many annotations are already present
-    n = len([c for c in ax.get_children() if
-                  isinstance(c, matplotlib.text.Annotation)])
+    # # count how many annotations are already present
+    # n = len([c for c in ax.get_children() if
+    #               isinstance(c, matplotlib.text.Annotation)])
     # pos = (.1, .9 - .3*n)
     # or make positions for every label by hand
-    pos = (.7, .9) if kws['label'] == '2019-10-01' else (.7,.8)
+    pos = (.6, .9) if kws['label'] == '2019-10-01' else (.6,.75)
     color = sns.color_palette()[0] if kws['label'] == '2019-10-01' else sns.color_palette()[1]
 
     ax.annotate(f'ρ = {r:.2f}', xy=pos, xycoords=ax.transAxes, color = color)
@@ -515,7 +523,8 @@ def scatter_plots_features(links_df,
                            folder: str,
                            filename: str,
                            hue = None,
-                           normalized = True):
+                           normalized = True,
+                           frac = 0.3):
 
     """ Scatter plot between traffic counts and travel time/speed reliability and average. Repeat the same but for the remaining covariates """
 
@@ -534,7 +543,7 @@ def scatter_plots_features(links_df,
         df = df[existing_continous_features]
 
     #Randomly sample points to avoid having a heavy figure
-    df = df.sample(frac=0.1, replace=False, random_state=1)
+    df = df.sample(frac=frac, replace=False, random_state=1)
 
     # fig = plt.figure()
 
@@ -602,7 +611,9 @@ def scatter_plots_features(links_df,
     # # TODO: visualize box plot for the non continuous features
     # categorical_features = ['high_inc', 'stops', 'ints']
 
-    g.savefig(folder + '/' + filename, pad_inches=0.1, bbox_inches="tight", dpi=200)
+    plt.subplots_adjust(hspace=0.1, wspace = 0.1)
+
+    g.savefig(folder + '/' + filename, pad_inches=0.1, dpi=200) # , bbox_inches="tight",
     
     return g
 
