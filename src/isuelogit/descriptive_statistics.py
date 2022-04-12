@@ -494,7 +494,7 @@ def corrfunc(x, y, ax=None, **kws):
     r, _ = pearsonr(x[~nas], y[~nas])
 
     ax = ax or plt.gca()
-    ax.annotate(f'ρ = {r:.2f}', xy=(.7, .9), xycoords=ax.transAxes)
+    ax.annotate(f'ρ = {r:.2f}', xy=(.6, .9), xycoords=ax.transAxes)
 
 def corrfunc_hue(x, y, **kws):
     # https://stackoverflow.com/questions/43251021/show-two-correlation-coefficients-on-pairgrid-plot-with-hue-categorical-variabl
@@ -505,12 +505,12 @@ def corrfunc_hue(x, y, **kws):
 
     r, _ = pearsonr(x[~nas], y[~nas])
     ax = plt.gca()
-    # count how many annotations are already present
-    n = len([c for c in ax.get_children() if
-                  isinstance(c, matplotlib.text.Annotation)])
+    # # count how many annotations are already present
+    # n = len([c for c in ax.get_children() if
+    #               isinstance(c, matplotlib.text.Annotation)])
     # pos = (.1, .9 - .3*n)
     # or make positions for every label by hand
-    pos = (.7, .9) if kws['label'] == '2019-10-01' else (.7,.8)
+    pos = (.6, .9) if kws['label'] == '2019-10-01' else (.6,.75)
     color = sns.color_palette()[0] if kws['label'] == '2019-10-01' else sns.color_palette()[1]
 
     ax.annotate(f'ρ = {r:.2f}', xy=pos, xycoords=ax.transAxes, color = color)
