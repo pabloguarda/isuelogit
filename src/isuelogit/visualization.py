@@ -1827,7 +1827,7 @@ class Artist:
 
         ax[(0, 0)].axhline(float(theta_true['tt']) / float(theta_true['c']), linestyle='dashed', color='black')
 
-        ax[(0, 0)].set_ylabel("Value of time")
+        ax[(0, 0)].set_ylabel("value of time")
         # ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}/\hat{\theta_c}$')
         # ax[(0, 0)].set_ticklabels([])
 
