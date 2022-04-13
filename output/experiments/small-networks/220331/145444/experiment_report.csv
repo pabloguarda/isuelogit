@@ -1,7 +1,0 @@
-option,value
-name,Pseudo-convexity Experiment
-date,220331
-time,145444
-seed,2022
-range_initial_values,
-equilibrator,"{'uncongested_mode': True, 'exogenous_traveltimes': False, 'max_iters': 100, 'accuracy': 1e-10, 'method': 'fw', 'iters_fw': 100, 'search_fw': 'grid', 'column_generation': {'n_paths': None, 'paths_selection': None, 'dissimilarity_weight': 0, 'ods_coverage': 1, 'ods_sampling': 'demand', 'n_ods_sampling': 0}, 'path_size_correction': 0}"
