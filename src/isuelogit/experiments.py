@@ -466,7 +466,7 @@ class ConvergenceExperiment(NetworkExperiment):
 
         self.artist.convergence_network_experiment(
             results_df=results_df,
-            filename='loss-vs-vot-over-iterations_' + scenario,
+            filename='convergence_' + scenario,
             folder = self.dirs['experiment_folder'],
             methods=[self.outer_optimizer_norefined.method.key, self.outer_optimizer_refined.method.key],
             theta_true=self.utility_function.true_values,
