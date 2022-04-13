@@ -1684,9 +1684,9 @@ def feature_engineering_fresno(links, network, lwrlk_only = True):
     # Features based on percentiles
 
     # Percentile for segmenting income level from CENSUS blocks data (high income are links with income higher than pct)
-    pct_income = 20
-    pct_tt_cv = 20
-    pct_speed_sd = 20
+    pct_income = 25
+    pct_tt_cv = 25
+    pct_speed_sd = 25
 
     # - Get percentile income distribution first
 
@@ -1714,7 +1714,7 @@ def feature_engineering_fresno(links, network, lwrlk_only = True):
 
     link_pct_income = np.percentile(np.array(links_income_list), pct_income)
     link_pct_tt_cv = np.percentile(np.array(links_tt_cv_list), pct_tt_cv)
-    link_pct_speed_sd = np.percentile(np.array(links_tt_cv_list), pct_speed_sd)
+    link_pct_speed_sd = np.percentile(np.array(links_speed_sd_list), pct_speed_sd)
 
     for link in links:
 
