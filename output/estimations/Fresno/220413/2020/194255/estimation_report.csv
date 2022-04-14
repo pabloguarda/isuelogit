@@ -1,0 +1,29 @@
+option,value
+name,
+date,220413
+time,194255
+seed,2022
+selected_date,2020-10-06
+selected_hour,16
+selected_od_periods,[]
+mean_counts,2113.3
+mean_counts_prediction_loss,97166470.8
+equilikely_prediction_loss,273472708.3
+theta_norefined,"{'tt': -0.6455776272573609, 'speed_sd': 0.0, 'incidents': -2.125863308719894, 'median_inc_length': -0.14722671452232677, 'bus_stops': -0.45028113105073114, 'intersections': -0.04823909122253975}"
+theta_refined,"{'tt': -2.370561677425864, 'incidents': -4.652235452585238, 'bus_stops': -3.9149896064879184, 'intersections': -1.19868098975065}"
+best_objective_norefined,175807755.3
+best_objective_refined,168039641.2
+network,Fresno
+links,2413
+paths,18289
+ods,6970
+scale_OD,0.9546848683155684
+features,"['tt', 'incidents', 'bus_stops', 'intersections']"
+initial parameters,"{'tt': -0.6455776272573609, 'incidents': -2.125863308719894, 'bus_stops': -0.45028113105073114, 'intersections': -0.04823909122253975}"
+true parameters,"{'tt': None, 'incidents': None, 'bus_stops': None, 'intersections': None}"
+norefined_learner,{'bilevel_iters': None}
+norefined_optimizer,"{'iters': 1, 'eta': 0.5}"
+norefined_equilibrator,"{'uncongested_mode': False, 'exogenous_traveltimes': False, 'max_iters': 100, 'accuracy': 0.0001, 'method': 'fw', 'iters_fw': 10, 'search_fw': 'grid', 'column_generation': {'n_paths': 24, 'paths_selection': 6, 'dissimilarity_weight': 0, 'ods_coverage': 0.2, 'ods_sampling': 'sequential', 'iter_ods_sampling': 0}, 'path_size_correction': 3}"
+refined_learner,{'bilevel_iters': None}
+refined_optimizer,{'iters': 1}
+refined_equilibrator,"{'uncongested_mode': False, 'exogenous_traveltimes': False, 'max_iters': 100, 'accuracy': 0.0001, 'method': 'fw', 'iters_fw': 10, 'search_fw': 'grid', 'column_generation': {'n_paths': 24, 'paths_selection': 6, 'dissimilarity_weight': 0, 'ods_coverage': 0.2, 'ods_sampling': 'sequential', 'iter_ods_sampling': 0}, 'path_size_correction': 3}"
