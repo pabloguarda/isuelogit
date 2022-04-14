@@ -1299,7 +1299,7 @@ class Artist:
             # ax[(0,0)].set_yticks(np.arange(results_norefined_df['vot'].min(), results_norefined_df['vot'].max(), 0.2))
             ax[(0, 0)].axhline(0.1667, linestyle='dashed')
             # ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}/\hat{\theta_c}$')
-            ax[(0, 0)].set_ylabel("Value of time")
+            ax[(0, 0)].set_ylabel("value of time")
             # ax[(0, 0)].yaxis.set_major_formatter(OOMFormatter(-4, "%1.1f"))
             # ax[(0, 0)].yaxis.set_major_formatter(yfmt1)
             ax[(0, 0)].tick_params(labelbottom=False)
@@ -1827,7 +1827,7 @@ class Artist:
 
         ax[(0, 0)].axhline(float(theta_true['tt']) / float(theta_true['c']), linestyle='dashed', color='black')
 
-        ax[(0, 0)].set_ylabel("Value of time")
+        ax[(0, 0)].set_ylabel("value of time")
         # ax[(0, 0)].set_ylabel(r'$\hat{\theta_t}/\hat{\theta_c}$')
         # ax[(0, 0)].set_ticklabels([])
 
