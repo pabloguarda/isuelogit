@@ -1,0 +1,9 @@
+stage,parameter,est,CI,width_CI,t-test,p-value
+norefined,tt,-8.520,"[-25.737, 8.697]",17.217,-0.979,0.330
+norefined,reliable_speed,0.000,"[nan, nan]",,0.000,1.000
+norefined,incident,-0.513,"[-2.144, 1.118]",1.631,-0.622,0.535
+norefined,bus_stop,0.000,"[-1.769, 1.769]",1.769,0.000,1.000
+norefined,intersection,0.000,"[-0.725, 0.725]",0.725,0.000,1.000
+norefined,low_inc,0.000,"[-1.236, 1.236]",1.236,0.000,1.000
+refined,tt,-8.861,"[-25.843, 8.121]",16.982,-1.032,0.304
+refined,incident,-1.271,"[-3.58, 1.038]",2.309,-1.088,0.278
