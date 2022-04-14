@@ -37,6 +37,13 @@ output/experiments/SiouxFalls/*
 output/experiments/small-networks/*
 !output/experiments/small-networks/220413
 
+!output/estimations/
+output/estimations/*
+!output/estimations/Fresno/
+output/estimations/Fresno/*
+!output/estimations/Fresno/220413
+
+
 # Input
 input/private
 input/public
