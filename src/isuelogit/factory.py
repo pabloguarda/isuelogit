@@ -576,8 +576,6 @@ class LinkDataGenerator(Generator):
 
             # If noise is applied in the q matrix, we generate a copy of the original od demand vector and set a noisy matrix meanwhile to compute equilibrium
 
-            sd_Q = sd_Q
-
             if sd_Q != 'Poisson':
                 # sd is a parameter computed as proportion of the mean
                 sd_Q = np.mean(network.Q) * sd_Q
@@ -630,8 +628,7 @@ class LinkDataGenerator(Generator):
 
         # eq_params
         # theta['tt'] = 0
-        results_equilibrium \
-            = equilibrator.path_based_suelogit_equilibrium(
+        results_equilibrium = equilibrator.path_based_suelogit_equilibrium(
             theta= utility_function.true_values,
             features_Z=utility_function.features_Z,
             network=network,
