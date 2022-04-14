@@ -1,0 +1,11 @@
+stage,parameter,est,CI,width_CI,t-test,p-value
+norefined,tt,-1.220,"[-2.916, 0.477]",1.696,-1.422,0.157
+norefined,speed_sd,0.000,"[-0.83, 0.83]",0.830,0.000,1.000
+norefined,incidents,-1.115,"[-3.959, 1.729]",2.844,-0.776,0.439
+norefined,median_inc,0.220,"[-0.908, 1.349]",1.128,0.386,0.700
+norefined,bus_stops,0.000,"[-2.133, 2.133]",2.133,0.000,1.000
+norefined,intersections,-0.204,"[-1.66, 1.251]",1.455,-0.278,0.782
+refined,tt,-1.824,"[-4.087, 0.439]",2.263,-1.594,0.113
+refined,incidents,-2.595,"[-7.082, 1.892]",4.487,-1.144,0.255
+refined,median_inc,0.525,"[-0.539, 1.589]",1.064,0.976,0.331
+refined,intersections,0.000,"[-0.99, 0.99]",0.990,0.000,1.000
