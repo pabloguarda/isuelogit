@@ -1,0 +1,3 @@
+stage,parameter,est,CI,width_CI,t-test,p-value
+norefined,tt,-2.000,"[-3.708, -0.292]",1.708,-2.315,0.022
+refined,tt,-2.000,"[-3.544, -0.456]",1.544,-2.561,0.011
