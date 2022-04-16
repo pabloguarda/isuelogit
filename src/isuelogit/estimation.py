@@ -3516,16 +3516,12 @@ def gradient_objective_function(theta: ColumnVector,
 
     grad_m_terms[0] = M.T.dot(q)
 
-    # This is the availability matrix and it is very expensive to compute when using matrix operation M.T.dot(M) but not when calling function choice_set_matrix_from_M
     grad_m_terms[1] = paths_probabilities.dot(paths_probabilities.T)
 
     # This operation is performed for each attribute k. Then, the compl
 
     # Objective function
     m = compute_response_function(D, M, q, paths_probabilities)
-
-    # Store the number of elements different than nan
-    # adjusted_n = np.count_nonzero(~np.isnan(counts))
 
     # To account for missing link counts
     counts = fake_observed_counts(predicted_counts=m, observed_counts=counts)
