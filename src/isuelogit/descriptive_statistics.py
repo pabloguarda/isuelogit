@@ -494,7 +494,8 @@ def corrfunc(x, y, ax=None, **kws):
     r, _ = pearsonr(x[~nas], y[~nas])
 
     ax = ax or plt.gca()
-    ax.annotate(f'ρ = {r:.2f}', xy=(.6, .9), xycoords=ax.transAxes)
+    # ax.annotate(f'ρ = {r:.2f}', xy=(.6, .9), xycoords=ax.transAxes)
+    ax.annotate(f'ρ = {r:.2f}', xy=(.6, .9), xycoords='axes fraction', ha='center')
 
 def corrfunc_hue(x, y, **kws):
     # https://stackoverflow.com/questions/43251021/show-two-correlation-coefficients-on-pairgrid-plot-with-hue-categorical-variabl
@@ -510,10 +511,15 @@ def corrfunc_hue(x, y, **kws):
     #               isinstance(c, matplotlib.text.Annotation)])
     # pos = (.1, .9 - .3*n)
     # or make positions for every label by hand
-    pos = (.6, .9) if kws['label'] == '2019-10-01' else (.6,.75)
     color = sns.color_palette()[0] if kws['label'] == '2019-10-01' else sns.color_palette()[1]
 
-    ax.annotate(f'ρ = {r:.2f}', xy=pos, xycoords=ax.transAxes, color = color)
+    # pos = (.6, .9) if kws['label'] == '2019-10-01' else (.6,.75)
+    #ax.annotate(f'ρ = {r:.2f}', xy=pos, xycoords=ax.transAxes, color = color)
+
+    pos = (.5, .6) if kws['label'] == '2019-10-01' else (.5,.4)
+    ax.annotate(f'ρ = {r:.2f}', xy=pos, color=color, xycoords = 'axes fraction', ha = 'center', fontsize=14)
+
+    ax.set_axis_off()
 
     # ax.annotate("{}: r = {:.2f}".format(kws['label'],r),
     #             xy=pos, xycoords=ax.transAxes)
@@ -549,16 +555,16 @@ def scatter_plots_features(links_df,
 
     # https://seaborn.pydata.org/tutorial/axis_grids.html
     if hue is not None:
-        g = sns.PairGrid(df, corner=True, hue = hue)
-        g.map_lower(corrfunc_hue)
+        g = sns.PairGrid(df, hue = hue)
+        g.map_upper(corrfunc_hue)
     else:
-        g = sns.PairGrid(df, corner=True)
-        g.map_lower(corrfunc)
+        g = sns.PairGrid(df)
+        g.map_upper(corrfunc)
 
-    g.map_diag(sns.histplot)
+    g.map_diag(sns.histplot, alpha = 0.7)
 
     # g.map(sns.scatterplot)
-    g.map_offdiag(sns.regplot)
+    g.map_lower(sns.regplot)
     # fig1.show()
     # g1.savefig('output1.png')
 
@@ -582,12 +588,14 @@ def scatter_plots_features(links_df,
         handles = g._legend_data.values()
         labels = g._legend_data.keys()
 
-        g.add_legend(fontsize=14, handles=handles, labels=labels, loc='upper center',
-                     title = 'Date', bbox_to_anchor=(.82, .6), frameon=False)
+        g.add_legend(fontsize=14, handles=handles, labels=labels, loc='lower center', ncol=2,
+                     title = 'Date', frameon=False)
 
-        g. legend.get_title().set_fontsize(14)
+        g.legend.get_title().set_fontsize(14)
 
-        # g.fig.subplots_adjust(top=0.92, bottom=0.08)
+        g._legend.set_bbox_to_anchor((0.4, -0.01))
+
+        g.fig.subplots_adjust(top=0.92, bottom=0.1)
 
     # sns.move_legend(g, "center right")
 
