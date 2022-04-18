@@ -1,4 +1,4 @@
-""" In charge of doing data processing, merging, data cleaning, etc. It reads data but it requires more sophicated procedures to do it (e.g. setup spark context), which explains why those functions are not includes in the reader module """
+""" etl: extract, transform and load. In charge of doing data processing, merging, data cleaning, etc. It reads data. Some functions employ more sophicated procedures to handle big data that depends on the pyspark library """
 
 from __future__ import annotations
 
