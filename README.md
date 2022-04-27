@@ -4,7 +4,7 @@ Stochastic user equilibrium with logit assignment (`sue-logit`) outputs an assig
 
 The `isuelogit` package addresses the aforementioned limitation by using the output of `sue-logit` to solve an inverse problem, namely, estimating the parameters of the travelers' utility function using traffic counts.
 
-To review use cases and to understand the theory and motivation of the algorithms included in the package, please review the preprint available in this [link](https://arxiv.org/abs/2204.10964)
+To review various use cases and to better understand the theory behind the algorithms included in the package, please review the preprint available in this [link](https://arxiv.org/abs/2204.10964)
 
 ## Development setup
 
