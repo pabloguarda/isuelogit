@@ -19,7 +19,8 @@ To understand the theory behind the algorithms and the use cases of this package
 1. Install jupyter lab: `pip install jupyter notebook`
 2. Install ipython kernel for jupyter: `pip install ipykernel`
 3. Add your virtual environment to Jupyter:  `python3 -m ipykernel install --user --name=venv-isuelogit`
-4. Open any of the notebooks include in folder `notebooks` and choose kernel `venv-isuelogit` to run it
+4. Open any of the notebooks included in the folder `notebooks` 
+5. Choose kernel `venv-isuelogit` before running the notebook
 
 ## Collaboration
 For any questions or interest of collaborating in this project, please contact pabloguarda@cmu.edu. This package was developed under the guidance of Prof. Sean Qian. 
