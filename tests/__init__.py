@@ -10,3 +10,9 @@ https://docs.pytest.org/en/latest/usage.html
 coverage run -m pytest pytest
 https://coverage.readthedocs.io/en/coverage-5.0.3/
 """
+
+import sys
+import os
+
+project_root = os.path.abspath(os.path.dirname(__file__))
+sys.path.append(project_root)
