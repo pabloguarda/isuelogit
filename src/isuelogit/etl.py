@@ -198,18 +198,14 @@ class DataReader:
 
         # isuelogit.utils.download_pems_data(path_download = os.getcwd() + '/data/public/pems/counts/raw'
         #                    , years = [str(e) for e in range(2019, 2021)]
-        #                    )
-
-        # TODO: Use a separate process to download the data.
-
-        # TODO: write script to download station metadata. An alternative is provide the type of data in the current download method. Meanwhile I downloaded manually the earliest file for 2019 (d04_text_meta_2021_01_29). I should download data from all stations in california, as it is not clear what it is the mapping between counties and districts. Districts is an internal defition from Caltrans.
+        #
 
         # District and counties list https://en.wikipedia.org/wiki/California_Department_of_Transportation
         # Fresno is district 6.
 
 
         url = "http://pems.dot.ca.gov"
-        payload = {'username': 'pabloguarda@cmu.edu', 'password': 'PaulCmu1087*'}
+        payload = {'username': None, 'password': None}
         target_url = 'http://pems.dot.ca.gov/?srq=clearinghouse&district_id=4&geotag=null&yy={year}&type=station_5min&returnformat=text'
 
         # The current link structure is a bit different:
