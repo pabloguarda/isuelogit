@@ -2511,7 +2511,7 @@ class Artist:
         if matplotlib.rcParams['text.usetex']:
             x_label = r"$\hat{\theta}$"
         else:
-            x_label = "travel time coefficient"
+            x_label = "coefficient value"
 
         lines, labels = [], []
         for axi in fig.get_axes():
@@ -2694,7 +2694,7 @@ class Artist:
         if matplotlib.rcParams['text.usetex']:
             x_label = r"$\hat{\theta}$"
         else:
-            x_label = "travel time coefficient"
+            x_label = "coefficient value"
 
         for axi in fig.get_axes():
             axi.set_xlabel(x_label)
