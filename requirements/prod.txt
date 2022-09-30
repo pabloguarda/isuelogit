@@ -23,7 +23,8 @@ shapely #== 1.8.1.post1
 
 psutil
 
-# geopandas #== 0.10.2
+# Packages required to process spatio-temporal data from Fresno conducted in read_write_fresno_data.ipynb
+# geopandas == 0.10.2
 # rtree == 0.9.7
 
 #pyspark == 3.0
