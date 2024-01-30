@@ -1,0 +1,25 @@
+# To install with Conda: conda install --file requirements/dev.txt
+
+#Developer tools
+bump2version # ==0.5.11
+wheel # ==0.33.6
+watchdog # ==0.9.0
+flake8 # ==3.7.8
+tox # ==3.14.0
+coverage # ==4.5.4
+Sphinx # ==1.8.5
+#3twine # ==1.14.0
+#3Click # ==7.0
+setuptools
+pip # ==20.0.2
+
+#Developer tools to be tried
+#hypothesis == 5.10.3
+#attrs==19.3.0
+
+#Testing
+pytest #==4.6.5
+pytest-runner #==5.1
+
+
+

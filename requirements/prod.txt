@@ -1,0 +1,32 @@
+wheel # == 0.33.6
+
+numpy
+pandas >= 1.3.5, < 2.0
+scikit-learn >= 1.0.2
+scipy >= 1.7.3
+
+matplotlib >= 3.1.3
+seaborn >= 0.11.2
+
+networkx > 2.6.3
+# openmatrix
+# openmatrix >= 0.3.5.0
+
+autograd >= 1.3
+numdifftools >= 0.9.40
+
+sortedcontainers>=2.4.0
+requests>=2.27.1
+bs4 >= 0.0.1
+
+addfips >= 0.3.1
+shapely == 1.8.5
+
+psutil
+
+# Packages required to process spatio-temporal data from Fresno conducted in read_write_fresno_data.ipynb
+# geopandas == 0.10.2
+# rtree == 0.9.7
+#
+# pyspark == 3.0
+# findspark == 2.0.1

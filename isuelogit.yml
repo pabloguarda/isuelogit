@@ -1,0 +1,11 @@
+name: isuelogit
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.7,<3.9
+  - openmatrix
+  # Packages required to process spatio-temporal data from Fresno conducted in read_write_fresno_data.ipynb
+  - shapely>=1.8
+  - geopandas #== 0.10.2
+  - pip:
+    - -r requirements/prod.txt

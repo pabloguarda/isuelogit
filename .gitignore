@@ -1,0 +1,74 @@
+#Virtual environment
+venv/
+venv-isuelogit/
+
+# Local packages
+local-packages/
+
+# requirements
+requirements/environment.yml
+requirements/extra.txt
+
+#Other folders
+build/lib/*
+
+# Pycharm internal files
+.idea/
+.eggs/
+cache/
+
+#Python cache
+.pytest_cache/
+__pycache__/
+
+#Git internal files
+.git/
+
+# Examples
+examples/
+
+#output
+plots/
+output/*
+!output/experiments
+output/experiments/*
+!output/experiments/SiouxFalls
+output/experiments/SiouxFalls/*
+!output/experiments/Siouxfalls/220413
+
+!output/experiments/small-networks
+output/experiments/small-networks/*
+!output/experiments/small-networks/220413
+
+!output/estimations/
+output/estimations/*
+!output/estimations/Fresno/
+output/estimations/Fresno/*
+!output/estimations/Fresno/220416
+
+
+# Input
+input/private
+input/public
+
+#Notebooks
+#notebooks/read_write_fresno_data.ipynb
+notebooks/extra
+notebooks/extra/lue_random_network.ipynb
+notebooks/lue_fresno_network-2020a.ipynb
+
+#extra
+src/extra
+src/isuelogit.egg-info/
+
+#Not implemented
+.travis.yml
+src/extra/README.rst
+docs/
+.tox/
+tox.ini
+History.rst
+
+notebooks/.ipynb_checkpoints/
+notebooks/.DS_Store
+
