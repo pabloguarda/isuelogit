@@ -7,6 +7,19 @@ The `isuelogit` package addresses the aforementioned limitation by using the out
 + Preprint: https://arxiv.org/abs/2204.10964
 + Journal article: https://doi.org/10.1016/j.trb.2023.102853
 
+Please cite this work as:
+
+```
+@article{GuardaQian2024statistical,
+  title={Statistical inference of travelers’ route choice preferences with system-level data},
+  author={Guarda, Pablo and Qian, Sean},
+  journal={Transportation research part B: methodological},
+  volume={179},
+  pages={102853},
+  year={2024}
+}
+```
+
 ## Development setup
 
 1. Clone the repository
