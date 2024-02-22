@@ -783,20 +783,21 @@ class TNetwork(nx.Graph):
     def generate_edges_weights(self, V: Matrix) -> Dict:
 
         '''
+        
+        Edge weights are all non-negative and have the opposite sign that the utilities. 
+        To avoid problems with link with positive utilities, namely, a negative weight,
+        the weights are shifted by a constant corresponding to the absolute value of the 
+        most negative value. This will not affect the shortest path calculation. 
 
         arguments:
             V (Matrix): Utility Matrix
 
         returns:
-            edge weights in utility units
+            edge weights that are all non-negative and have the opposite sign of the edge utilities 
         '''
 
-        # edges_weights_dict = dict(zip(dict(G.links).keys(), np.random.randint(0, 20, len(list(G.links)))))
-
-        # To avoid problems with link with negative utilities, we deviates them by the link with the most negative values such that all have utilities greater or equal than 0.
-
+        V = -V
         V = V+abs(np.min(V))
-
 
         edges_weights_dict = {}
 
